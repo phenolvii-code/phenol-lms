@@ -1,0 +1,14 @@
+export type UserRole = 'STUDENT' | 'INSTRUCTOR' | 'GUEST';
+
+export interface AuthUser {
+  id: string;
+  name: string;
+  email: string;
+  phone?: string;
+  governorate?: string;
+  role: UserRole;
+  avatar: string;
+  registeredAt: string;
+}
+
+export type AuthModalMode = 'LOGIN' | 'REGISTER' | 'INSTRUCTOR_LOGIN';

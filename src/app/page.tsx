@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ViewMode, ChemistryCourse, ChemistryQuiz, Booklet, StudentSubmission, ChemistryLesson } from '@/types/lms';
+import { AuthUser, AuthModalMode } from '@/types/auth';
 import {
   INSTRUCTOR,
   CHEMISTRY_COURSES,
@@ -19,9 +20,16 @@ import { BookletsView } from '@/components/booklets/BookletsView';
 import { InstructorConsole } from '@/components/instructor/InstructorConsole';
 import { StudentTasksView } from '@/components/student/StudentTasksView';
 import { AddLectureModal } from '@/components/instructor/AddLectureModal';
-import { FlaskConical, Sparkles, BookOpen, Award, ArrowLeft, ShieldCheck } from 'lucide-react';
+import { AuthModal } from '@/components/auth/AuthModal';
+import { FlaskConical, Sparkles, BookOpen, Lock, UserPlus } from 'lucide-react';
 
 export default function Home() {
+  // Authentication state
+  const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [authModalMode, setAuthModalMode] = useState<AuthModalMode>('LOGIN');
+
+  // Navigation & View Mode
   const [viewMode, setViewMode] = useState<ViewMode>('STUDENT');
   const [activeSection, setActiveSection] = useState<string>('courses');
 
@@ -36,7 +44,56 @@ export default function Home() {
   const [activeQuiz, setActiveQuiz] = useState<ChemistryQuiz | null>(null);
   const [isAddLectureOpen, setIsAddLectureOpen] = useState(false);
 
-  // Handlers
+  // Load user session on mount
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('phenol_auth_user');
+      if (saved) {
+        const parsed: AuthUser = JSON.parse(saved);
+        setCurrentUser(parsed);
+        if (parsed.role === 'INSTRUCTOR') {
+          setViewMode('INSTRUCTOR');
+        }
+      }
+    } catch (e) {
+      console.error('Session load error', e);
+    }
+  }, []);
+
+  // Auth Handlers
+  const handleOpenAuth = (mode: AuthModalMode) => {
+    setAuthModalMode(mode);
+    setIsAuthModalOpen(true);
+  };
+
+  const handleLoginSuccess = (user: AuthUser) => {
+    setCurrentUser(user);
+    try {
+      localStorage.setItem('phenol_auth_user', JSON.stringify(user));
+    } catch (e) {
+      console.error('Storage error', e);
+    }
+
+    if (user.role === 'INSTRUCTOR') {
+      setViewMode('INSTRUCTOR');
+      setActiveSection('submissions');
+    } else {
+      setViewMode('STUDENT');
+    }
+  };
+
+  const handleLogout = () => {
+    setCurrentUser(null);
+    setViewMode('STUDENT');
+    setActiveSection('courses');
+    try {
+      localStorage.removeItem('phenol_auth_user');
+    } catch (e) {
+      console.error('Logout error', e);
+    }
+  };
+
+  // Data Handlers
   const handleToggleLesson = (courseId: string, lessonId: string) => {
     setCourses((prev) =>
       prev.map((c) => {
@@ -66,7 +123,16 @@ export default function Home() {
   };
 
   const handleStudentSubmit = (newTask: Partial<StudentSubmission>) => {
-    setSubmissions((prev) => [newTask as StudentSubmission, ...prev]);
+    if (!currentUser) {
+      handleOpenAuth('LOGIN');
+      return;
+    }
+    const submissionWithUser: StudentSubmission = {
+      ...(newTask as StudentSubmission),
+      studentName: currentUser.name,
+      studentCode: currentUser.phone ? `PHN-${currentUser.phone.slice(-4)}` : 'PHN-2026',
+    };
+    setSubmissions((prev) => [submissionWithUser, ...prev]);
   };
 
   const handleAddLecture = (courseId: string, newLesson: ChemistryLesson) => {
@@ -81,19 +147,24 @@ export default function Home() {
     );
   };
 
+  const isInstructor = currentUser?.role === 'INSTRUCTOR';
+
   return (
     <div className="min-h-screen flex flex-col bg-[#fcfbfa] text-slate-900 selection:bg-burgundy-100 selection:text-burgundy-900">
-      {/* Precision Apple-Style Navbar */}
+      {/* Precision Navbar */}
       <Navbar
+        currentUser={currentUser}
         viewMode={viewMode}
         onToggleViewMode={setViewMode}
         activeSection={activeSection}
         onSelectSection={setActiveSection}
+        onOpenAuthModal={handleOpenAuth}
+        onLogout={handleLogout}
       />
 
       {/* Main Container */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 space-y-12">
-        {/* Banner only on Courses section */}
+        {/* Banner on Courses section */}
         {activeSection === 'courses' && (
           <HeroBanner
             instructor={INSTRUCTOR}
@@ -122,7 +193,7 @@ export default function Home() {
                 </p>
               </div>
 
-              {viewMode === 'INSTRUCTOR' && (
+              {isInstructor && (
                 <button
                   onClick={() => setIsAddLectureOpen(true)}
                   className="px-5 py-2.5 rounded-xl bg-burgundy-950 text-gold-400 font-bold text-xs hover:bg-black transition shadow-sm"
@@ -187,7 +258,6 @@ export default function Home() {
                       className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-burgundy-950 to-burgundy-900 text-gold-400 hover:text-gold-300 font-bold text-xs transition shadow"
                     >
                       <span>بدء التحدي الكيميائي</span>
-                      <ArrowLeft className="w-3.5 h-3.5" />
                     </button>
                   </div>
                 </div>
@@ -202,7 +272,7 @@ export default function Home() {
         {/* Section 4: Submissions / Console */}
         {activeSection === 'submissions' && (
           <>
-            {viewMode === 'INSTRUCTOR' ? (
+            {isInstructor ? (
               <InstructorConsole
                 instructor={INSTRUCTOR}
                 courses={courses}
@@ -210,11 +280,38 @@ export default function Home() {
                 onGradeSubmission={handleGradeSubmission}
                 onOpenAddLectureModal={() => setIsAddLectureOpen(true)}
               />
-            ) : (
+            ) : currentUser ? (
               <StudentTasksView
                 submissions={submissions}
                 onSubmitNewTask={handleStudentSubmit}
               />
+            ) : (
+              /* If guest tries to access submissions */
+              <div className="bg-white rounded-3xl border border-burgundy-900/10 p-12 text-center max-w-lg mx-auto shadow-sm space-y-4">
+                <div className="w-16 h-16 rounded-2xl bg-burgundy-50 text-burgundy-950 flex items-center justify-center mx-auto">
+                  <Lock className="w-8 h-8 text-burgundy-900" />
+                </div>
+                <h3 className="text-xl font-bold text-burgundy-950 font-serif">
+                  منطقة تسليم الواجبات والتكاليف
+                </h3>
+                <p className="text-xs text-slate-500 leading-relaxed">
+                  يجب تسجيل الدخول كطالب لتتمكن من تسليم حلول المسائل واستلام تقييم وملاحظات د. عمر مجدي الشخصية.
+                </p>
+                <div className="flex justify-center gap-3 pt-2">
+                  <button
+                    onClick={() => handleOpenAuth('LOGIN')}
+                    className="px-6 py-2.5 rounded-xl bg-burgundy-950 text-gold-400 font-bold text-xs shadow-md"
+                  >
+                    تسجيل الدخول
+                  </button>
+                  <button
+                    onClick={() => handleOpenAuth('REGISTER')}
+                    className="px-6 py-2.5 rounded-xl bg-gold-400 text-burgundy-950 font-extrabold text-xs shadow-goldGlow"
+                  >
+                    إنشاء حساب طالب
+                  </button>
+                </div>
+              </div>
             )}
           </>
         )}
@@ -239,7 +336,14 @@ export default function Home() {
         onAddLecture={handleAddLecture}
       />
 
-      {/* Minimalist Apple-Style Footer */}
+      <AuthModal
+        isOpen={isAuthModalOpen}
+        initialMode={authModalMode}
+        onClose={() => setIsAuthModalOpen(false)}
+        onLoginSuccess={handleLoginSuccess}
+      />
+
+      {/* Minimalist Footer */}
       <footer className="mt-auto border-t border-burgundy-900/10 bg-white py-10 text-xs text-slate-500">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
