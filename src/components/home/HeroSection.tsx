@@ -48,10 +48,10 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onStartJourney }) => {
 
         {/* Main Headline: "من فهم شيئاً ملكه" with Luxury Arabic Alexandria Font */}
         <div className="space-y-4">
-          <h1 className="clamp-headline font-display font-black tracking-tight">
-            <span className="block bg-gradient-to-l from-gold-300 via-rose-100 to-white bg-clip-text text-transparent drop-shadow-sm py-1">
-              «مَن فَهِمَ شَيْئًا مَلَكَهُ»
-            </span>
+          <h1 className="clamp-headline font-display font-black tracking-tight text-white py-1">
+            <span className="text-gold-400">«</span>
+            <span className="text-white drop-shadow-[0_4px_24px_rgba(0,0,0,0.9)]">مَن فَهِمَ شَيْئًا مَلَكَهُ</span>
+            <span className="text-gold-400">»</span>
           </h1>
 
           {/* Core Philosophy Tagline */}
