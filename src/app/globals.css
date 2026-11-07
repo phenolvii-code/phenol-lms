@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&family=Cinzel:wght@500;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&family=Cinzel:wght@500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -9,6 +9,15 @@
   --foreground: #F3F4F6;
   --burgundy: #641C32;
   --burgundy-deep: #3D1021;
+  --gold: #D4AF37;
+  --card-primary: #15171D;
+  --card-secondary: #20232B;
+  --border-subtle: #2D313C;
+}
+
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 5rem;
 }
 
 body {
@@ -17,10 +26,23 @@ body {
   font-family: 'Cairo', system-ui, -apple-system, sans-serif;
   letter-spacing: -0.01em;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
   overflow-x: hidden;
+  min-height: 100dvh;
 }
 
-/* Editorial Serif for English titles */
+/* Fluid responsive typography utilities */
+.clamp-headline {
+  font-size: clamp(2rem, 1.4rem + 3.2vw, 4.25rem);
+  line-height: 1.15;
+}
+
+.clamp-subhead {
+  font-size: clamp(1rem, 0.9rem + 0.5vw, 1.25rem);
+  line-height: 1.7;
+}
+
+/* Editorial Serif for English titles & accents */
 .font-editorial {
   font-family: 'Cinzel', 'Georgia', serif;
 }
@@ -32,13 +54,25 @@ body {
 
 /* Subtle academic glass */
 .academic-glass {
-  background: rgba(21, 23, 29, 0.85);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid #2D313C;
+  background: rgba(21, 23, 29, 0.88);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border: 1px solid rgba(45, 49, 60, 0.7);
 }
 
-/* Scrollbar */
+/* Luxury Gold & Burgundy gradients */
+.text-gold-gradient {
+  background: linear-gradient(135deg, #FAF7F2 0%, #D4AF37 50%, #C59B27 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.border-gold-glow {
+  border-color: rgba(212, 175, 55, 0.4);
+  box-shadow: 0 0 25px -5px rgba(212, 175, 55, 0.2);
+}
+
+/* Custom Scrollbar */
 ::-webkit-scrollbar {
   width: 7px;
   height: 7px;
@@ -61,4 +95,9 @@ body {
 ::selection {
   background: #641C32;
   color: #FAF7F2;
+}
+
+/* Mobile tap safety */
+button, a, input, select {
+  touch-action: manipulation;
 }

@@ -13,6 +13,7 @@ import { ProgramsSection } from '@/components/home/ProgramsSection';
 import { ResourcesSection } from '@/components/home/ResourcesSection';
 import { AboutSection } from '@/components/home/AboutSection';
 import { FinalCtaSection } from '@/components/home/FinalCtaSection';
+import { PhenolLogo } from '@/components/brand/PhenolLogo';
 
 export default function Home() {
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
@@ -55,7 +56,7 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-darkBg text-textPrimary flex flex-col font-sans selection:bg-burgundy-500 selection:text-white">
+    <div className="min-h-screen bg-darkBg text-textPrimary flex flex-col font-sans selection:bg-burgundy-500 selection:text-white antialiased">
       {/* Precision Academic Navbar */}
       <Navbar
         currentUser={currentUser}
@@ -63,8 +64,8 @@ export default function Home() {
         onLogout={handleLogout}
       />
 
-      {/* Main Content Sections */}
-      <main className="flex-1 space-y-24 sm:space-y-36 pb-24 overflow-hidden">
+      {/* Main Content Sections with Fluid Vertical Spacing */}
+      <main className="flex-1 space-y-20 sm:space-y-28 lg:space-y-36 pb-20 sm:pb-28 overflow-hidden">
         {/* Section 01: Hero */}
         <HeroSection onStartJourney={() => handleOpenAuth('REGISTER')} />
 
@@ -95,19 +96,39 @@ export default function Home() {
 
       {/* Minimalist Editorial Footer */}
       <footer className="border-t border-borderSubtle bg-darkBg py-12 text-xs text-textSecondary">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-6">
-          <div className="flex flex-col sm:flex-row items-center gap-3 text-center sm:text-right">
-            <span className="font-editorial text-sm font-bold text-textPrimary uppercase tracking-wider">
-              Dr. Omar Magdi
-            </span>
-            <span className="hidden sm:inline text-borderSubtle">•</span>
-            <span className="text-gold-500 font-serif">«من فهم شيئًا ملكه»</span>
-            <span className="hidden sm:inline text-borderSubtle">•</span>
-            <span className="text-textSecondary/80 font-formula text-[11px]">Find the Simple. Master the Complex.</span>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-6 pb-8 border-b border-borderSubtle/60">
+            <PhenolLogo size={38} />
+
+            <div className="flex flex-wrap items-center justify-center gap-4 text-xs">
+              <a href="#philosophy" className="hover:text-gold-400 transition">الفلسفة</a>
+              <span className="text-borderSubtle">•</span>
+              <a href="#method" className="hover:text-gold-400 transition">طريقة فاينمان</a>
+              <span className="text-borderSubtle">•</span>
+              <a href="#comparison" className="hover:text-gold-400 transition">المقارنة التحليلية</a>
+              <span className="text-borderSubtle">•</span>
+              <a href="#programs" className="hover:text-gold-400 transition">المسارات</a>
+              <span className="text-borderSubtle">•</span>
+              <a href="#about" className="hover:text-gold-400 transition">عن الدكتور</a>
+            </div>
           </div>
 
-          <div className="text-textSecondary/50 text-[11px]">
-            جميع الحقوق محفوظة © {new Date().getFullYear()} • The Chemistry Counselor
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-right">
+            <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-3">
+              <span className="font-editorial text-sm font-bold text-textPrimary uppercase tracking-wider">
+                Dr. Omar Magdi
+              </span>
+              <span className="hidden sm:inline text-borderSubtle">•</span>
+              <span className="text-gold-500 font-serif text-sm">«من فهم شيئًا ملكه»</span>
+              <span className="hidden sm:inline text-borderSubtle">•</span>
+              <span className="text-textSecondary/80 font-formula text-[11px]">
+                Find the Simple. Master the Complex.
+              </span>
+            </div>
+
+            <div className="text-textSecondary/60 text-[11px]">
+              جميع الحقوق محفوظة © {new Date().getFullYear()} • The Chemistry Counselor
+            </div>
           </div>
         </div>
       </footer>
