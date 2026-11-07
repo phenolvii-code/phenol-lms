@@ -6,45 +6,39 @@ export const FeynmanMethodSection: React.FC = () => {
   const steps = [
     {
       num: '01',
-      en: 'Understand',
-      ar: 'افهم',
-      sub: 'المعنى والغرض الحقيقي',
-      desc: 'نبدأ بتحديد المعنى الحقيقي للمفهوم العلمي والمشكلة التي يفسرها ولماذا نحتاج إليه، دون التسرع بحفظ نص التعريف أو القاعدة.',
+      title: 'Understand',
+      sub: 'True Meaning & Purpose',
+      desc: 'We start by identifying the physical phenomenon and the core problem it explains, rather than prematurely memorizing definitions or formulas.',
     },
     {
       num: '02',
-      en: 'Deconstruct',
-      ar: 'فكّك',
-      sub: 'التحليل من المبادئ البسيطة',
-      desc: 'تفكيك المفهوم إلى عناصره الأولية ونماذجه الأساسية لإزالة الغموض وإعادة بناء الفكرة من جذورها دون إخلال بالدقة.',
+      title: 'Deconstruct',
+      sub: 'Breakdown to Elementary Models',
+      desc: 'Dissecting complex mechanisms into fundamental electronic states, orbital geometries, and thermodynamics to build the concept from its roots.',
     },
     {
       num: '03',
-      en: 'Explain',
-      ar: 'فسّر',
-      sub: 'تسلسل منطقي دون فجوات',
-      desc: 'إعادة صياغة المفهوم في تسلسل منطقي محكم؛ كل خطوة تقود للتي تليها بداهةً دون قفز للنتائج أو ترك فجوات فكرية.',
+      title: 'Explain',
+      sub: 'Rigorous Step-by-Step Logic',
+      desc: 'Reformulating the concept in a seamless deductive sequence: each step leads inexorably to the next with zero intellectual gaps or leaps.',
     },
     {
       num: '04',
-      en: 'Connect',
-      ar: 'اربط',
-      sub: 'الترابط المعرفي الشامل',
-      desc: 'ربط الفكرة بما سبق دراسته وبالفروع الكيميائية الأخرى لرؤية العلم كنظام متكامل ومترابط لا كجزر منعزلة.',
+      title: 'Connect',
+      sub: 'Inter-Branch Synthesis',
+      desc: 'Linking new ideas to previously covered thermodynamics and molecular physics, viewing chemistry as an organic whole rather than isolated islands.',
     },
     {
       num: '05',
-      en: 'Apply',
-      ar: 'طبّق',
-      sub: 'حل مسائل متدرجة وتحليلية',
-      desc: 'الانتقال من الفهم النظري إلى حل مسائل تحليلية غير تقليدية تجمع أكثر من فكرة، وتدرب العقل على نقل المعرفة لسياقات جديدة.',
+      title: 'Apply',
+      sub: 'Non-Routine Analytical Problem Solving',
+      desc: 'Moving from theory to solving multi-concept, non-traditional problems that train the mind to transfer principles to novel experimental setups.',
     },
     {
       num: '06',
-      en: 'Teach Back',
-      ar: 'أعد الشرح',
-      sub: 'مقياس فاينمان للإتقان',
-      desc: 'يشرح الطالب الفكرة بلغته الخاصة ويبرر اختياراته. إن تعثر، نحدد موضع الفجوة المعرفية ونعيد معالجتها فوراً.',
+      title: 'Teach Back',
+      sub: 'The Benchmark of Mastery',
+      desc: 'The student explains the idea in their own concise words and defends their choices. If hesitation occurs, the exact cognitive gap is diagnosed and re-solved.',
     },
   ];
 
@@ -59,52 +53,52 @@ export const FeynmanMethodSection: React.FC = () => {
                 SECTION 02
               </span>
               <span className="text-hairline-strong">•</span>
-              <span className="text-xs sm:text-sm text-charcoal-100 font-sans font-medium">منهجية التدريس</span>
+              <span className="text-xs sm:text-sm text-charcoal-100 font-sans font-medium">Teaching Methodology</span>
             </div>
 
             <h2 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-charcoal-900 font-display">
-              كيف تتعلم في <bdi className="font-editorial">PHENOL</bdi>&rlm;؟
+              How You Learn at PHENOL
             </h2>
 
-            <p className="text-sm sm:text-base text-charcoal-100 leading-[1.8] font-sans">
-              تستند تجربة التعلم بإشراف <strong className="text-charcoal-900 font-semibold font-sans">د/عمر مجدي</strong> إلى مبدأ الفيزيائي ريتشارد فاينمان: مسار من ست مراحل متسلسلة ينتقل بالطالب من الاستيعاب الأولي إلى الإتقان التام.
+            <p className="text-sm sm:text-base text-charcoal-100 leading-relaxed font-sans">
+              Directed by <strong className="text-charcoal-900 font-semibold font-sans">Dr. Omar Magdi</strong>, our pedagogy adapts the Feynman Technique into a six-stage progression that takes the student from initial intuition to complete mastery.
             </p>
           </div>
 
-          <div className="lg:col-span-5 bg-ivory-300/60 border-r-2 border-burgundy-500 p-6 rounded-r">
+          <div className="lg:col-span-5 bg-ivory-300/60 border-l-2 border-burgundy-500 p-6 rounded-r">
             <span className="font-sans text-xs text-burgundy-500 font-bold uppercase tracking-wider block mb-1.5">
-              مبدأ ريتشارد فاينمان
+              Richard Feynman Principle
             </span>
-            <p className="font-display text-sm sm:text-base text-charcoal-900 font-semibold leading-relaxed">
-              «إذا لم تستطع شرح الفكرة ببساطة، فأنت لم تفهمها بالعمق الكافي بعد.»
+            <p className="font-serif italic text-sm sm:text-base text-charcoal-900 font-medium leading-relaxed">
+              “If you cannot explain it simply, you do not understand it well enough.”
             </p>
           </div>
         </div>
 
         {/* 6 Steps Linear Unboxed Flow */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 sm:gap-10 border-t border-hairline pt-8">
-          {steps.map((item, idx) => (
-            <div
-              key={idx}
-              className="space-y-3 border-b border-hairline pb-6"
-            >
-              <div className="flex items-baseline justify-between">
-                <span className="font-editorial text-2xl font-bold text-burgundy-500">
-                  {item.num}
+          {steps.map((step, idx) => (
+            <div key={idx} className="space-y-3 border-b border-hairline/60 pb-6 sm:border-b-0 sm:pb-0">
+              <div className="flex items-baseline justify-between border-b border-hairline pb-2">
+                <span className="font-formula text-xs font-bold text-burgundy-500">
+                  {step.num}
                 </span>
-                <span dir="ltr" className="font-formula text-xs text-charcoal-50 uppercase tracking-widest">
-                  {item.en}
+                <span className="font-formula text-[11px] text-charcoal-50 uppercase tracking-widest">
+                  STAGE {idx + 1}
                 </span>
               </div>
 
               <div>
                 <h3 className="text-base font-bold text-charcoal-900 font-display">
-                  {item.ar} — <span className="text-xs font-normal text-charcoal-100 font-sans">{item.sub}</span>
+                  {step.title}
                 </h3>
+                <span className="text-xs font-semibold text-charcoal-100 font-sans block mt-0.5">
+                  {step.sub}
+                </span>
               </div>
 
-              <p className="text-xs sm:text-sm text-charcoal-100 leading-[1.8] font-sans">
-                {item.desc}
+              <p className="text-xs sm:text-sm text-charcoal-100 leading-relaxed font-sans">
+                {step.desc}
               </p>
             </div>
           ))}

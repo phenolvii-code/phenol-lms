@@ -2,19 +2,19 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import { CHEMISTRY_COURSES } from '@/data/mock-data';
 import { PhenolLogo } from '@/components/brand/PhenolLogo';
 import {
-  ArrowLeft,
+  ArrowRight,
   Clock,
   Play,
   FlaskConical,
+  ChevronRight,
 } from 'lucide-react';
 
 export default function CourseDetailsPage() {
   const params = useParams();
-  const router = useRouter();
   const courseId = params?.id as string;
 
   const course = CHEMISTRY_COURSES.find((c) => c.id === courseId) || CHEMISTRY_COURSES[0];
@@ -24,20 +24,20 @@ export default function CourseDetailsPage() {
       {/* Top Academic Navigation */}
       <header className="border-b border-hairline bg-ivory-100 sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-18 sm:h-20">
+          <div className="flex items-center justify-between h-16 sm:h-20">
             <div className="flex items-center gap-6">
               <Link href="/" aria-label="PHENOL Home">
-                <PhenolLogo size={36} subtitle="د/عمر مجدي" />
+                <PhenolLogo size={36} subtitle="Dr. Omar Magdi" />
               </Link>
 
               {/* Breadcrumbs */}
               <nav className="hidden sm:flex items-center gap-2 text-xs sm:text-sm text-charcoal-100 font-sans">
                 <Link href="/" className="hover:text-charcoal-900 transition-colors">
-                  الرئيسية
+                  Home
                 </Link>
                 <span>/</span>
                 <Link href="/dashboard" className="hover:text-charcoal-900 transition-colors">
-                  لوحة الطالب
+                  Dashboard
                 </Link>
                 <span>/</span>
                 <span className="font-semibold text-charcoal-900 font-formula">
@@ -51,7 +51,7 @@ export default function CourseDetailsPage() {
                 href="/dashboard"
                 className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs sm:text-sm text-charcoal-100 hover:text-charcoal-900 border border-hairline rounded transition-colors font-sans"
               >
-                <span>لوحة المتابعة</span>
+                <span>Dashboard</span>
               </Link>
             </div>
           </div>
@@ -64,17 +64,19 @@ export default function CourseDetailsPage() {
         <div className="border border-hairline rounded bg-ivory-100 p-6 sm:p-10 space-y-6 shadow-quiet">
           <div className="flex items-center justify-between border-b border-hairline pb-4">
             <div className="flex items-center gap-3">
-              <span className="font-formula text-xs font-bold text-burgundy-500 bg-burgundy-50 px-2.5 py-1 rounded">
+              <span className="font-formula text-xs font-bold text-burgundy-500 bg-burgundy-50 px-2.5 py-1 rounded border border-burgundy-200">
                 {course.code}
               </span>
               <span className="text-xs sm:text-sm text-charcoal-100 font-sans font-medium">
-                المستوى: {course.level}
+                Level: {course.level}
               </span>
             </div>
 
-            <span className="font-formula text-xs sm:text-sm text-charcoal-900 font-semibold bg-ivory-300 px-3 py-1 rounded border border-hairline">
-              {course.molecularFormula}
-            </span>
+            {course.molecularFormula && (
+              <span className="font-formula text-xs sm:text-sm text-charcoal-900 font-semibold bg-ivory-300 px-3 py-1 rounded border border-hairline">
+                {course.molecularFormula}
+              </span>
+            )}
           </div>
 
           <div className="space-y-2.5">
@@ -92,9 +94,9 @@ export default function CourseDetailsPage() {
 
           <div className="pt-4 border-t border-hairline flex flex-wrap items-center justify-between gap-4 text-xs sm:text-sm text-charcoal-100 font-sans">
             <div className="flex items-center gap-6">
-              <span>إشراف: <strong className="text-charcoal-900 font-sans">د/عمر مجدي</strong></span>
-              <span>المدة: <strong className="text-charcoal-900 font-sans">{course.totalHours}</strong></span>
-              <span>التقييم: <strong className="text-charcoal-900 font-sans">{course.rating} / 5.0</strong></span>
+              <span>Supervision: <strong className="text-charcoal-900 font-sans">Dr. Omar Magdi</strong></span>
+              <span>Duration: <strong className="text-charcoal-900 font-sans">{course.totalHours}</strong></span>
+              <span>Rating: <strong className="text-charcoal-900 font-sans">{course.rating} / 5.0</strong></span>
             </div>
 
             <Link
@@ -102,7 +104,7 @@ export default function CourseDetailsPage() {
               className="inline-flex items-center gap-2 px-6 py-3 rounded bg-burgundy-500 hover:bg-burgundy-800 text-ivory-100 font-semibold text-xs sm:text-sm transition-colors shadow-quiet"
             >
               <Play className="w-4 h-4" />
-              <span>بدء دراسة المنهج</span>
+              <span>Begin Syllabus</span>
             </Link>
           </div>
         </div>
@@ -111,10 +113,10 @@ export default function CourseDetailsPage() {
         <div className="space-y-4">
           <div>
             <h2 className="text-lg sm:text-xl font-bold text-charcoal-900 font-display">
-              منهج ومحاضرات المساق ({course.lessons.length} محاضرات)
+              Curriculum Modules ({course.lessons.length} Lectures)
             </h2>
             <p className="text-xs sm:text-sm text-charcoal-100 font-sans">
-              تسلسل تعليمي منطقي يفكك المبادئ الكيميائية دون فجوات
+              Deductive progression dissecting chemical principles without cognitive leaps.
             </p>
           </div>
 
@@ -126,8 +128,8 @@ export default function CourseDetailsPage() {
               >
                 <div className="space-y-2.5 max-w-2xl">
                   <div className="flex items-center gap-3">
-                    <span className="font-editorial text-base font-bold text-burgundy-500">
-                      0{idx + 1}
+                    <span className="font-formula text-sm font-bold text-burgundy-500">
+                      {idx + 1 < 10 ? `0${idx + 1}` : idx + 1}
                     </span>
 
                     <h3 className="font-bold text-base text-charcoal-900 font-display">
@@ -136,17 +138,17 @@ export default function CourseDetailsPage() {
 
                     {lesson.type === 'lab' && (
                       <span className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded bg-amber-50 text-amber-800 border border-amber-200">
-                        <FlaskConical className="w-3.5 h-3.5" /> معمل افتراضي
+                        <FlaskConical className="w-3.5 h-3.5" /> Virtual Lab
                       </span>
                     )}
                   </div>
 
-                  <p className="text-xs sm:text-sm text-charcoal-100 font-sans leading-relaxed pr-6">
+                  <p className="text-xs sm:text-sm text-charcoal-100 font-sans leading-relaxed">
                     {lesson.summary}
                   </p>
 
                   {lesson.keyFormulas && lesson.keyFormulas.length > 0 && (
-                    <div className="pr-6 flex flex-wrap gap-2 pt-1">
+                    <div className="flex flex-wrap gap-2 pt-1">
                       {lesson.keyFormulas.map((formula, fIdx) => (
                         <span
                           key={fIdx}
@@ -168,8 +170,8 @@ export default function CourseDetailsPage() {
                     href={`/courses/${course.id}/lessons/${lesson.id}`}
                     className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded border border-hairline hover:border-burgundy-500 hover:text-burgundy-500 bg-ivory-100 text-xs sm:text-sm font-semibold font-sans transition-colors"
                   >
-                    <span>دخول المحاضرة</span>
-                    <ArrowLeft className="w-4 h-4" />
+                    <span>Enter Lecture</span>
+                    <ArrowRight className="w-4 h-4" />
                   </Link>
                 </div>
               </div>

@@ -6,39 +6,39 @@ export const ProblemSolvingSection: React.FC = () => {
   const steps = [
     {
       num: '01',
-      en: 'Read',
-      ar: 'اقرأ',
-      desc: 'قراءة السؤال وتفكيك نصه وفهم المطلوب بدقة وعمق دون التسرع بالبدء في الحل.',
+      title: 'Read',
+      sub: 'Text & Implied Context',
+      desc: 'Close reading of the problem prompt, deciphering exact scientific parameters without rushing to calculate prematurely.',
     },
     {
       num: '02',
-      en: 'Identify',
-      ar: 'حدّد',
-      desc: 'استخراج كافة المعطيات الصريحة والضمنية وتحديد المفهوم العلمي الحاكم للمسألة.',
+      title: 'Identify',
+      sub: 'Governing Principles',
+      desc: 'Extracting explicit and implicit variables to pinpoint the overarching physical law directing the system.',
     },
     {
       num: '03',
-      en: 'Analyze',
-      ar: 'حلّل',
-      desc: 'تحليل العلاقات بين المتغيرات وتحديد الشروط والقيود الكيميائية والثوابت.',
+      title: 'Analyze',
+      sub: 'Variables & Constraints',
+      desc: 'Mapping relationships between dynamic factors, boundary conditions, and equilibrium constants.',
     },
     {
       num: '04',
-      en: 'Reason',
-      ar: 'استنتج',
-      desc: 'بناء سلسلة استنتاج منطقية متماسكة تربط المعطى بالمطلوب خطوة بخطوة.',
+      title: 'Synthesize',
+      sub: 'Logical Deduction Path',
+      desc: 'Formulating an unbroken chain of chemical reasoning that connects initial conditions to the desired solution.',
     },
     {
       num: '05',
-      en: 'Solve',
-      ar: 'نفّذ',
-      desc: 'تنفيذ خطوات الحل والتعويض بدقة متناهية مع ضبط الوحدات والرموز.',
+      title: 'Execute',
+      sub: 'Dimensional Precision',
+      desc: 'Executing algebraic transformations with rigorous unit tracking, stoichiometry, and mathematical accuracy.',
     },
     {
       num: '06',
-      en: 'Verify',
-      ar: 'راجع',
-      desc: 'مراجعة منطقية النتيجة والتأكد من اتساقها العلمي وقابليتها للحدوث كيميائياً.',
+      title: 'Verify',
+      sub: 'Thermodynamic Reality',
+      desc: 'Scrutinizing the calculated value against chemical reality: is this magnitude and sign physically plausible?',
     },
   ];
 
@@ -52,42 +52,42 @@ export const ProblemSolvingSection: React.FC = () => {
               SECTION 04
             </span>
             <span className="text-hairline-strong">•</span>
-            <span className="text-xs sm:text-sm text-charcoal-100 font-sans font-medium">التعامل مع المسائل</span>
+            <span className="text-xs sm:text-sm text-charcoal-100 font-sans font-medium">Analytical Execution</span>
           </div>
 
           <h2 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-charcoal-900 font-display">
-            كيف نقرأ المسألة ونحللها؟
+            How We Read & Deconstruct Problems
           </h2>
 
-          <p className="text-sm sm:text-base text-charcoal-100 leading-[1.8] font-sans">
-            لا نعلّم خطوات نمطية ميكانيكية تصلح لنمط سؤال واحد، بل نبني طريقة تفكير منظمة في ست خطوات منهجية:
+          <p className="text-sm sm:text-base text-charcoal-100 leading-relaxed font-sans">
+            We do not drill mechanical recipes for single question formats. We cultivate a repeatable six-step analytical method.
           </p>
         </div>
 
-        {/* 6 Steps Grid with Editorial Hairline Bordering */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 border-y border-hairline divide-y sm:divide-y-0 sm:divide-x sm:divide-x-reverse divide-hairline py-6 sm:py-8">
-          {steps.map((step, idx) => (
-            <div
-              key={idx}
-              className={`p-4 space-y-3 ${
-                idx % 2 === 0 ? 'border-l sm:border-l-0 border-hairline' : ''
-              }`}
-            >
-              <span className="font-editorial text-2xl font-bold text-burgundy-500 block">
-                {step.num}
-              </span>
-
-              <div className="space-y-0.5">
-                <h3 className="font-bold text-sm sm:text-base text-charcoal-900 font-sans">
-                  {step.ar}
-                </h3>
-                <span dir="ltr" className="font-formula text-xs text-charcoal-50 uppercase tracking-widest block">
-                  {step.en}
+        {/* 6 Steps Linear Flow */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 sm:gap-10 border-t border-hairline pt-8">
+          {steps.map((item, idx) => (
+            <div key={idx} className="space-y-3">
+              <div className="flex items-baseline justify-between border-b border-hairline pb-2">
+                <span className="font-formula text-xs font-bold text-burgundy-500">
+                  {item.num}
+                </span>
+                <span className="font-formula text-[11px] text-charcoal-50 uppercase tracking-widest">
+                  PHASE {idx + 1}
                 </span>
               </div>
 
-              <p className="text-xs sm:text-sm text-charcoal-100 leading-[1.7] font-sans pt-1">
-                {step.desc}
+              <div>
+                <h3 className="text-base font-bold text-charcoal-900 font-display">
+                  {item.title}
+                </h3>
+                <span className="text-xs font-semibold text-charcoal-100 font-sans block mt-0.5">
+                  {item.sub}
+                </span>
+              </div>
+
+              <p className="text-xs sm:text-sm text-charcoal-100 leading-relaxed font-sans">
+                {item.desc}
               </p>
             </div>
           ))}

@@ -9,8 +9,9 @@ import {
   Menu,
   X,
   Lock,
-  ChevronLeft,
+  ChevronRight,
   LayoutDashboard,
+  ShieldCheck,
   LogOut,
 } from 'lucide-react';
 
@@ -38,11 +39,11 @@ export const Navbar: React.FC<NavbarProps> = ({
   }, []);
 
   const navLinks = [
-    { label: 'الفلسفة التعليمية', href: '/#philosophy' },
-    { label: 'طريقة فاينمان', href: '/#method' },
-    { label: 'ما وراء الحفظ', href: '/#comparison' },
-    { label: 'مسارات التعلم', href: '/#programs' },
-    { label: 'عن د/عمر مجدي', href: '/#about' },
+    { label: 'Philosophy', href: '/#philosophy' },
+    { label: 'Feynman Method', href: '/#method' },
+    { label: 'Analytical Matrix', href: '/#comparison' },
+    { label: 'Curriculum', href: '/#programs' },
+    { label: 'About Dr. Omar', href: '/#about' },
   ];
 
   const handleNavClick = (href: string) => {
@@ -73,14 +74,14 @@ export const Navbar: React.FC<NavbarProps> = ({
           <div className="flex items-center gap-6 lg:gap-10 shrink-0">
             <Link
               href="/"
-              className="text-right focus:outline-none focus-visible:ring-1 focus-visible:ring-burgundy-500 rounded py-1"
-              aria-label="PHENOL - د/عمر مجدي"
+              className="text-left focus:outline-none focus-visible:ring-1 focus-visible:ring-burgundy-500 rounded py-1"
+              aria-label="PHENOL - Dr. Omar Magdi"
             >
-              <PhenolLogo size={36} subtitle="د/عمر مجدي" />
+              <PhenolLogo size={36} subtitle="Dr. Omar Magdi" />
             </Link>
 
             {/* Desktop Navigation Links */}
-            <nav className="hidden lg:flex items-center gap-6 xl:gap-8" aria-label="التنقل الرئيسي">
+            <nav className="hidden lg:flex items-center gap-6 xl:gap-8" aria-label="Main Navigation">
               {navLinks.map((item, idx) => (
                 <Link
                   key={idx}
@@ -94,7 +95,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             </nav>
           </div>
 
-          {/* Left Actions */}
+          {/* Right Actions */}
           <div className="flex items-center gap-3">
             {!currentUser ? (
               <>
@@ -105,27 +106,27 @@ export const Navbar: React.FC<NavbarProps> = ({
                     onClick={() => handleNavClick('/#admission')}
                     className="px-3 py-1.5 text-xs font-semibold text-burgundy-500 hover:text-burgundy-800 border border-burgundy-500/25 hover:border-burgundy-500/50 rounded transition-colors"
                   >
-                    قائمة الانتظار
+                    Waitlist
                   </a>
 
                   <button
-                    onClick={() => onOpenAuthModal ? onOpenAuthModal('LOGIN') : null}
+                    onClick={() => (onOpenAuthModal ? onOpenAuthModal('LOGIN') : null)}
                     className="px-3.5 py-2 text-sm font-medium text-charcoal-100 hover:text-charcoal-900 transition-colors"
                   >
-                    تسجيل الدخول
+                    Sign In
                   </button>
 
                   <button
-                    onClick={() => onOpenAuthModal ? onOpenAuthModal('REGISTER') : null}
+                    onClick={() => (onOpenAuthModal ? onOpenAuthModal('REGISTER') : null)}
                     className="px-4 py-2 rounded bg-burgundy-500 hover:bg-burgundy-800 text-ivory-100 font-sans text-xs sm:text-sm font-semibold tracking-wide transition-colors shadow-quiet"
                   >
-                    انضم إلينا
+                    Enroll Now
                   </button>
 
                   <button
-                    onClick={() => onOpenAuthModal ? onOpenAuthModal('INSTRUCTOR_LOGIN') : null}
-                    title="بوابة د/عمر مجدي"
-                    aria-label="بوابة د/عمر مجدي"
+                    onClick={() => (onOpenAuthModal ? onOpenAuthModal('INSTRUCTOR_LOGIN') : null)}
+                    title="Instructor Administration Portal"
+                    aria-label="Instructor Administration Portal"
                     className="p-2 text-charcoal-50 hover:text-burgundy-500 rounded transition-colors"
                   >
                     <Lock className="w-4 h-4" />
@@ -134,36 +135,48 @@ export const Navbar: React.FC<NavbarProps> = ({
 
                 {/* Mobile Single CTA */}
                 <button
-                  onClick={() => onOpenAuthModal ? onOpenAuthModal('REGISTER') : null}
+                  onClick={() => (onOpenAuthModal ? onOpenAuthModal('REGISTER') : null)}
                   className="lg:hidden px-3.5 py-1.5 rounded bg-burgundy-500 text-ivory-100 font-sans text-xs font-semibold transition-colors"
                 >
-                  انضم إلينا
+                  Enroll
                 </button>
               </>
             ) : (
               <div className="flex items-center gap-2.5 sm:gap-3">
                 <Link
                   href="/dashboard"
-                  className="flex items-center gap-2 px-3 py-1.5 rounded border border-hairline hover:border-charcoal-100 bg-ivory-100 text-charcoal-900 text-xs sm:text-sm font-medium transition-colors"
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded border transition-colors text-xs sm:text-sm font-medium ${
+                    isInstructor
+                      ? 'border-burgundy-500/40 bg-burgundy-50 text-burgundy-800 hover:bg-burgundy-100'
+                      : 'border-hairline hover:border-charcoal-100 bg-ivory-100 text-charcoal-900'
+                  }`}
                 >
-                  <LayoutDashboard className="w-4 h-4 text-burgundy-500" />
-                  <span className="hidden sm:inline">لوحة الطالب</span>
-                  <span className="sm:hidden">{currentUser.name.split(' ')[0]}</span>
+                  {isInstructor ? (
+                    <ShieldCheck className="w-4 h-4 text-burgundy-500" />
+                  ) : (
+                    <LayoutDashboard className="w-4 h-4 text-burgundy-500" />
+                  )}
+                  <span className="hidden sm:inline">
+                    {isInstructor ? 'Administration' : 'Student Dashboard'}
+                  </span>
+                  <span className="sm:hidden">
+                    {isInstructor ? 'Admin' : currentUser.name.split(' ')[0]}
+                  </span>
                 </Link>
 
-                <div className="hidden md:flex flex-col text-right leading-normal pr-2 border-r border-hairline">
+                <div className="hidden md:flex flex-col text-left leading-tight pl-2 border-l border-hairline">
                   <span className="text-xs sm:text-sm font-bold text-charcoal-900">
                     {currentUser.name}
                   </span>
-                  <span className="text-xs text-charcoal-100 font-sans">
-                    {isInstructor ? 'د/عمر مجدي' : 'طالب مسجل'}
+                  <span className="text-[11px] text-charcoal-100 font-sans">
+                    {isInstructor ? 'Academic Director' : 'Enrolled Student'}
                   </span>
                 </div>
 
                 <button
                   onClick={onLogout}
-                  title="تسجيل الخروج"
-                  aria-label="تسجيل الخروج"
+                  title="Sign Out"
+                  aria-label="Sign Out"
                   className="p-2 text-charcoal-50 hover:text-burgundy-500 transition-colors"
                 >
                   <LogOut className="w-4 h-4" />
@@ -171,18 +184,13 @@ export const Navbar: React.FC<NavbarProps> = ({
               </div>
             )}
 
-            {/* Mobile Hamburger Toggle */}
+            {/* Mobile Menu Button */}
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              aria-label={mobileMenuOpen ? 'إغلاق القائمة' : 'فتح القائمة'}
-              aria-expanded={mobileMenuOpen}
-              className="lg:hidden p-2 text-charcoal-900 hover:bg-ivory-300 rounded transition-colors border border-hairline"
+              className="lg:hidden p-2 rounded text-charcoal-900 hover:text-burgundy-500 border border-hairline bg-ivory-100"
+              aria-label="Toggle navigation menu"
             >
-              {mobileMenuOpen ? (
-                <X className="w-4 h-4 text-burgundy-500" />
-              ) : (
-                <Menu className="w-4 h-4 text-charcoal-900" />
-              )}
+              {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </button>
           </div>
         </div>
@@ -190,65 +198,80 @@ export const Navbar: React.FC<NavbarProps> = ({
 
       {/* Mobile Drawer */}
       {mobileMenuOpen && (
-        <div className="lg:hidden border-t border-hairline bg-ivory-100 px-4 py-5 space-y-4 shadow-editorial">
-          <div className="space-y-1 pb-3 border-b border-hairline">
+        <div className="lg:hidden bg-ivory-100 border-b border-hairline px-4 pt-3 pb-6 space-y-4">
+          <nav className="flex flex-col space-y-2">
             {navLinks.map((item, idx) => (
               <Link
                 key={idx}
                 href={item.href}
                 onClick={() => handleNavClick(item.href)}
-                className="w-full flex items-center justify-between px-3 py-2.5 rounded text-sm font-medium text-charcoal-100 hover:text-charcoal-900 hover:bg-ivory-300 transition-colors leading-normal"
+                className="flex items-center justify-between py-2 text-sm font-medium text-charcoal-900 border-b border-hairline/60"
               >
                 <span>{item.label}</span>
-                <ChevronLeft className="w-4 h-4 text-charcoal-50" />
+                <ChevronRight className="w-4 h-4 text-charcoal-50" />
               </Link>
             ))}
-          </div>
+            <a
+              href="/#admission"
+              onClick={() => handleNavClick('/#admission')}
+              className="flex items-center justify-between py-2 text-sm font-medium text-burgundy-500 border-b border-hairline/60"
+            >
+              <span>Waitlist (2026/2027)</span>
+              <ChevronRight className="w-4 h-4 text-burgundy-500" />
+            </a>
+          </nav>
 
-          <div className="pt-2 flex flex-col gap-2.5">
-            {!currentUser ? (
-              <div className="grid grid-cols-2 gap-2.5">
-                <button
-                  onClick={() => {
-                    setMobileMenuOpen(false);
-                    if (onOpenAuthModal) onOpenAuthModal('LOGIN');
-                  }}
-                  className="py-2.5 px-3 rounded border border-hairline text-charcoal-900 font-semibold text-xs sm:text-sm text-center hover:bg-ivory-300 transition-colors"
-                >
-                  تسجيل الدخول
-                </button>
-
-                <button
-                  onClick={() => {
-                    setMobileMenuOpen(false);
-                    if (onOpenAuthModal) onOpenAuthModal('REGISTER');
-                  }}
-                  className="py-2.5 px-3 rounded bg-burgundy-500 text-ivory-100 font-semibold text-xs sm:text-sm text-center hover:bg-burgundy-800 transition-colors"
-                >
-                  انضم إلينا
-                </button>
-              </div>
-            ) : (
+          {!currentUser ? (
+            <div className="flex flex-col gap-2.5 pt-2">
+              <button
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  if (onOpenAuthModal) onOpenAuthModal('LOGIN');
+                }}
+                className="w-full py-2.5 text-center text-sm font-semibold rounded border border-hairline bg-ivory-200 text-charcoal-900"
+              >
+                Student Sign In
+              </button>
+              <button
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  if (onOpenAuthModal) onOpenAuthModal('REGISTER');
+                }}
+                className="w-full py-2.5 text-center text-sm font-semibold rounded bg-burgundy-500 text-ivory-100 shadow-quiet"
+              >
+                Apply for Admission
+              </button>
+              <button
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  if (onOpenAuthModal) onOpenAuthModal('INSTRUCTOR_LOGIN');
+                }}
+                className="w-full py-2 text-center text-xs font-semibold text-charcoal-50 hover:text-burgundy-500 flex items-center justify-center gap-1.5"
+              >
+                <Lock className="w-3.5 h-3.5" />
+                <span>Dr. Omar Magdi Portal (Admin)</span>
+              </button>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-2 pt-2 border-t border-hairline">
               <Link
                 href="/dashboard"
                 onClick={() => setMobileMenuOpen(false)}
-                className="w-full py-2.5 px-3 rounded bg-burgundy-500 text-ivory-100 font-semibold text-xs sm:text-sm text-center flex items-center justify-center gap-2"
+                className="w-full py-2.5 text-center text-sm font-semibold rounded bg-burgundy-500 text-ivory-100"
               >
-                <LayoutDashboard className="w-4 h-4" />
-                <span>الدخول إلى لوحة الطالب</span>
+                {isInstructor ? 'Enter Administration Portal' : 'Enter Student Dashboard'}
               </Link>
-            )}
-
-            <button
-              onClick={() => {
-                setMobileMenuOpen(false);
-                if (onOpenAuthModal) onOpenAuthModal('INSTRUCTOR_LOGIN');
-              }}
-              className="w-full py-2 px-3 text-center text-charcoal-100 hover:text-burgundy-500 text-xs font-sans transition-colors"
-            >
-              بوابة د/عمر مجدي الخاصة
-            </button>
-          </div>
+              <button
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  onLogout();
+                }}
+                className="w-full py-2 text-center text-xs font-semibold text-charcoal-50"
+              >
+                Sign Out
+              </button>
+            </div>
+          )}
         </div>
       )}
     </header>

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { AuthUser, AuthModalMode } from '@/types/auth';
 import { Navbar } from '@/components/layout/Navbar';
 import { AuthModal } from '@/components/auth/AuthModal';
@@ -97,44 +98,55 @@ export default function Home() {
       <footer className="border-t border-hairline bg-ivory-100 py-12 text-sm text-charcoal-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
           <div className="flex flex-col md:flex-row items-center justify-between gap-6 pb-6 border-b border-hairline">
-            <PhenolLogo size={36} subtitle="د/عمر مجدي" />
+            <PhenolLogo size={36} subtitle="Dr. Omar Magdi" />
 
-            <div className="flex flex-wrap items-center justify-center gap-5 text-sm text-charcoal-100 font-sans">
-              <a href="#philosophy" className="hover:text-charcoal-900 transition-colors">الفلسفة</a>
-              <span className="text-hairline-strong">•</span>
-              <a href="#method" className="hover:text-charcoal-900 transition-colors">طريقة فاينمان</a>
-              <span className="text-hairline-strong">•</span>
-              <a href="#comparison" className="hover:text-charcoal-900 transition-colors">المقارنة التحليلية</a>
-              <span className="text-hairline-strong">•</span>
-              <a href="#programs" className="hover:text-charcoal-900 transition-colors">مسارات التعلم</a>
-              <span className="text-hairline-strong">•</span>
-              <a href="#about" className="hover:text-charcoal-900 transition-colors">عن د/عمر مجدي</a>
-            </div>
+            <nav className="flex flex-wrap items-center justify-center gap-6 text-xs sm:text-sm font-medium">
+              <Link href="/#philosophy" className="hover:text-burgundy-500 transition-colors">
+                Philosophy
+              </Link>
+              <Link href="/#method" className="hover:text-burgundy-500 transition-colors">
+                Feynman Method
+              </Link>
+              <Link href="/#comparison" className="hover:text-burgundy-500 transition-colors">
+                Analytical Matrix
+              </Link>
+              <Link href="/#programs" className="hover:text-burgundy-500 transition-colors">
+                Curriculum
+              </Link>
+              <Link href="/#admission" className="hover:text-burgundy-500 transition-colors">
+                Admissions
+              </Link>
+              <Link href="/#about" className="hover:text-burgundy-500 transition-colors">
+                About Dr. Omar
+              </Link>
+            </nav>
           </div>
 
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-right text-xs sm:text-sm text-charcoal-100">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left text-xs sm:text-sm text-charcoal-100">
             <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-3">
               <span className="font-editorial text-xs sm:text-sm font-bold text-charcoal-900 uppercase tracking-widest">
                 PHENOL
               </span>
               <span className="text-hairline-strong">•</span>
-              <span className="font-sans font-semibold text-charcoal-900">د/عمر مجدي</span>
+              <span className="font-sans font-semibold text-charcoal-900">Dr. Omar Magdi</span>
               <span className="hidden sm:inline text-hairline-strong">•</span>
-              <span className="text-burgundy-500 font-display font-semibold text-xs sm:text-sm">«مَن فَهِمَ شَيْئًا مَلَكَهُ»</span>
+              <span className="text-burgundy-500 font-serif italic text-xs sm:text-sm">
+                “To Understand Is to Master.”
+              </span>
               <span className="hidden sm:inline text-hairline-strong">•</span>
-              <span dir="ltr" className="font-formula text-xs text-charcoal-50 inline-block">
+              <span className="font-formula text-xs text-charcoal-50 inline-block">
                 Find the Simple. Master the Complex.
               </span>
             </div>
 
             <div className="font-sans text-charcoal-50 text-xs">
-              جميع الحقوق محفوظة © {new Date().getFullYear()} • PHENOL
+              All Rights Reserved © {new Date().getFullYear()} • PHENOL
             </div>
           </div>
         </div>
       </footer>
 
-      {/* Auth & Registration Modal */}
+      {/* Global Authentication Modal */}
       <AuthModal
         isOpen={isAuthModalOpen}
         initialMode={authModalMode}

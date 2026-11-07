@@ -6,27 +6,23 @@ export const ResourcesSection: React.FC = () => {
   const tools = [
     {
       num: '01',
-      title: 'خرائط المفاهيم المترابطة',
-      subtitle: 'Concept Maps',
-      desc: 'مخططات بصرية تربط فروع الكيمياء ببعضها لتسهيل رؤية الصورة الكلية للمادة وفهم تداخل القوانين دون انفصال.',
+      en: 'Concept Maps',
+      desc: 'Visual schematics linking chemical disciplines together, enabling macroscopic comprehension of the entire syllabus without fragmentation.',
     },
     {
       num: '02',
-      title: 'أطلس الميكانزمات والاشتقاقات',
-      subtitle: 'Mechanisms Atlas',
-      desc: 'شرح متسلسل خطوة بخطوة بالرسم والتفسير وحركة الإلكترونات دون ترك أي فجوة منطقية بين البداية والنهاية.',
+      en: 'Mechanisms Atlas',
+      desc: 'Step-by-step curved-arrow electron pushing illustrations detailing initial reactants, transition states, and reaction geometries.',
     },
     {
       num: '03',
-      title: 'مسائل التفكير والتحليل',
-      subtitle: 'Analytical Problem Bank',
-      desc: 'تطبيقات غير مباشرة ومسائل متدرجة تختبر الفهم الحقيقي وتنقل المعرفة إلى سياقات كيميائية جديدة.',
+      en: 'Analytical Problem Bank',
+      desc: 'Graded problem sets moving from foundational comprehension to non-routine multi-concept problems that challenge mental agility.',
     },
     {
       num: '04',
-      title: 'دليل تصحيح المفاهيم الخاطئة',
-      subtitle: 'Misconceptions Guide',
-      desc: 'رصد أشهر الأخطاء الشائعة في التفكير والحل وتوضيح سبب الوقوع فيها وكيفية تلافيها بوعي كيميائي دقيق.',
+      en: 'Misconceptions Guide',
+      desc: 'Documenting the most prevalent conceptual pitfalls in student problem solving and dissecting the thermodynamic reality behind them.',
     },
   ];
 
@@ -40,40 +36,37 @@ export const ResourcesSection: React.FC = () => {
               SECTION 06
             </span>
             <span className="text-hairline-strong">•</span>
-            <span className="text-xs sm:text-sm text-charcoal-100 font-sans font-medium">أدوات الفهم</span>
+            <span className="text-xs sm:text-sm text-charcoal-100 font-sans font-medium">Academic Instruments</span>
           </div>
 
           <h2 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-charcoal-900 font-display">
-            أدوات مصممة لترسيخ الفهم
+            Instruments Designed for Deep Learning
           </h2>
 
-          <p className="text-sm sm:text-base text-charcoal-100 leading-[1.8] font-sans">
-            مواد ومراجع تدريبية صممت خصيصاً لترسيخ الربط الذهني المنظم، بعيداً عن التشتيت والتلقين العشوائي.
+          <p className="text-sm sm:text-base text-charcoal-100 leading-relaxed font-sans">
+            Reference documents and diagnostic tools specifically designed to foster structural mental models, avoiding scattered recall.
           </p>
         </div>
 
-        {/* Tools 4 Columns Minimalist Row */}
+        {/* 4 Columns Unboxed */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 border-t border-hairline pt-8">
-          {tools.map((res, idx) => (
-            <div
-              key={idx}
-              className="space-y-3 border-b border-hairline pb-6"
-            >
-              <div className="flex items-baseline justify-between">
-                <span className="font-editorial text-2xl font-bold text-burgundy-500">
-                  {res.num}
+          {tools.map((item, idx) => (
+            <div key={idx} className="space-y-3">
+              <div className="flex items-baseline justify-between border-b border-hairline pb-2">
+                <span className="font-formula text-xs font-bold text-burgundy-500">
+                  {item.num}
                 </span>
-                <span dir="ltr" className="font-formula text-xs text-charcoal-50 uppercase tracking-wider">
-                  {res.subtitle}
+                <span className="font-formula text-[11px] text-charcoal-50 uppercase tracking-widest">
+                  MODULE {idx + 1}
                 </span>
               </div>
 
-              <h3 className="font-bold text-base text-charcoal-900 font-display">
-                {res.title}
+              <h3 className="text-base font-bold text-charcoal-900 font-display">
+                {item.en}
               </h3>
 
-              <p className="text-xs sm:text-sm text-charcoal-100 leading-[1.8] font-sans">
-                {res.desc}
+              <p className="text-xs sm:text-sm text-charcoal-100 leading-relaxed font-sans">
+                {item.desc}
               </p>
             </div>
           ))}

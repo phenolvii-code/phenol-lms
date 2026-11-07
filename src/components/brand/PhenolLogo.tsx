@@ -17,7 +17,7 @@ export const PhenolLogo: React.FC<PhenolLogoProps> = ({
   withText = true,
   variant = 'burgundy',
   monochrome = false,
-  subtitle = 'د/عمر مجدي',
+  subtitle = 'Dr. Omar Magdi',
 }) => {
   const iconSrc =
     monochrome
@@ -44,11 +44,11 @@ export const PhenolLogo: React.FC<PhenolLogoProps> = ({
       </div>
 
       {withText && (
-        <div className="flex flex-col text-right justify-center leading-tight">
-          <span className="font-editorial text-base sm:text-lg tracking-widest text-charcoal-900 font-bold uppercase">
+        <div className="flex flex-col text-left justify-center leading-tight">
+          <span className="font-editorial text-base sm:text-lg tracking-[0.18em] text-charcoal-900 font-bold uppercase">
             PHENOL
           </span>
-          <span className="text-xs font-semibold text-charcoal-100 font-sans mt-0.5">
+          <span className="text-[11px] sm:text-xs font-semibold text-charcoal-100 font-sans tracking-wide mt-0.5">
             {subtitle}
           </span>
         </div>

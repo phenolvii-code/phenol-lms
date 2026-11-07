@@ -29,7 +29,7 @@ export interface ChemistryCourse {
   title: string;
   subTitle: string;
   description: string;
-  level: 'تأسيسي' | 'متقدم' | 'جامعي ومكثف';
+  level: string;
   molecularFormula?: string;
   thumbnail: string;
   totalHours: string;
@@ -80,4 +80,29 @@ export interface StudentSubmission {
   maxGrade: number;
   drFeedback?: string;
   status: 'graded' | 'pending';
+}
+
+export interface WaitlistApplication {
+  id: string;
+  fullName: string;
+  email: string;
+  phone: string;
+  academicLevel: string;
+  targetCourse: string;
+  appliedAt: string;
+  status: 'pending' | 'approved' | 'contacted' | 'declined';
+  notes?: string;
+}
+
+export interface EnrolledStudent {
+  id: string;
+  code: string;
+  fullName: string;
+  email: string;
+  phone: string;
+  trackCode: string;
+  enrolledAt: string;
+  progressPercent: number;
+  averageGrade: number;
+  status: 'active' | 'probation' | 'completed';
 }

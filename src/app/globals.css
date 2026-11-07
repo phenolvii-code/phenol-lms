@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Alexandria:wght@400;500;600;700;800;900&family=Almarai:wght@300;400;700;800&family=Noto+Sans+Arabic:wght@400;500;600;700&family=Cinzel:wght@600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700;800&family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -23,34 +23,40 @@ html {
 body {
   background-color: #FAF8F5;
   color: #18191B;
-  font-family: 'Almarai', 'Noto Sans Arabic', -apple-system, BlinkMacSystemFont, sans-serif;
-  letter-spacing: normal;
-  line-height: 1.75;
+  font-family: 'Inter', 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  letter-spacing: -0.011em;
+  line-height: 1.65;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   overflow-x: hidden;
   min-height: 100dvh;
 }
 
-/* Headings with generous line heights to prevent Arabic diacritic & letter overlap */
+/* Headings with deliberate vertical rhythm */
 h1, h2, h3, h4, h5, h6 {
-  line-height: 1.45;
+  line-height: 1.25;
+  letter-spacing: -0.02em;
 }
 
-/* Luxury Modern Arabic Display Font (Alexandria) */
+/* Luxury Modern Display */
 .font-display {
-  font-family: 'Alexandria', 'Almarai', sans-serif;
-  line-height: 1.4;
+  font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
+  letter-spacing: -0.025em;
 }
 
-/* Clear Academic Body Prose (Almarai & Noto Sans Arabic) */
+/* Crisp Academic Body */
 .font-sans {
-  font-family: 'Almarai', 'Noto Sans Arabic', sans-serif;
+  font-family: 'Inter', 'Plus Jakarta Sans', sans-serif;
 }
 
-/* Editorial Serif for Monograms & Publication Accents */
+/* Editorial Classical Serif for Masthead and Monograms */
 .font-editorial {
   font-family: 'Cinzel', 'Georgia', serif;
+}
+
+/* Literary Serif for Academic Quotes & Declarations */
+.font-serif {
+  font-family: 'Newsreader', 'Georgia', serif;
 }
 
 /* Scientific Formula Monospace */
@@ -58,28 +64,10 @@ h1, h2, h3, h4, h5, h6 {
   font-family: 'JetBrains Mono', monospace;
 }
 
-/* Fluid responsive typography utilities with generous Arabic line-height */
-.clamp-headline {
-  font-size: clamp(2rem, 1.4rem + 2.8vw, 3.8rem);
-  line-height: 1.45;
-  padding-top: 0.25rem;
-  padding-bottom: 0.25rem;
-}
-
-.clamp-subhead {
-  font-size: clamp(0.95rem, 0.9rem + 0.35vw, 1.2rem);
-  line-height: 1.85;
-}
-
-/* Hairline borders & editorial rules */
-.border-hairline {
-  border-color: #E5E2DC;
-}
-
-/* Custom Scrollbar - Warm Ivory & Burgundy */
+/* Subtle Custom Scrollbar */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 7px;
+  height: 7px;
 }
 
 ::-webkit-scrollbar-track {
@@ -88,20 +76,9 @@ h1, h2, h3, h4, h5, h6 {
 
 ::-webkit-scrollbar-thumb {
   background: #D1CDC4;
-  border-radius: 9999px;
+  border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #641C32;
-}
-
-/* Selection - Deep Burgundy on Warm Ivory */
-::selection {
-  background: #641C32;
-  color: #FAF8F5;
-}
-
-/* Mobile touch targets */
-button, a, input, select, textarea {
-  touch-action: manipulation;
+  background: #A33753;
 }

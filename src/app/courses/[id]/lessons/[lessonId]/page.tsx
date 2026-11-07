@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import { CHEMISTRY_COURSES } from '@/data/mock-data';
 import { PhenolLogo } from '@/components/brand/PhenolLogo';
 import {
@@ -12,11 +12,11 @@ import {
   CheckCircle2,
   ChevronLeft,
   ChevronRight,
+  FlaskConical,
 } from 'lucide-react';
 
 export default function LessonExperiencePage() {
   const params = useParams();
-  const router = useRouter();
   const courseId = params?.id as string;
   const lessonId = params?.lessonId as string;
 
@@ -35,10 +35,10 @@ export default function LessonExperiencePage() {
       {/* Editorial Top Navigation */}
       <header className="border-b border-hairline bg-ivory-100 sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-18">
+          <div className="flex items-center justify-between h-16 sm:h-20">
             <div className="flex items-center gap-4 sm:gap-6">
               <Link href="/" aria-label="PHENOL Home">
-                <PhenolLogo size={34} subtitle="د/عمر مجدي" />
+                <PhenolLogo size={34} subtitle="Dr. Omar Magdi" />
               </Link>
 
               <div className="hidden sm:flex items-center gap-2 text-xs sm:text-sm text-charcoal-100 font-sans">
@@ -57,15 +57,15 @@ export default function LessonExperiencePage() {
                 href={`/courses/${course.id}`}
                 className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded border border-hairline text-xs sm:text-sm text-charcoal-100 hover:text-charcoal-900 bg-ivory-100 transition-colors font-sans"
               >
-                <ArrowRight className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">منهج المساق</span>
+                <ArrowLeft className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Course Syllabus</span>
               </Link>
 
               <Link
                 href="/dashboard"
                 className="px-3.5 py-1.5 rounded bg-burgundy-500 hover:bg-burgundy-800 text-ivory-100 text-xs sm:text-sm font-semibold transition-colors font-sans"
               >
-                لوحة الطالب
+                Dashboard
               </Link>
             </div>
           </div>
@@ -88,42 +88,44 @@ export default function LessonExperiencePage() {
 
                 <div className="space-y-1.5">
                   <span className="font-formula text-xs text-ivory-300 uppercase tracking-widest block">
-                    {course.code} • المحاضرة {lessonIndex + 1}
+                    {course.code} • Lecture {lessonIndex + 1}
                   </span>
                   <h2 className="text-base sm:text-lg font-bold font-display text-ivory-100 leading-snug">
                     {currentLesson.title}
                   </h2>
                   <span className="text-xs sm:text-sm text-charcoal-50 font-sans block">
-                    المدة: {currentLesson.duration} • إشراف د/عمر مجدي
+                    Duration: {currentLesson.duration} • Directed by Dr. Omar Magdi
                   </span>
                 </div>
               </div>
             ) : (
               <div className="w-full h-full flex flex-col items-center justify-center p-6 bg-charcoal-900 text-center space-y-3">
                 <div className="font-editorial text-xs text-burgundy-200 uppercase tracking-widest">
-                  PHENOL LECTURE STREAM
+                  PHENOL STREAM BROADCAST
                 </div>
                 <h3 className="text-sm font-semibold text-ivory-100">
                   {currentLesson.title}
                 </h3>
                 <p className="text-xs text-charcoal-50 max-w-sm font-sans">
-                  يتم تشغيل المحاضرة الأكاديمية بنظام البث المباشر عالي الدقة.
+                  The academic video stream is loaded in high-definition (1080p).
                 </p>
                 <button
                   onClick={() => setIsPlaying(false)}
                   className="px-4 py-2 rounded bg-charcoal-200 text-ivory-100 text-xs hover:bg-charcoal-100 font-sans"
                 >
-                  إيقاف مؤقت
+                  Pause Stream
                 </button>
               </div>
             )}
 
             {/* Top Bar Overlay */}
-            <div className="absolute top-4 right-4 flex items-center gap-2">
-              <span className="font-formula text-xs text-ivory-100/90 bg-charcoal-900/80 px-2.5 py-1 rounded border border-charcoal-200">
-                {course.molecularFormula}
-              </span>
-            </div>
+            {course.molecularFormula && (
+              <div className="absolute top-4 right-4 flex items-center gap-2">
+                <span className="font-formula text-xs text-ivory-100/90 bg-charcoal-900/80 px-2.5 py-1 rounded border border-charcoal-200">
+                  {course.molecularFormula}
+                </span>
+              </div>
+            )}
           </div>
 
           {/* Player Controls & Action Bar */}
@@ -138,7 +140,7 @@ export default function LessonExperiencePage() {
                 }`}
               >
                 <CheckCircle2 className="w-4 h-4" />
-                <span>{completed ? 'اكتملت المحاضرة' : 'تحديد كمكتملة'}</span>
+                <span>{completed ? 'Completed' : 'Mark as Completed'}</span>
               </button>
 
               <span className="text-xs sm:text-sm text-charcoal-100 font-formula">
@@ -153,8 +155,8 @@ export default function LessonExperiencePage() {
                   href={`/courses/${course.id}/lessons/${prevLesson.id}`}
                   className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded border border-hairline hover:bg-ivory-300 text-xs sm:text-sm text-charcoal-900 transition-colors font-sans"
                 >
-                  <ChevronRight className="w-4 h-4" />
-                  <span>المحاضرة السابقة</span>
+                  <ChevronLeft className="w-4 h-4" />
+                  <span>Previous Lecture</span>
                 </Link>
               ) : null}
 
@@ -163,15 +165,15 @@ export default function LessonExperiencePage() {
                   href={`/courses/${course.id}/lessons/${nextLesson.id}`}
                   className="inline-flex items-center gap-1.5 px-4 py-2 rounded bg-burgundy-500 hover:bg-burgundy-800 text-ivory-100 text-xs sm:text-sm font-semibold transition-colors font-sans"
                 >
-                  <span>المحاضرة التالية</span>
-                  <ChevronLeft className="w-4 h-4" />
+                  <span>Next Lecture</span>
+                  <ChevronRight className="w-4 h-4" />
                 </Link>
               ) : (
                 <Link
                   href="/dashboard"
                   className="inline-flex items-center gap-1.5 px-4 py-2 rounded bg-burgundy-500 hover:bg-burgundy-800 text-ivory-100 text-xs sm:text-sm font-semibold transition-colors font-sans"
                 >
-                  <span>إتمام المنهج</span>
+                  <span>Complete Course</span>
                 </Link>
               )}
             </div>
@@ -187,7 +189,7 @@ export default function LessonExperiencePage() {
                   SCIENTIFIC ANALYSIS
                 </span>
                 <h3 className="text-lg sm:text-xl font-bold text-charcoal-900 font-display">
-                  ملخص المحاضرة والاشتقاق العلمي
+                  Lecture Summary & Physical Derivation
                 </h3>
               </div>
 
@@ -198,7 +200,7 @@ export default function LessonExperiencePage() {
               {currentLesson.keyFormulas && currentLesson.keyFormulas.length > 0 && (
                 <div className="pt-2 space-y-2">
                   <span className="text-xs sm:text-sm font-bold text-charcoal-900 block font-sans">
-                    القوانين والعلاقات الرياضية الحاكمة:
+                    Governing Laws & Mathematical Relationships:
                   </span>
                   <div className="space-y-2">
                     {currentLesson.keyFormulas.map((f, i) => (
@@ -214,9 +216,9 @@ export default function LessonExperiencePage() {
               )}
 
               <div className="pt-4 border-t border-hairline bg-ivory-300/40 p-4 rounded text-xs sm:text-sm text-charcoal-100 font-sans space-y-1.5 leading-relaxed">
-                <strong className="text-charcoal-900 block font-sans">نصيحة د/عمر مجدي التحليلية:</strong>
+                <strong className="text-charcoal-900 block font-sans">Dr. Omar Magdi Analytical Advice:</strong>
                 <p>
-                  لا تنتقل إلى المحاضرة التالية قبل أن تعيد كتابة الميكانزم أو المعادلة بيدك دون النظر للملاحظات (مقياس فاينمان للإتقان).
+                  Do not proceed to the next module until you have hand-drawn the mechanism or derived the equilibrium constant from memory (the Feynman Benchmark of Mastery).
                 </p>
               </div>
             </div>
@@ -248,7 +250,7 @@ export default function LessonExperiencePage() {
                   >
                     <div className="flex items-center justify-between mb-1">
                       <span className="font-formula text-xs text-burgundy-500 font-bold">
-                        محاضرة 0{idx + 1}
+                        Lecture 0{idx + 1}
                       </span>
                       <span className="font-formula text-xs text-charcoal-50">
                         {les.duration}

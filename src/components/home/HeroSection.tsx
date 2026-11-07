@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 
 interface HeroSectionProps {
   onStartJourney: () => void;
@@ -22,33 +22,29 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onStartJourney }) => {
             PHENOL
           </span>
           <span className="text-hairline-strong">•</span>
-          <span className="text-charcoal-900 font-sans font-semibold text-xs">
-            د/عمر مجدي
+          <span className="text-charcoal-900 font-sans font-semibold text-xs tracking-wide">
+            Dr. Omar Magdi
           </span>
         </div>
 
-        {/* Primary Headline: «مَن فَهِمَ شَيْئًا مَلَكَهُ» */}
+        {/* Primary Headline: “To Understand Is to Master.” */}
         <div className="max-w-4xl mx-auto">
-          <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold font-display text-charcoal-900 leading-[1.4] sm:leading-[1.4] md:leading-[1.35] lg:leading-[1.35] tracking-tight py-1">
-            <span className="inline-block"><span className="text-burgundy-500">«</span>مَن فَهِمَ شَيْئًا</span>{' '}
-            <span className="inline-block">مَلَكَهُ<span className="text-burgundy-500">»</span></span>
+          <h1 className="text-3xl sm:text-5xl lg:text-6xl font-extrabold font-display text-charcoal-900 tracking-tight py-1">
+            <span className="text-burgundy-500 font-serif italic font-normal mr-2">“</span>
+            To Understand Is to Master.
+            <span className="text-burgundy-500 font-serif italic font-normal ml-2">”</span>
           </h1>
 
-          {/* Core Philosophy Tagline with Strict BiDi Isolation */}
-          <div className="mt-4 sm:mt-5 flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-3 text-xs sm:text-sm text-charcoal-100 font-sans">
-            <span className="font-medium text-charcoal-900">
-              البحث عن البساطة الكامنة خلف كل تعقيد.
-            </span>
-            <span className="hidden sm:inline text-hairline-strong">•</span>
-            <span dir="ltr" className="font-formula text-xs text-charcoal-50 inline-block">
+          {/* Core Philosophy Tagline */}
+          <div className="mt-4 sm:mt-5 flex items-center justify-center gap-3 text-xs sm:text-sm text-charcoal-100 font-sans">
+            <span className="font-semibold text-charcoal-900 tracking-wide">
               Find the Simple. Master the Complex.
             </span>
           </div>
 
           {/* Editorial Introduction Copy */}
-          <p className="mt-6 text-sm sm:text-base text-charcoal-100 max-w-2xl mx-auto font-sans leading-[1.8]">
-            الكيمياء ليست مجموعة من القوانين والمعادلات التي يجب حفظها، بل علم تحكمه مبادئ وعلاقات يمكن فهمها وتحليلها. 
-            هنا في <strong className="text-charcoal-900 font-semibold font-editorial">PHENOL</strong> بإشراف <strong className="text-charcoal-900 font-semibold font-sans">د/عمر مجدي</strong>، نتجاوز حفظ المعلومة إلى فهم أسبابها، ونفكك الأفكار المعقدة إلى مفاهيم واضحة، ونبني المعرفة خطوة بخطوة.
+          <p className="mt-6 text-sm sm:text-base text-charcoal-100 max-w-2xl mx-auto font-sans leading-relaxed">
+            Chemistry is not an arbitrary assembly of formulas and equations to be memorized, but an elegant discipline governed by fundamental physical laws. At <strong className="text-charcoal-900 font-semibold font-editorial">PHENOL</strong>, directed by <strong className="text-charcoal-900 font-semibold font-sans">Dr. Omar Magdi</strong>, we deconstruct complex phenomena from first principles—building rigorous scientific reasoning step by step.
           </p>
         </div>
 
@@ -58,32 +54,32 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onStartJourney }) => {
             onClick={onStartJourney}
             className="w-full sm:w-auto inline-flex items-center justify-center gap-2.5 px-8 py-3.5 rounded bg-burgundy-500 hover:bg-burgundy-800 text-ivory-100 font-sans font-semibold text-sm transition-colors shadow-quiet min-h-[46px]"
           >
-            <span>ابدأ رحلتك التعليمية</span>
-            <ArrowLeft className="w-4 h-4" />
+            <span>Begin Your Journey</span>
+            <ArrowRight className="w-4 h-4" />
           </button>
 
           <a
             href="#method"
             className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded bg-ivory-100 hover:bg-ivory-300 border border-hairline text-charcoal-900 font-sans font-medium text-sm transition-colors min-h-[46px]"
           >
-            <span>اكتشف طريقة فاينمان</span>
+            <span>Explore the Feynman Method</span>
           </a>
         </div>
 
         {/* Footnote 3 Principles */}
-        <div className="mt-12 sm:mt-16 pt-8 border-t border-hairline max-w-lg mx-auto">
-          <div className="grid grid-cols-3 divide-x divide-x-reverse divide-hairline text-center">
-            <div className="px-2">
+        <div className="mt-12 sm:mt-16 pt-8 border-t border-hairline max-w-xl mx-auto">
+          <div className="grid grid-cols-3 divide-x divide-hairline text-center">
+            <div className="px-3">
               <span className="block font-formula text-xs font-bold text-burgundy-500 mb-0.5">01</span>
-              <span className="text-xs sm:text-sm text-charcoal-900 font-sans font-medium">المبادئ الأولى</span>
+              <span className="text-xs sm:text-sm text-charcoal-900 font-sans font-semibold">First Principles</span>
             </div>
-            <div className="px-2">
+            <div className="px-3">
               <span className="block font-formula text-xs font-bold text-burgundy-500 mb-0.5">02</span>
-              <span className="text-xs sm:text-sm text-charcoal-900 font-sans font-medium">التفكير السببي</span>
+              <span className="text-xs sm:text-sm text-charcoal-900 font-sans font-semibold">Causal Mechanisms</span>
             </div>
-            <div className="px-2">
+            <div className="px-3">
               <span className="block font-formula text-xs font-bold text-burgundy-500 mb-0.5">03</span>
-              <span className="text-xs sm:text-sm text-charcoal-900 font-sans font-medium">الربط المعرفي</span>
+              <span className="text-xs sm:text-sm text-charcoal-900 font-sans font-semibold">Conceptual Synthesis</span>
             </div>
           </div>
         </div>
