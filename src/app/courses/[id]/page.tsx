@@ -93,10 +93,10 @@ export default function CourseDetailsPage() {
           </p>
 
           <div className="pt-4 border-t border-hairline flex flex-wrap items-center justify-between gap-4 text-xs sm:text-sm text-charcoal-100 font-sans">
-            <div className="flex items-center gap-6">
+            <div className="flex flex-wrap items-center gap-4 sm:gap-6">
               <span>Supervision: <strong className="text-charcoal-900 font-sans">Dr. Omar Magdi</strong></span>
+              <span>Track: <strong className="text-charcoal-900 font-sans">{course.categoryName}</strong></span>
               <span>Duration: <strong className="text-charcoal-900 font-sans">{course.totalHours}</strong></span>
-              <span>Rating: <strong className="text-charcoal-900 font-sans">{course.rating} / 5.0</strong></span>
             </div>
 
             <Link

@@ -1,14 +1,26 @@
 export type ViewMode = 'STUDENT' | 'INSTRUCTOR';
 
+export type AcademicCategory =
+  | 'thanaweya-arabic'
+  | 'thanaweya-languages'
+  | 'igcse-stem'
+  | 'university';
+
+export interface AcademicTrackCategory {
+  id: AcademicCategory;
+  name: string;
+  nameAr: string;
+  description: string;
+  badge: string;
+}
+
 export interface InstructorProfile {
   name: string;
   title: string;
   bio: string;
   avatar: string;
-  rating: number;
-  studentsCount: number;
-  coursesCount: number;
-  lecturesCount: number;
+  specialization: string;
+  supervisionScope: string;
 }
 
 export interface ChemistryLesson {
@@ -17,7 +29,7 @@ export interface ChemistryLesson {
   duration: string;
   type: 'video' | 'lab' | 'pdf';
   completed?: boolean;
-  videoDurationSeconds?: number;
+  videoUrl?: string;
   summary: string;
   keyFormulas?: string[];
   pdfNotesUrl?: string;
@@ -29,15 +41,15 @@ export interface ChemistryCourse {
   title: string;
   subTitle: string;
   description: string;
+  category: AcademicCategory;
+  categoryName: string;
   level: string;
   molecularFormula?: string;
   thumbnail: string;
-  totalHours: string;
+  totalHours?: string;
   lessons: ChemistryLesson[];
   colorAccent: string;
   accentBg: string;
-  enrolledStudentsCount: number;
-  rating: number;
 }
 
 export interface Question {
@@ -63,9 +75,10 @@ export interface Booklet {
   id: string;
   title: string;
   courseName: string;
+  category?: AcademicCategory;
   pages: number;
   size: string;
-  downloads: number;
+  edition: string;
   description: string;
 }
 
@@ -87,7 +100,7 @@ export interface WaitlistApplication {
   fullName: string;
   email: string;
   phone: string;
-  academicLevel: string;
+  academicTrack: string;
   targetCourse: string;
   appliedAt: string;
   status: 'pending' | 'approved' | 'contacted' | 'declined';

@@ -2,22 +2,88 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { CHEMISTRY_COURSES } from '@/data/mock-data';
-import { ArrowRight, CheckCircle2 } from 'lucide-react';
+import { CHEMISTRY_COURSES, ACADEMIC_TRACKS } from '@/data/mock-data';
+import { AcademicCategory } from '@/types/lms';
+import { supabase } from '@/lib/supabase';
+import { ArrowRight, CheckCircle2, BookOpen, Clock, Layers } from 'lucide-react';
 
 interface ProgramsSectionProps {
   onOpenWaitlistModal?: () => void;
 }
 
 export const ProgramsSection: React.FC<ProgramsSectionProps> = ({ onOpenWaitlistModal }) => {
+  const [selectedCategory, setSelectedCategory] = useState<AcademicCategory | 'all'>('all');
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
-  const [level, setLevel] = useState('High School Senior');
+  const [selectedTrack, setSelectedTrack] = useState<AcademicCategory>('thanaweya-arabic');
+  const [targetCourse, setTargetCourse] = useState('chem-ar-301');
   const [submitted, setSubmitted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // Filter courses by category
+  const filteredCourses = selectedCategory === 'all'
+    ? CHEMISTRY_COURSES
+    : CHEMISTRY_COURSES.filter((c) => c.category === selectedCategory);
+
+  // Courses available for selected track in the form
+  const coursesForTrack = CHEMISTRY_COURSES.filter((c) => c.category === selectedTrack);
+
+  const handleTrackChange = (newTrack: AcademicCategory) => {
+    setSelectedTrack(newTrack);
+    const firstCourseInTrack = CHEMISTRY_COURSES.find((c) => c.category === newTrack);
+    if (firstCourseInTrack) {
+      setTargetCourse(firstCourseInTrack.id);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setSubmitting(true);
+
+    const chosenCourseObj = CHEMISTRY_COURSES.find((c) => c.id === targetCourse);
+    const chosenTrackObj = ACADEMIC_TRACKS.find((t) => t.id === selectedTrack);
+
+    const newApplication = {
+      id: `wl-${Date.now()}`,
+      fullName,
+      email,
+      phone,
+      academicTrack: chosenTrackObj?.name || selectedTrack,
+      targetCourse: chosenCourseObj ? `${chosenCourseObj.code} - ${chosenCourseObj.title}` : targetCourse,
+      appliedAt: new Date().toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }),
+      status: 'pending' as const,
+      notes: `Applied for ${chosenTrackObj?.name}. Direct inquiry.`,
+    };
+
+    // 1. Sync to local storage for immediate dashboard display
+    try {
+      const existing = localStorage.getItem('phenol_waitlist_applications');
+      const list = existing ? JSON.parse(existing) : [];
+      list.unshift(newApplication);
+      localStorage.setItem('phenol_waitlist_applications', JSON.stringify(list));
+    } catch (err) {
+      console.warn('Local storage write warning:', err);
+    }
+
+    // 2. Attempt Supabase persistence
+    try {
+      await supabase.from('waitlist_applications').insert([
+        {
+          full_name: fullName,
+          email,
+          phone,
+          academic_track: chosenTrackObj?.name || selectedTrack,
+          target_course: chosenCourseObj ? `${chosenCourseObj.code} - ${chosenCourseObj.title}` : targetCourse,
+          status: 'pending',
+          notes: `Applied via landing page admission registrar.`,
+        },
+      ]);
+    } catch (err) {
+      console.warn('Supabase insert note:', err);
+    }
+
+    setSubmitting(false);
     setSubmitted(true);
   };
 
@@ -32,15 +98,17 @@ export const ProgramsSection: React.FC<ProgramsSectionProps> = ({ onOpenWaitlist
                 SECTION 05
               </span>
               <span className="text-hairline-strong">•</span>
-              <span className="text-xs sm:text-sm text-charcoal-100 font-sans font-medium">Curricula & Tracks</span>
+              <span className="text-xs sm:text-sm text-charcoal-100 font-sans font-medium">
+                Academic Cohorts & Curricula
+              </span>
             </div>
 
             <h2 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-charcoal-900 font-display">
-              Academic Tracks
+              The 4 Academic Tracks
             </h2>
 
             <p className="text-sm sm:text-base text-charcoal-100 leading-relaxed font-sans">
-              Rigorous, structured curricula designed to develop deep scientific reasoning, devoid of superficial filler.
+              Rigorous, structured chemistry curricula designed for foundational comprehension, from high school national & international certifications to university undergraduate mastery.
             </p>
           </div>
 
@@ -49,24 +117,64 @@ export const ProgramsSection: React.FC<ProgramsSectionProps> = ({ onOpenWaitlist
           </div>
         </div>
 
+        {/* Academic Track Filter Tabs */}
+        <div className="flex flex-wrap items-center gap-2 border-b border-hairline pb-4">
+          <button
+            onClick={() => setSelectedCategory('all')}
+            className={`px-3.5 py-1.5 text-xs sm:text-sm font-semibold rounded transition-colors ${
+              selectedCategory === 'all'
+                ? 'bg-burgundy-500 text-ivory-100 shadow-quiet'
+                : 'bg-ivory-100 text-charcoal-100 hover:text-charcoal-900 border border-hairline'
+            }`}
+          >
+            All Tracks ({CHEMISTRY_COURSES.length})
+          </button>
+
+          {ACADEMIC_TRACKS.map((track) => {
+            const count = CHEMISTRY_COURSES.filter((c) => c.category === track.id).length;
+            const isSelected = selectedCategory === track.id;
+            return (
+              <button
+                key={track.id}
+                onClick={() => setSelectedCategory(track.id)}
+                className={`px-3.5 py-1.5 text-xs sm:text-sm font-semibold rounded transition-colors flex items-center gap-2 ${
+                  isSelected
+                    ? 'bg-burgundy-500 text-ivory-100 shadow-quiet'
+                    : 'bg-ivory-100 text-charcoal-100 hover:text-charcoal-900 border border-hairline'
+                }`}
+              >
+                <span>{track.name}</span>
+                <span className={`text-[11px] font-formula px-1.5 py-0.2 rounded ${
+                  isSelected ? 'bg-burgundy-800 text-ivory-200' : 'bg-ivory-300 text-charcoal-100'
+                }`}>
+                  {count}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
         {/* Academic Course Catalog */}
         <div className="divide-y divide-hairline border-b border-hairline">
-          {CHEMISTRY_COURSES.map((course) => (
+          {filteredCourses.map((course) => (
             <div
               key={course.id}
               className="py-8 sm:py-10 grid grid-cols-1 lg:grid-cols-12 gap-6 items-start hover:bg-ivory-300/30 transition-colors px-2 -mx-2 rounded"
             >
               {/* Course Title & Identifier */}
               <div className="lg:col-span-5 space-y-2">
-                <div className="flex items-center gap-2.5">
+                <div className="flex flex-wrap items-center gap-2">
                   <span className="font-formula text-xs font-bold text-burgundy-500 bg-burgundy-50 px-2 py-0.5 rounded border border-burgundy-200">
                     {course.code}
                   </span>
-                  <span className="text-xs font-semibold text-charcoal-50 font-sans">
+                  <span className="font-sans text-[11px] font-semibold text-charcoal-900 bg-ivory-300 px-2 py-0.5 rounded border border-hairline">
+                    {course.categoryName}
+                  </span>
+                  <span className="text-xs font-medium text-charcoal-50 font-sans">
                     {course.level}
                   </span>
                   {course.molecularFormula && (
-                    <span className="font-formula text-xs text-charcoal-100 bg-ivory-300 px-2 py-0.5 rounded">
+                    <span className="font-formula text-xs text-charcoal-100 bg-ivory-200 px-2 py-0.5 rounded">
                       {course.molecularFormula}
                     </span>
                   )}
@@ -81,9 +189,15 @@ export const ProgramsSection: React.FC<ProgramsSectionProps> = ({ onOpenWaitlist
                 </p>
 
                 <div className="pt-2 flex items-center gap-4 text-xs font-formula text-charcoal-100">
-                  <span>{course.totalHours}</span>
+                  <span className="inline-flex items-center gap-1.5">
+                    <Clock className="w-3.5 h-3.5 text-charcoal-50" />
+                    <span>{course.totalHours}</span>
+                  </span>
                   <span>•</span>
-                  <span>{course.enrolledStudentsCount} Enrolled</span>
+                  <span className="inline-flex items-center gap-1.5">
+                    <Layers className="w-3.5 h-3.5 text-charcoal-50" />
+                    <span>{course.lessons.length} Core Modules</span>
+                  </span>
                 </div>
               </div>
 
@@ -123,30 +237,34 @@ export const ProgramsSection: React.FC<ProgramsSectionProps> = ({ onOpenWaitlist
         <div id="admission" className="border border-hairline bg-ivory-100 rounded p-6 sm:p-10 max-w-3xl mx-auto scroll-mt-28">
           <div className="text-center space-y-2 mb-8">
             <span className="font-formula text-xs text-burgundy-500 font-bold uppercase tracking-widest block">
-              ADMISSION & WAITLIST
+              ADMISSION & REGISTRATION
             </span>
             <h3 className="text-xl sm:text-2xl font-bold text-charcoal-900 font-display">
               Apply for the 2026/2027 Academic Cohort
             </h3>
             <p className="text-xs sm:text-sm text-charcoal-100 max-w-md mx-auto font-sans leading-relaxed">
-              Strictly limited cohort capacity to guarantee individual problem-set review and direct academic supervision by Dr. Omar Magdi.
+              Strictly limited cohort capacity to guarantee individual problem-set review, weekly diagnostic grading, and direct academic supervision by Dr. Omar Magdi.
             </p>
           </div>
 
           {submitted ? (
-            <div className="bg-ivory-300/80 border border-hairline rounded p-6 text-center space-y-2">
+            <div className="bg-ivory-300/80 border border-hairline rounded p-6 text-center space-y-3">
               <CheckCircle2 className="w-8 h-8 text-burgundy-500 mx-auto" />
-              <h4 className="font-bold text-charcoal-900 font-display">Application Received</h4>
-              <p className="text-xs sm:text-sm text-charcoal-100 font-sans">
-                Thank you, {fullName}. Dr. Omar Magdi&apos;s academic registrar will reach out to you via WhatsApp ({phone}) with the placement diagnostic.
+              <h4 className="font-bold text-charcoal-900 font-display text-lg">Application Registered</h4>
+              <p className="text-xs sm:text-sm text-charcoal-100 font-sans max-w-md mx-auto">
+                Thank you, <strong className="text-charcoal-900">{fullName}</strong>. Your application for <strong className="text-charcoal-900">{ACADEMIC_TRACKS.find(t => t.id === selectedTrack)?.name}</strong> has been received by Dr. Omar Magdi&apos;s registrar.
               </p>
+              <div className="pt-2 text-xs font-formula text-charcoal-50">
+                You will be contacted via WhatsApp at <span className="font-bold text-burgundy-500">{phone}</span> with orientation guidelines and diagnostic placement steps.
+              </div>
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-4">
+              {/* Row 1: Full Name & WhatsApp Phone */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-semibold text-charcoal-900 font-sans mb-1.5">
-                    Full Name
+                    Full Name (الاسم بالكامل)
                   </label>
                   <input
                     type="text"
@@ -160,7 +278,7 @@ export const ProgramsSection: React.FC<ProgramsSectionProps> = ({ onOpenWaitlist
 
                 <div>
                   <label className="block text-xs font-semibold text-charcoal-900 font-sans mb-1.5">
-                    WhatsApp Number
+                    WhatsApp Number (رقم الواتساب)
                   </label>
                   <input
                     type="tel"
@@ -173,6 +291,7 @@ export const ProgramsSection: React.FC<ProgramsSectionProps> = ({ onOpenWaitlist
                 </div>
               </div>
 
+              {/* Row 2: Email & Academic Track */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-semibold text-charcoal-900 font-sans mb-1.5">
@@ -190,25 +309,47 @@ export const ProgramsSection: React.FC<ProgramsSectionProps> = ({ onOpenWaitlist
 
                 <div>
                   <label className="block text-xs font-semibold text-charcoal-900 font-sans mb-1.5">
-                    Academic Level
+                    Target Academic Track (المسار الدراسي)
                   </label>
                   <select
-                    value={level}
-                    onChange={(e) => setLevel(e.target.value)}
+                    value={selectedTrack}
+                    onChange={(e) => handleTrackChange(e.target.value as AcademicCategory)}
                     className="w-full px-3.5 py-2.5 text-sm bg-ivory-50 border border-hairline rounded text-charcoal-900 focus:outline-none focus:border-burgundy-500 transition-colors"
                   >
-                    <option value="High School Senior">High School Senior (Thanaweya Amma / STEM / IGCSE)</option>
-                    <option value="High School Junior">High School Junior</option>
-                    <option value="University Undergraduate">University Undergraduate (Pharmacy / Medicine / Science)</option>
+                    {ACADEMIC_TRACKS.map((t) => (
+                      <option key={t.id} value={t.id}>
+                        {t.name} — {t.nameAr}
+                      </option>
+                    ))}
                   </select>
                 </div>
               </div>
 
+              {/* Row 3: Target Course in that track */}
+              <div>
+                <label className="block text-xs font-semibold text-charcoal-900 font-sans mb-1.5">
+                  Target Course in Track (المقرر المطلوب)
+                </label>
+                <select
+                  value={targetCourse}
+                  onChange={(e) => setTargetCourse(e.target.value)}
+                  className="w-full px-3.5 py-2.5 text-sm bg-ivory-50 border border-hairline rounded text-charcoal-900 focus:outline-none focus:border-burgundy-500 transition-colors"
+                >
+                  {coursesForTrack.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.code}: {c.title} ({c.level})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
               <button
                 type="submit"
-                className="w-full py-3 rounded bg-burgundy-500 hover:bg-burgundy-800 text-ivory-100 font-sans font-semibold text-sm transition-colors shadow-quiet mt-2"
+                disabled={submitting}
+                className="w-full py-3 rounded bg-burgundy-500 hover:bg-burgundy-800 disabled:opacity-50 text-ivory-100 font-sans font-semibold text-sm transition-colors shadow-quiet mt-2 flex items-center justify-center gap-2"
               >
-                Submit Admission Application
+                <span>{submitting ? 'Submitting Application...' : 'Submit Admission Application'}</span>
+                <ArrowRight className="w-4 h-4" />
               </button>
             </form>
           )}
