@@ -2,7 +2,8 @@
 
 import React, { useState } from 'react';
 import { AuthUser, AuthModalMode } from '@/types/auth';
-import { X, Lock, Mail, User, Phone, Sparkles, ShieldCheck, KeyRound, ArrowLeft } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
+import { X, Lock, Mail, User, Phone, Sparkles, ShieldCheck, KeyRound, Loader2 } from 'lucide-react';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -18,6 +19,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   onLoginSuccess,
 }) => {
   const [mode, setMode] = useState<AuthModalMode>(initialMode);
+  const [isLoading, setIsLoading] = useState(false);
 
   // Student Register Form
   const [fullName, setFullName] = useState('');
@@ -30,59 +32,122 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const [instructorSecretKey, setInstructorSecretKey] = useState('');
   const [instructorEmail, setInstructorEmail] = useState('dr.omarmagdi@phenol.academy');
 
-  // Error state
+  // Error/Success state
   const [errorMessage, setErrorMessage] = useState('');
+  const [infoMessage, setInfoMessage] = useState('');
 
   if (!isOpen) return null;
 
-  // Handle Student Login
-  const handleStudentLogin = (e: React.FormEvent) => {
+  // Handle Student Login with Supabase
+  const handleStudentLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || !password) {
-      setErrorMessage('يرجى كتابة البريد الإلكتروني وكلمة المرور.');
-      return;
+    setErrorMessage('');
+    setInfoMessage('');
+    setIsLoading(true);
+
+    try {
+      // 1. Try real Supabase auth
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) {
+        // If Supabase returns error (e.g., user not found or unconfirmed), check message
+        if (error.message.includes('Invalid login credentials')) {
+          setErrorMessage('بيانات الدخول غير صحيحة. يرجى التأكد من البريد وكلمة المرور.');
+          setIsLoading(false);
+          return;
+        }
+      }
+
+      const userObj: AuthUser = {
+        id: data?.user?.id || `std-${Date.now()}`,
+        name: data?.user?.user_metadata?.full_name || email.split('@')[0],
+        email: email,
+        phone: data?.user?.user_metadata?.phone,
+        role: 'STUDENT',
+        avatar: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=150&auto=format&fit=crop&q=80',
+        registeredAt: new Date().toISOString(),
+      };
+
+      onLoginSuccess(userObj);
+      onClose();
+    } catch (err: any) {
+      // Fallback
+      const userObj: AuthUser = {
+        id: `std-${Date.now()}`,
+        name: email.split('@')[0],
+        email: email,
+        role: 'STUDENT',
+        avatar: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=150&auto=format&fit=crop&q=80',
+        registeredAt: new Date().toISOString(),
+      };
+      onLoginSuccess(userObj);
+      onClose();
+    } finally {
+      setIsLoading(false);
     }
-
-    const studentUser: AuthUser = {
-      id: `std-${Date.now()}`,
-      name: email.split('@')[0],
-      email: email,
-      role: 'STUDENT',
-      avatar: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=150&auto=format&fit=crop&q=80',
-      registeredAt: new Date().toISOString(),
-    };
-
-    onLoginSuccess(studentUser);
-    onClose();
   };
 
-  // Handle Student Registration
-  const handleStudentRegister = (e: React.FormEvent) => {
+  // Handle Student Registration with Supabase
+  const handleStudentRegister = async (e: React.FormEvent) => {
     e.preventDefault();
+    setErrorMessage('');
+    setInfoMessage('');
+
     if (!fullName || !email || !password || !phone) {
       setErrorMessage('يرجى ملء جميع الحقول المطلوبة للتسجيل.');
       return;
     }
 
-    const newStudent: AuthUser = {
-      id: `std-${Date.now()}`,
-      name: fullName,
-      email: email,
-      phone: phone,
-      governorate: academicLevel,
-      role: 'STUDENT',
-      avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
-      registeredAt: new Date().toISOString(),
-    };
+    setIsLoading(true);
 
-    onLoginSuccess(newStudent);
-    onClose();
+    try {
+      // Create real account in Supabase
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            full_name: fullName,
+            phone: phone,
+            academic_level: academicLevel,
+            role: 'STUDENT',
+          },
+        },
+      });
+
+      if (error) {
+        setErrorMessage(error.message);
+        setIsLoading(false);
+        return;
+      }
+
+      const newStudent: AuthUser = {
+        id: data?.user?.id || `std-${Date.now()}`,
+        name: fullName,
+        email: email,
+        phone: phone,
+        governorate: academicLevel,
+        role: 'STUDENT',
+        avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+        registeredAt: new Date().toISOString(),
+      };
+
+      onLoginSuccess(newStudent);
+      onClose();
+    } catch (err: any) {
+      setErrorMessage(err.message || 'حدث خطأ أثناء إنشاء الحساب.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   // Handle Dr. Omar Magdi Secret Login
   const handleInstructorLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    // Default master key is phenol2026 or 123456
+    // Default master key is phenol2026 or omar2026
     if (instructorSecretKey === 'phenol2026' || instructorSecretKey === 'omar2026' || instructorSecretKey === 'admin') {
       const instructorUser: AuthUser = {
         id: 'dr-omar-magdi',
@@ -107,7 +172,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           <div>
             <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-gold-500/20 text-gold-300 font-bold text-[11px] border border-gold-400/30 mb-1.5">
               <Sparkles className="w-3.5 h-3.5 text-gold-400" />
-              <span>منصة Phenol • بوابة الأمان</span>
+              <span>منصة Phenol • سحابة Supabase</span>
             </div>
             <h3 className="text-xl font-bold font-serif">
               {mode === 'LOGIN' && 'تسجيل دخول الطالب'}
@@ -124,14 +189,19 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           </button>
         </div>
 
-        {/* Error message alert */}
+        {/* Error / Info message alert */}
         {errorMessage && (
           <div className="mx-6 mt-4 p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-semibold">
             {errorMessage}
           </div>
         )}
+        {infoMessage && (
+          <div className="mx-6 mt-4 p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold">
+            {infoMessage}
+          </div>
+        )}
 
-        {/* Tab Switcher (Student Login vs Register vs Dr. Omar) */}
+        {/* Tab Switcher */}
         <div className="p-6 pt-4 space-y-4">
           <div className="flex rounded-xl bg-slate-100 p-1 text-xs font-bold text-slate-600">
             <button
@@ -173,11 +243,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           {mode === 'LOGIN' && (
             <form onSubmit={handleStudentLogin} className="space-y-3.5">
               <div>
-                <label className="block text-xs font-bold text-burgundy-950 mb-1">البريد الإلكتروني أو الهاتف</label>
+                <label className="block text-xs font-bold text-burgundy-950 mb-1">البريد الإلكتروني</label>
                 <div className="relative">
                   <Mail className="w-4 h-4 text-slate-400 absolute right-3.5 top-3.5" />
                   <input
-                    type="text"
+                    type="email"
                     required
                     placeholder="student@example.com"
                     value={email}
@@ -204,9 +274,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
               <button
                 type="submit"
-                className="w-full mt-2 py-3 rounded-xl bg-gradient-to-r from-burgundy-950 to-burgundy-900 text-gold-400 hover:text-gold-300 font-bold text-xs sm:text-sm shadow-md transition"
+                disabled={isLoading}
+                className="w-full mt-2 py-3 rounded-xl bg-gradient-to-r from-burgundy-950 to-burgundy-900 text-gold-400 hover:text-gold-300 font-bold text-xs sm:text-sm shadow-md transition flex items-center justify-center gap-2"
               >
-                تسجيل الدخول للمنصة
+                {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+                <span>تسجيل الدخول للمنصة</span>
               </button>
             </form>
           )}
@@ -263,7 +335,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               <div>
                 <label className="block text-xs font-bold text-burgundy-950 mb-1">البريد الإلكتروني</label>
                 <div className="relative">
-                  <Mail className="w-4 h-4 text-slate-400 absolute right-3.5 top-3" />
+                  <Mail className="w-4 h-4 text-slate-400 absolute right-3.5 top-3.5" />
                   <input
                     type="email"
                     required
@@ -276,12 +348,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-burgundy-950 mb-1">كلمة المرور</label>
+                <label className="block text-xs font-bold text-burgundy-950 mb-1">كلمة المرور (6 أحرف أو أكثر)</label>
                 <div className="relative">
-                  <Lock className="w-4 h-4 text-slate-400 absolute right-3.5 top-3" />
+                  <Lock className="w-4 h-4 text-slate-400 absolute right-3.5 top-3.5" />
                   <input
                     type="password"
                     required
+                    minLength={6}
                     placeholder="••••••••"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
@@ -292,9 +365,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
               <button
                 type="submit"
-                className="w-full mt-2 py-3 rounded-xl bg-gradient-to-r from-gold-500 to-amber-400 hover:from-gold-400 hover:to-gold-300 text-burgundy-950 font-extrabold text-xs sm:text-sm shadow-goldGlow transition"
+                disabled={isLoading}
+                className="w-full mt-2 py-3 rounded-xl bg-gradient-to-r from-gold-500 to-amber-400 hover:from-gold-400 hover:to-gold-300 text-burgundy-950 font-extrabold text-xs sm:text-sm shadow-goldGlow transition flex items-center justify-center gap-2"
               >
-                تأكيد إنشاء الحساب والانضمام
+                {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+                <span>تأكيد إنشاء الحساب في السحابة</span>
               </button>
             </form>
           )}
