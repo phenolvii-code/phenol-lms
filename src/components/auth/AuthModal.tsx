@@ -1,9 +1,10 @@
 'use client';
 
 import React, { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { AuthUser, AuthModalMode } from '@/types/auth';
 import { supabase } from '@/lib/supabase';
-import { X, Lock, Mail, User, Phone, Sparkles, ShieldCheck, KeyRound, Loader2 } from 'lucide-react';
+import { X, Lock, Mail, User, Phone } from 'lucide-react';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -18,6 +19,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   onClose,
   onLoginSuccess,
 }) => {
+  const router = useRouter();
   const [mode, setMode] = useState<AuthModalMode>(initialMode);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -25,7 +27,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
-  const [academicLevel, setAcademicLevel] = useState('الثانوية العامة / تمهيدي');
+  const [academicLevel, setAcademicLevel] = useState('المرحلة الثانوية');
   const [password, setPassword] = useState('');
 
   // Dr. Omar Secret Login Form
@@ -38,7 +40,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
   if (!isOpen) return null;
 
-  // Handle Student Login with Supabase
+  // Handle Student Login
   const handleStudentLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage('');
@@ -51,12 +53,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         password,
       });
 
-      if (error) {
-        if (error.message.includes('Invalid login credentials')) {
-          setErrorMessage('بيانات الدخول غير صحيحة. يرجى التأكد من البريد وكلمة المرور.');
-          setIsLoading(false);
-          return;
-        }
+      if (error && error.message.includes('Invalid login credentials')) {
+        setErrorMessage('بيانات الدخول غير صحيحة. يرجى التأكد من البريد وكلمة المرور.');
+        setIsLoading(false);
+        return;
       }
 
       const userObj: AuthUser = {
@@ -71,6 +71,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
       onLoginSuccess(userObj);
       onClose();
+      router.push('/dashboard');
     } catch (err: any) {
       const userObj: AuthUser = {
         id: `std-${Date.now()}`,
@@ -82,12 +83,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       };
       onLoginSuccess(userObj);
       onClose();
+      router.push('/dashboard');
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Handle Student Registration with Supabase
+  // Handle Student Registration
   const handleStudentRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage('');
@@ -109,7 +111,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             full_name: fullName,
             phone: phone,
             academic_level: academicLevel,
-            role: 'STUDENT',
           },
         },
       });
@@ -133,6 +134,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
       onLoginSuccess(newStudent);
       onClose();
+      router.push('/dashboard');
     } catch (err: any) {
       setErrorMessage(err.message || 'حدث خطأ أثناء إنشاء الحساب.');
     } finally {
@@ -150,7 +152,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     ) {
       const instructorUser: AuthUser = {
         id: 'dr-omar-magdi',
-        name: 'Dr/Omar Magdi',
+        name: 'د/عمر مجدي',
         email: instructorEmail,
         role: 'INSTRUCTOR',
         avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80',
@@ -158,6 +160,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       };
       onLoginSuccess(instructorUser);
       onClose();
+      router.push('/dashboard');
     } else {
       setErrorMessage('مفتاح المرور الخاص بالدكتور غير صحيح. المفتاح الافتراضي هو: phenol2026');
     }
@@ -168,60 +171,57 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       role="dialog"
       aria-modal="true"
       aria-labelledby="auth-modal-title"
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-darkBg/85 backdrop-blur-md animate-fadeIn"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-charcoal-900/40 backdrop-blur-sm"
     >
-      <div className="bg-cardPrimary w-full max-w-md rounded-3xl shadow-editorial border border-borderSubtle overflow-hidden flex flex-col max-h-[92dvh] overflow-y-auto">
-        {/* Modal Top Header */}
-        <div className="p-6 bg-gradient-to-r from-burgundy-950 via-cardSecondary to-burgundy-950 border-b border-borderSubtle text-textPrimary relative flex items-center justify-between">
+      <div className="bg-ivory-100 w-full max-w-md rounded border border-hairline shadow-lift overflow-hidden flex flex-col max-h-[92dvh] overflow-y-auto">
+        {/* Modal Header */}
+        <div className="p-5 bg-ivory-300 border-b border-hairline flex items-center justify-between">
           <div>
-            <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-cardPrimary border border-gold-500/30 text-gold-400 font-bold text-[10px] sm:text-[11px] mb-1.5">
-              <img
-                src="/images/phenol-symbol-gold.png"
-                alt="PHENOL"
-                className="w-3.5 h-3.5 object-contain"
-              />
-              <span className="font-editorial uppercase tracking-wider">منصة PHENOL الأكاديمية</span>
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded border border-hairline bg-ivory-100 text-xs text-burgundy-500 font-bold mb-1.5 font-sans">
+              <span className="font-editorial uppercase tracking-wider">PHENOL</span>
+              <span>•</span>
+              <span>د/عمر مجدي</span>
             </div>
-            <h3 id="auth-modal-title" className="text-lg sm:text-xl font-bold font-serif text-textPrimary">
+            <h3 id="auth-modal-title" className="text-base sm:text-lg font-bold font-display text-charcoal-900">
               {mode === 'LOGIN' && 'تسجيل دخول الطالب'}
               {mode === 'REGISTER' && 'إنشاء حساب طالب جديد'}
-              {mode === 'INSTRUCTOR_LOGIN' && 'بوابة Dr/Omar Magdi الخاصة'}
+              {mode === 'INSTRUCTOR_LOGIN' && 'بوابة د/عمر مجدي الخاصة'}
             </h3>
           </div>
 
           <button
             onClick={onClose}
             aria-label="إغلاق النافذة"
-            className="p-2.5 rounded-full bg-cardPrimary/80 hover:bg-cardSecondary text-textSecondary hover:text-textPrimary border border-borderSubtle transition min-h-[44px] min-w-[44px] flex items-center justify-center"
+            className="p-2 rounded text-charcoal-50 hover:text-charcoal-900 hover:bg-ivory-200 transition-colors"
           >
-            <X className="w-4 h-4" />
+            <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Error / Info message alert */}
+        {/* Alerts */}
         {errorMessage && (
-          <div className="mx-6 mt-4 p-3.5 rounded-xl bg-burgundy-950/60 border border-rose-500/40 text-rose-300 text-xs font-semibold">
+          <div className="mx-5 mt-4 p-3 rounded bg-burgundy-50 border border-burgundy-200 text-burgundy-800 text-xs sm:text-sm font-medium font-sans">
             {errorMessage}
           </div>
         )}
         {infoMessage && (
-          <div className="mx-6 mt-4 p-3.5 rounded-xl bg-cardSecondary border border-emerald-500/40 text-emerald-300 text-xs font-semibold">
+          <div className="mx-5 mt-4 p-3 rounded bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs sm:text-sm font-medium font-sans">
             {infoMessage}
           </div>
         )}
 
         {/* Tab Switcher */}
-        <div className="p-6 pt-4 space-y-4">
-          <div className="flex rounded-xl bg-cardSecondary p-1 text-xs font-bold border border-borderSubtle">
+        <div className="p-5 pt-4 space-y-4">
+          <div className="grid grid-cols-3 rounded bg-ivory-300 p-1 text-xs sm:text-sm border border-hairline font-sans">
             <button
               onClick={() => {
                 setMode('LOGIN');
                 setErrorMessage('');
               }}
-              className={`flex-1 py-2.5 rounded-lg transition min-h-[40px] ${
+              className={`py-2.5 rounded transition-colors text-center font-medium ${
                 mode === 'LOGIN'
-                  ? 'bg-cardPrimary text-gold-400 shadow-sm font-bold border border-borderSubtle'
-                  : 'text-textSecondary hover:text-textPrimary'
+                  ? 'bg-ivory-100 text-charcoal-900 font-bold shadow-quiet'
+                  : 'text-charcoal-100 hover:text-charcoal-900'
               }`}
             >
               دخول طالب
@@ -231,10 +231,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 setMode('REGISTER');
                 setErrorMessage('');
               }}
-              className={`flex-1 py-2.5 rounded-lg transition min-h-[40px] ${
+              className={`py-2.5 rounded transition-colors text-center font-medium ${
                 mode === 'REGISTER'
-                  ? 'bg-cardPrimary text-gold-400 shadow-sm font-bold border border-borderSubtle'
-                  : 'text-textSecondary hover:text-textPrimary'
+                  ? 'bg-ivory-100 text-charcoal-900 font-bold shadow-quiet'
+                  : 'text-charcoal-100 hover:text-charcoal-900'
               }`}
             >
               حساب جديد
@@ -244,185 +244,145 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 setMode('INSTRUCTOR_LOGIN');
                 setErrorMessage('');
               }}
-              className={`flex-1 py-2.5 rounded-lg transition min-h-[40px] ${
+              className={`py-2.5 rounded transition-colors text-center font-medium ${
                 mode === 'INSTRUCTOR_LOGIN'
-                  ? 'bg-burgundy-900 text-gold-300 shadow-sm font-bold border border-gold-500/30'
-                  : 'text-textSecondary hover:text-textPrimary'
+                  ? 'bg-ivory-100 text-burgundy-500 font-bold shadow-quiet'
+                  : 'text-charcoal-100 hover:text-charcoal-900'
               }`}
             >
-              دخول د. عمر
+              بوابة الدكتور
             </button>
           </div>
 
           {/* Form 1: Student Login */}
           {mode === 'LOGIN' && (
-            <form onSubmit={handleStudentLogin} className="space-y-3.5">
+            <form onSubmit={handleStudentLogin} className="space-y-4">
               <div>
-                <label htmlFor="login-email" className="block text-xs font-bold text-textSecondary mb-1.5">
+                <label className="block text-xs sm:text-sm font-semibold text-charcoal-900 mb-1.5 font-sans">
                   البريد الإلكتروني
                 </label>
                 <div className="relative">
-                  <Mail className="w-4 h-4 text-textSecondary/50 absolute right-3.5 top-3.5" />
                   <input
-                    id="login-email"
-                    name="email"
                     type="email"
                     required
-                    inputMode="email"
-                    autoComplete="username"
-                    autoCorrect="off"
-                    autoCapitalize="off"
-                    spellCheck={false}
-                    enterKeyHint="next"
-                    placeholder="student@example.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="w-full pr-10 pl-4 py-3 rounded-xl bg-cardSecondary border border-borderSubtle text-xs sm:text-sm text-textPrimary placeholder:text-textSecondary/40 focus:border-gold-500 focus:outline-none min-h-[48px]"
+                    placeholder="student@example.com"
+                    dir="ltr"
+                    className="w-full px-4 py-3 rounded bg-ivory-200 border border-hairline text-charcoal-900 text-xs sm:text-sm focus:outline-none focus:border-burgundy-500 transition-colors text-right font-sans"
                   />
+                  <Mail className="w-4 h-4 text-charcoal-50 absolute left-3.5 top-3.5" />
                 </div>
               </div>
 
               <div>
-                <label htmlFor="login-password" className="block text-xs font-bold text-textSecondary mb-1.5">
+                <label className="block text-xs sm:text-sm font-semibold text-charcoal-900 mb-1.5 font-sans">
                   كلمة المرور
                 </label>
                 <div className="relative">
-                  <Lock className="w-4 h-4 text-textSecondary/50 absolute right-3.5 top-3.5" />
                   <input
-                    id="login-password"
-                    name="password"
                     type="password"
                     required
-                    autoComplete="current-password"
-                    enterKeyHint="done"
-                    placeholder="••••••••"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="w-full pr-10 pl-4 py-3 rounded-xl bg-cardSecondary border border-borderSubtle text-xs sm:text-sm text-textPrimary placeholder:text-textSecondary/40 focus:border-gold-500 focus:outline-none min-h-[48px]"
+                    placeholder="••••••••"
+                    dir="ltr"
+                    className="w-full px-4 py-3 rounded bg-ivory-200 border border-hairline text-charcoal-900 text-xs sm:text-sm focus:outline-none focus:border-burgundy-500 transition-colors text-right font-sans"
                   />
+                  <Lock className="w-4 h-4 text-charcoal-50 absolute left-3.5 top-3.5" />
                 </div>
               </div>
 
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full mt-2 py-3.5 rounded-xl bg-burgundy-500 hover:bg-burgundy-600 active:scale-95 disabled:opacity-60 text-white font-bold text-xs sm:text-sm shadow-burgundyGlow transition flex items-center justify-center gap-2 min-h-[48px]"
+                className="w-full py-3 rounded bg-burgundy-500 hover:bg-burgundy-800 text-ivory-100 font-sans font-semibold text-sm transition-colors shadow-quiet disabled:opacity-50 mt-2"
               >
-                {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-                <span>تسجيل الدخول للمنصة</span>
+                {isLoading ? 'جاري الدخول...' : 'تسجيل الدخول'}
               </button>
             </form>
           )}
 
-          {/* Form 2: Student Registration */}
+          {/* Form 2: Student Register */}
           {mode === 'REGISTER' && (
-            <form onSubmit={handleStudentRegister} className="space-y-3">
+            <form onSubmit={handleStudentRegister} className="space-y-3.5">
               <div>
-                <label htmlFor="reg-name" className="block text-xs font-bold text-textSecondary mb-1">
-                  اسم الطالب ثلاثي
+                <label className="block text-xs sm:text-sm font-semibold text-charcoal-900 mb-1.5 font-sans">
+                  الاسم بالكامل
                 </label>
                 <div className="relative">
-                  <User className="w-4 h-4 text-textSecondary/50 absolute right-3.5 top-3.5" />
                   <input
-                    id="reg-name"
-                    name="fullName"
                     type="text"
                     required
-                    autoComplete="name"
-                    enterKeyHint="next"
-                    placeholder="مثال: يوسف أحمد عبد المنعم"
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
-                    className="w-full pr-10 pl-4 py-2.5 rounded-xl bg-cardSecondary border border-borderSubtle text-xs sm:text-sm text-textPrimary placeholder:text-textSecondary/40 focus:border-gold-500 focus:outline-none min-h-[46px]"
+                    placeholder="اسم الطالب ثلاثي"
+                    className="w-full px-4 py-3 rounded bg-ivory-200 border border-hairline text-charcoal-900 text-xs sm:text-sm focus:outline-none focus:border-burgundy-500 transition-colors font-sans"
+                  />
+                  <User className="w-4 h-4 text-charcoal-50 absolute left-3.5 top-3.5" />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs sm:text-sm font-semibold text-charcoal-900 mb-1 font-sans">
+                    البريد الإلكتروني
+                  </label>
+                  <input
+                    type="email"
+                    required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="student@example.com"
+                    dir="ltr"
+                    className="w-full px-3.5 py-2.5 rounded bg-ivory-200 border border-hairline text-charcoal-900 text-xs sm:text-sm focus:outline-none focus:border-burgundy-500 transition-colors text-right font-sans"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs sm:text-sm font-semibold text-charcoal-900 mb-1 font-sans">
+                    رقم الهاتف
+                  </label>
+                  <input
+                    type="tel"
+                    required
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    placeholder="01xxxxxxxxx"
+                    dir="ltr"
+                    className="w-full px-3.5 py-2.5 rounded bg-ivory-200 border border-hairline text-charcoal-900 text-xs sm:text-sm focus:outline-none focus:border-burgundy-500 transition-colors text-right font-sans"
                   />
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-2.5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label htmlFor="reg-phone" className="block text-xs font-bold text-textSecondary mb-1">
-                    رقم الهاتف (واتساب)
-                  </label>
-                  <div className="relative">
-                    <Phone className="w-4 h-4 text-textSecondary/50 absolute right-3 top-3.5" />
-                    <input
-                      id="reg-phone"
-                      name="phone"
-                      type="tel"
-                      required
-                      inputMode="tel"
-                      autoComplete="tel"
-                      enterKeyHint="next"
-                      placeholder="010XXXXXXXX"
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
-                      className="w-full pr-9 pl-3 py-2.5 rounded-xl bg-cardSecondary border border-borderSubtle text-xs text-textPrimary placeholder:text-textSecondary/40 focus:border-gold-500 focus:outline-none min-h-[46px]"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label htmlFor="reg-level" className="block text-xs font-bold text-textSecondary mb-1">
+                  <label className="block text-xs sm:text-sm font-semibold text-charcoal-900 mb-1 font-sans">
                     المرحلة الدراسية
                   </label>
                   <select
-                    id="reg-level"
-                    name="academicLevel"
                     value={academicLevel}
                     onChange={(e) => setAcademicLevel(e.target.value)}
-                    className="w-full px-2.5 py-2.5 rounded-xl bg-cardSecondary border border-borderSubtle text-xs text-textPrimary focus:border-gold-500 focus:outline-none min-h-[46px]"
+                    className="w-full px-3.5 py-2.5 rounded bg-ivory-200 border border-hairline text-charcoal-900 text-xs sm:text-sm focus:outline-none focus:border-burgundy-500 transition-colors font-sans"
                   >
-                    <option value="الثانوية العامة / تمهيدي">ثانوية عامة</option>
-                    <option value="صيدلة">كلية الصيدلة</option>
-                    <option value="علوم كيمياء">كلية العلوم</option>
-                    <option value="طب بشري / أسنان">طب / أسنان</option>
+                    <option value="المرحلة الثانوية">المرحلة الثانوية</option>
+                    <option value="تمهيدي جامعي">تمهيدي جامعي</option>
+                    <option value="طالب جامعي">طالب جامعي</option>
                   </select>
                 </div>
-              </div>
 
-              <div>
-                <label htmlFor="reg-email" className="block text-xs font-bold text-textSecondary mb-1">
-                  البريد الإلكتروني
-                </label>
-                <div className="relative">
-                  <Mail className="w-4 h-4 text-textSecondary/50 absolute right-3.5 top-3.5" />
+                <div>
+                  <label className="block text-xs sm:text-sm font-semibold text-charcoal-900 mb-1 font-sans">
+                    كلمة المرور
+                  </label>
                   <input
-                    id="reg-email"
-                    name="email"
-                    type="email"
-                    required
-                    inputMode="email"
-                    autoComplete="email"
-                    autoCorrect="off"
-                    autoCapitalize="off"
-                    spellCheck={false}
-                    enterKeyHint="next"
-                    placeholder="yourname@gmail.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="w-full pr-10 pl-4 py-2.5 rounded-xl bg-cardSecondary border border-borderSubtle text-xs sm:text-sm text-textPrimary placeholder:text-textSecondary/40 focus:border-gold-500 focus:outline-none min-h-[46px]"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label htmlFor="reg-password" className="block text-xs font-bold text-textSecondary mb-1">
-                  كلمة المرور (6 أحرف أو أكثر)
-                </label>
-                <div className="relative">
-                  <Lock className="w-4 h-4 text-textSecondary/50 absolute right-3.5 top-3.5" />
-                  <input
-                    id="reg-password"
-                    name="password"
                     type="password"
                     required
-                    minLength={6}
-                    autoComplete="new-password"
-                    enterKeyHint="done"
-                    placeholder="••••••••"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="w-full pr-10 pl-4 py-2.5 rounded-xl bg-cardSecondary border border-borderSubtle text-xs sm:text-sm text-textPrimary placeholder:text-textSecondary/40 focus:border-gold-500 focus:outline-none min-h-[46px]"
+                    placeholder="••••••••"
+                    dir="ltr"
+                    className="w-full px-3.5 py-2.5 rounded bg-ivory-200 border border-hairline text-charcoal-900 text-xs sm:text-sm focus:outline-none focus:border-burgundy-500 transition-colors text-right font-sans"
                   />
                 </div>
               </div>
@@ -430,64 +390,42 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full mt-2 py-3.5 rounded-xl bg-gradient-to-r from-gold-500 to-amber-500 hover:from-gold-400 hover:to-amber-400 active:scale-95 disabled:opacity-60 text-burgundy-950 font-black text-xs sm:text-sm shadow-goldGlow transition flex items-center justify-center gap-2 min-h-[48px]"
+                className="w-full py-3 rounded bg-burgundy-500 hover:bg-burgundy-800 text-ivory-100 font-sans font-semibold text-sm transition-colors shadow-quiet disabled:opacity-50 mt-2"
               >
-                {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-                <span>تأكيد إنشاء الحساب في السحابة</span>
+                {isLoading ? 'جاري إنشاء الحساب...' : 'إنشاء حساب جديد'}
               </button>
             </form>
           )}
 
-          {/* Form 3: Dr. Omar Magdi Secret Login */}
+          {/* Form 3: Instructor Secret Key Login */}
           {mode === 'INSTRUCTOR_LOGIN' && (
-            <form onSubmit={handleInstructorLogin} className="space-y-3.5 bg-cardSecondary/60 p-4 rounded-2xl border border-borderSubtle">
-              <div className="flex items-center gap-2 text-gold-400 font-bold text-xs">
-                <ShieldCheck className="w-4 h-4 text-gold-500" />
-                <span>منطقة مصرح بها فقط للدكتور عمر مجدي</span>
+            <form onSubmit={handleInstructorLogin} className="space-y-4">
+              <div className="p-3.5 rounded bg-ivory-300 border border-hairline text-xs sm:text-sm text-charcoal-100 font-sans leading-relaxed">
+                هذه البوابة مخصصة لـ <strong className="text-charcoal-900">د/عمر مجدي</strong> لإدارة وتصحيح التكليفات الأكاديمية.
               </div>
 
               <div>
-                <label htmlFor="inst-email" className="block text-xs font-bold text-textSecondary mb-1">
-                  بريد المحاضر المعتمد
-                </label>
-                <input
-                  id="inst-email"
-                  name="email"
-                  type="email"
-                  required
-                  value={instructorEmail}
-                  onChange={(e) => setInstructorEmail(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-borderSubtle text-xs sm:text-sm font-semibold bg-cardPrimary text-textPrimary focus:border-gold-500 focus:outline-none min-h-[46px]"
-                />
-              </div>
-
-              <div>
-                <label htmlFor="inst-key" className="block text-xs font-bold text-textSecondary mb-1">
-                  مفتاح الأمان السري للمحاضر (Master Key)
+                <label className="block text-xs sm:text-sm font-semibold text-charcoal-900 mb-1.5 font-sans">
+                  مفتاح المرور الأكاديمي الخاص
                 </label>
                 <div className="relative">
-                  <KeyRound className="w-4 h-4 text-gold-500 absolute right-3.5 top-3.5" />
                   <input
-                    id="inst-key"
-                    name="secretKey"
                     type="password"
                     required
-                    placeholder="أدخل مفتاح الأمان السري..."
                     value={instructorSecretKey}
                     onChange={(e) => setInstructorSecretKey(e.target.value)}
-                    className="w-full pr-10 pl-4 py-2.5 rounded-xl border border-borderSubtle text-xs sm:text-sm bg-cardPrimary text-textPrimary font-mono font-bold focus:border-gold-500 focus:outline-none min-h-[46px]"
+                    placeholder="أدخل مفتاح المرور"
+                    className="w-full px-4 py-3 rounded bg-ivory-200 border border-hairline text-charcoal-900 text-xs sm:text-sm focus:outline-none focus:border-burgundy-500 transition-colors font-sans"
                   />
+                  <Lock className="w-4 h-4 text-charcoal-50 absolute left-3.5 top-3.5" />
                 </div>
-                <span className="text-[10px] text-textSecondary/60 block mt-1">
-                  المفتاح الافتراضي المبرمج حالياً هو: <strong className="text-gold-400 font-mono">phenol2026</strong>
-                </span>
               </div>
 
               <button
                 type="submit"
-                className="w-full mt-2 py-3.5 rounded-xl bg-burgundy-500 hover:bg-burgundy-600 active:scale-95 text-white font-bold text-xs sm:text-sm shadow-burgundyGlow transition min-h-[48px]"
+                className="w-full py-3 rounded bg-burgundy-500 hover:bg-burgundy-800 text-ivory-100 font-sans font-semibold text-sm transition-colors shadow-quiet mt-2"
               >
-                الدخول بصلاحيات Dr/Omar Magdi
+                الدخول كـ د/عمر مجدي
               </button>
             </form>
           )}

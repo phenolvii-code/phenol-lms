@@ -1,26 +1,22 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { AuthUser } from '@/types/auth';
 import { PhenolLogo } from '@/components/brand/PhenolLogo';
 import {
   Menu,
   X,
-  LogIn,
-  UserPlus,
-  LogOut,
   Lock,
-  Sparkles,
-  BookOpen,
-  HelpCircle,
-  Scale,
-  Award,
   ChevronLeft,
+  LayoutDashboard,
+  LogOut,
 } from 'lucide-react';
 
 interface NavbarProps {
   currentUser: AuthUser | null;
-  onOpenAuthModal: (mode: 'LOGIN' | 'REGISTER' | 'INSTRUCTOR_LOGIN') => void;
+  onOpenAuthModal?: (mode: 'LOGIN' | 'REGISTER' | 'INSTRUCTOR_LOGIN') => void;
   onLogout: () => void;
 }
 
@@ -31,28 +27,33 @@ export const Navbar: React.FC<NavbarProps> = ({
 }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const pathname = usePathname();
 
   useEffect(() => {
     const handleScroll = () => {
-      setScrolled(window.scrollY > 15);
+      setScrolled(window.scrollY > 10);
     };
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
   const navLinks = [
-    { label: 'الفلسفة التعليمية', href: '#philosophy', icon: HelpCircle },
-    { label: 'طريقة فاينمان', href: '#method', icon: Sparkles },
-    { label: 'ما وراء الحفظ', href: '#comparison', icon: Scale },
-    { label: 'مسارات التعلم', href: '#programs', icon: BookOpen },
-    { label: 'عن Dr/Omar Magdi', href: '#about', icon: Award },
+    { label: 'الفلسفة التعليمية', href: '/#philosophy' },
+    { label: 'طريقة فاينمان', href: '/#method' },
+    { label: 'ما وراء الحفظ', href: '/#comparison' },
+    { label: 'مسارات التعلم', href: '/#programs' },
+    { label: 'عن د/عمر مجدي', href: '/#about' },
   ];
 
-  const scrollTo = (href: string) => {
+  const handleNavClick = (href: string) => {
     setMobileMenuOpen(false);
-    const element = document.querySelector(href);
-    if (element) {
-      element.scrollIntoView({ behavior: 'smooth' });
+    if (pathname === '/' && href.startsWith('/#')) {
+      const targetId = href.replace('/', '');
+      const element = document.querySelector(targetId);
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth' });
+        return;
+      }
     }
   };
 
@@ -60,199 +61,192 @@ export const Navbar: React.FC<NavbarProps> = ({
 
   return (
     <header
-      className={`sticky top-0 z-50 transition-all duration-300 ${
+      className={`sticky top-0 z-50 transition-colors duration-200 border-b ${
         scrolled
-          ? 'academic-glass shadow-editorial py-1 sm:py-1.5'
-          : 'bg-darkBg/90 backdrop-blur-md border-b border-borderSubtle/60 py-1.5 sm:py-2'
+          ? 'bg-ivory-200/98 backdrop-blur-md border-hairline shadow-quiet'
+          : 'bg-ivory-200 border-hairline'
       }`}
     >
-      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-14 sm:h-16 lg:h-20">
-          {/* Right: Brand (Fixed size & no shrink on mobile) */}
-          <div className="flex items-center gap-4 lg:gap-8 shrink-0">
-            <a
-              href="#"
-              className="text-right focus:outline-none focus-visible:ring-2 focus-visible:ring-gold-500 rounded-xl"
-              aria-label="PHENOL Home"
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-between h-16 sm:h-20">
+          {/* Brand Identity */}
+          <div className="flex items-center gap-6 lg:gap-10 shrink-0">
+            <Link
+              href="/"
+              className="text-right focus:outline-none focus-visible:ring-1 focus-visible:ring-burgundy-500 rounded py-1"
+              aria-label="PHENOL - د/عمر مجدي"
             >
-              <PhenolLogo size={38} />
-            </a>
+              <PhenolLogo size={36} subtitle="د/عمر مجدي" />
+            </Link>
 
             {/* Desktop Navigation Links */}
-            <nav className="hidden lg:flex items-center gap-1" aria-label="التنقل الرئيسي">
+            <nav className="hidden lg:flex items-center gap-6 xl:gap-8" aria-label="التنقل الرئيسي">
               {navLinks.map((item, idx) => (
-                <button
+                <Link
                   key={idx}
-                  onClick={() => scrollTo(item.href)}
-                  className="px-3.5 py-2 rounded-xl text-xs font-semibold text-textSecondary hover:text-textPrimary hover:bg-cardSecondary/80 transition-all duration-200"
+                  href={item.href}
+                  onClick={() => handleNavClick(item.href)}
+                  className="text-sm font-medium text-charcoal-100 hover:text-charcoal-900 transition-colors py-1 leading-normal"
                 >
                   {item.label}
-                </button>
+                </Link>
               ))}
             </nav>
           </div>
 
-          {/* Left: Actions */}
-          <div className="flex items-center gap-2 sm:gap-3">
+          {/* Left Actions */}
+          <div className="flex items-center gap-3">
             {!currentUser ? (
               <>
-                {/* Desktop-only action buttons */}
-                <div className="hidden lg:flex items-center gap-2.5">
-                  <button
-                    onClick={() => scrollTo('#waitlist')}
-                    className="px-4 py-2.5 rounded-xl bg-cardSecondary border border-gold-500/30 text-gold-400 hover:text-gold-300 hover:border-gold-500/60 font-bold text-xs transition shadow-sm"
+                {/* Desktop Actions */}
+                <div className="hidden lg:flex items-center gap-3">
+                  <a
+                    href="/#admission"
+                    onClick={() => handleNavClick('/#admission')}
+                    className="px-3 py-1.5 text-xs font-semibold text-burgundy-500 hover:text-burgundy-800 border border-burgundy-500/25 hover:border-burgundy-500/50 rounded transition-colors"
                   >
-                    <span>قائمة الانتظار</span>
+                    قائمة الانتظار
+                  </a>
+
+                  <button
+                    onClick={() => onOpenAuthModal ? onOpenAuthModal('LOGIN') : null}
+                    className="px-3.5 py-2 text-sm font-medium text-charcoal-100 hover:text-charcoal-900 transition-colors"
+                  >
+                    تسجيل الدخول
                   </button>
 
                   <button
-                    onClick={() => onOpenAuthModal('LOGIN')}
-                    className="px-4 py-2.5 rounded-xl text-xs font-semibold text-textSecondary hover:text-textPrimary hover:bg-cardPrimary border border-borderSubtle transition min-h-[42px]"
+                    onClick={() => onOpenAuthModal ? onOpenAuthModal('REGISTER') : null}
+                    className="px-4 py-2 rounded bg-burgundy-500 hover:bg-burgundy-800 text-ivory-100 font-sans text-xs sm:text-sm font-semibold tracking-wide transition-colors shadow-quiet"
                   >
-                    <span>تسجيل الدخول</span>
+                    انضم إلينا
                   </button>
 
                   <button
-                    onClick={() => onOpenAuthModal('REGISTER')}
-                    className="flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-burgundy-500 hover:bg-burgundy-600 text-white font-bold text-xs shadow-burgundyGlow transition transform active:scale-95 min-h-[42px]"
+                    onClick={() => onOpenAuthModal ? onOpenAuthModal('INSTRUCTOR_LOGIN') : null}
+                    title="بوابة د/عمر مجدي"
+                    aria-label="بوابة د/عمر مجدي"
+                    className="p-2 text-charcoal-50 hover:text-burgundy-500 rounded transition-colors"
                   >
-                    <span>انضم إلينا</span>
-                  </button>
-
-                  <button
-                    onClick={() => onOpenAuthModal('INSTRUCTOR_LOGIN')}
-                    title="بوابة Dr/Omar Magdi"
-                    aria-label="بوابة Dr/Omar Magdi"
-                    className="p-2.5 rounded-xl text-textSecondary/50 hover:text-gold-500 hover:bg-cardPrimary transition min-h-[42px] min-w-[42px] flex items-center justify-center"
-                  >
-                    <Lock className="w-3.5 h-3.5" />
+                    <Lock className="w-4 h-4" />
                   </button>
                 </div>
 
-                {/* Mobile-only clean single CTA button */}
+                {/* Mobile Single CTA */}
                 <button
-                  onClick={() => onOpenAuthModal('REGISTER')}
-                  className="lg:hidden flex items-center justify-center px-3.5 py-2 rounded-xl bg-burgundy-500 hover:bg-burgundy-600 text-white font-bold text-xs shadow-burgundyGlow transition active:scale-95 min-h-[38px]"
+                  onClick={() => onOpenAuthModal ? onOpenAuthModal('REGISTER') : null}
+                  className="lg:hidden px-3.5 py-1.5 rounded bg-burgundy-500 text-ivory-100 font-sans text-xs font-semibold transition-colors"
                 >
-                  <span>انضم إلينا</span>
+                  انضم إلينا
                 </button>
               </>
             ) : (
-              <div className="flex items-center gap-2 sm:gap-3">
-                <div className="flex items-center gap-2 sm:gap-2.5 bg-cardPrimary border border-borderSubtle px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-2xl">
-                  <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-burgundy-800 border border-gold-500/40 flex items-center justify-center font-bold text-xs text-gold-400">
-                    {currentUser.name.charAt(0)}
-                  </div>
-                  <div className="text-right hidden sm:block">
-                    <span className="block text-xs font-bold text-textPrimary leading-tight">
-                      {currentUser.name}
-                    </span>
-                    <span className="text-[10px] text-gold-500 font-medium font-formula">
-                      {isInstructor ? 'Dr/Omar Magdi' : 'طالب مسجل'}
-                    </span>
-                  </div>
+              <div className="flex items-center gap-2.5 sm:gap-3">
+                <Link
+                  href="/dashboard"
+                  className="flex items-center gap-2 px-3 py-1.5 rounded border border-hairline hover:border-charcoal-100 bg-ivory-100 text-charcoal-900 text-xs sm:text-sm font-medium transition-colors"
+                >
+                  <LayoutDashboard className="w-4 h-4 text-burgundy-500" />
+                  <span className="hidden sm:inline">لوحة الطالب</span>
+                  <span className="sm:hidden">{currentUser.name.split(' ')[0]}</span>
+                </Link>
 
-                  <button
-                    onClick={onLogout}
-                    title="تسجيل الخروج"
-                    aria-label="تسجيل الخروج"
-                    className="p-1 sm:p-1.5 text-textSecondary/60 hover:text-rose-400 rounded-lg transition mr-1"
-                  >
-                    <LogOut className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                  </button>
+                <div className="hidden md:flex flex-col text-right leading-normal pr-2 border-r border-hairline">
+                  <span className="text-xs sm:text-sm font-bold text-charcoal-900">
+                    {currentUser.name}
+                  </span>
+                  <span className="text-xs text-charcoal-100 font-sans">
+                    {isInstructor ? 'د/عمر مجدي' : 'طالب مسجل'}
+                  </span>
                 </div>
+
+                <button
+                  onClick={onLogout}
+                  title="تسجيل الخروج"
+                  aria-label="تسجيل الخروج"
+                  className="p-2 text-charcoal-50 hover:text-burgundy-500 transition-colors"
+                >
+                  <LogOut className="w-4 h-4" />
+                </button>
               </div>
             )}
 
-            {/* Mobile Menu Hamburger Toggle */}
+            {/* Mobile Hamburger Toggle */}
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               aria-label={mobileMenuOpen ? 'إغلاق القائمة' : 'فتح القائمة'}
               aria-expanded={mobileMenuOpen}
-              className="lg:hidden p-2 text-textSecondary hover:text-textPrimary hover:bg-cardSecondary rounded-xl transition min-h-[38px] min-w-[38px] flex items-center justify-center border border-borderSubtle/60"
+              className="lg:hidden p-2 text-charcoal-900 hover:bg-ivory-300 rounded transition-colors border border-hairline"
             >
               {mobileMenuOpen ? (
-                <X className="w-5 h-5 text-gold-400" />
+                <X className="w-4 h-4 text-burgundy-500" />
               ) : (
-                <Menu className="w-5 h-5 text-textPrimary" />
+                <Menu className="w-4 h-4 text-charcoal-900" />
               )}
             </button>
           </div>
         </div>
       </div>
 
-      {/* Mobile Drawer (Clean, Luxurious Full-Width Dropdown) */}
+      {/* Mobile Drawer */}
       {mobileMenuOpen && (
-        <div className="lg:hidden border-t border-borderSubtle bg-cardPrimary/98 backdrop-blur-2xl px-4 py-5 space-y-3 animate-fadeIn shadow-2xl">
-          {/* Navigation Links with Icons */}
-          <div className="space-y-1 pb-3 border-b border-borderSubtle/70">
-            {navLinks.map((item, idx) => {
-              const Icon = item.icon;
-              return (
-                <button
-                  key={idx}
-                  onClick={() => scrollTo(item.href)}
-                  className="w-full flex items-center justify-between px-3.5 py-3 rounded-xl text-sm font-semibold text-textSecondary hover:text-textPrimary hover:bg-cardSecondary transition min-h-[46px]"
-                >
-                  <div className="flex items-center gap-3">
-                    <Icon className="w-4 h-4 text-gold-500/80" />
-                    <span>{item.label}</span>
-                  </div>
-                  <ChevronLeft className="w-4 h-4 text-borderSubtle" />
-                </button>
-              );
-            })}
+        <div className="lg:hidden border-t border-hairline bg-ivory-100 px-4 py-5 space-y-4 shadow-editorial">
+          <div className="space-y-1 pb-3 border-b border-hairline">
+            {navLinks.map((item, idx) => (
+              <Link
+                key={idx}
+                href={item.href}
+                onClick={() => handleNavClick(item.href)}
+                className="w-full flex items-center justify-between px-3 py-2.5 rounded text-sm font-medium text-charcoal-100 hover:text-charcoal-900 hover:bg-ivory-300 transition-colors leading-normal"
+              >
+                <span>{item.label}</span>
+                <ChevronLeft className="w-4 h-4 text-charcoal-50" />
+              </Link>
+            ))}
           </div>
 
-          {/* Quick Actions in Mobile Drawer */}
           <div className="pt-2 flex flex-col gap-2.5">
-            <button
-              onClick={() => {
-                setMobileMenuOpen(false);
-                scrollTo('#waitlist');
-              }}
-              className="w-full py-3 px-4 rounded-xl bg-cardSecondary border border-gold-500/35 text-gold-400 font-bold text-xs text-center min-h-[46px] flex items-center justify-center gap-2"
-            >
-              <Sparkles className="w-3.5 h-3.5 text-gold-400" />
-              <span>انضم لقائمة الانتظار (2026/2027)</span>
-            </button>
-
             {!currentUser ? (
-              <div className="grid grid-cols-2 gap-2 pt-1">
+              <div className="grid grid-cols-2 gap-2.5">
                 <button
                   onClick={() => {
                     setMobileMenuOpen(false);
-                    onOpenAuthModal('LOGIN');
+                    if (onOpenAuthModal) onOpenAuthModal('LOGIN');
                   }}
-                  className="py-3 px-3 rounded-xl bg-cardSecondary/80 border border-borderSubtle text-textSecondary hover:text-textPrimary font-semibold text-xs text-center min-h-[46px] flex items-center justify-center gap-1.5"
+                  className="py-2.5 px-3 rounded border border-hairline text-charcoal-900 font-semibold text-xs sm:text-sm text-center hover:bg-ivory-300 transition-colors"
                 >
-                  <LogIn className="w-3.5 h-3.5" />
-                  <span>تسجيل الدخول</span>
+                  تسجيل الدخول
                 </button>
 
                 <button
                   onClick={() => {
                     setMobileMenuOpen(false);
-                    onOpenAuthModal('REGISTER');
+                    if (onOpenAuthModal) onOpenAuthModal('REGISTER');
                   }}
-                  className="py-3 px-3 rounded-xl bg-burgundy-500 hover:bg-burgundy-600 text-white font-bold text-xs text-center shadow-burgundyGlow min-h-[46px] flex items-center justify-center gap-1.5"
+                  className="py-2.5 px-3 rounded bg-burgundy-500 text-ivory-100 font-semibold text-xs sm:text-sm text-center hover:bg-burgundy-800 transition-colors"
                 >
-                  <UserPlus className="w-3.5 h-3.5" />
-                  <span>حساب جديد</span>
+                  انضم إلينا
                 </button>
               </div>
-            ) : null}
+            ) : (
+              <Link
+                href="/dashboard"
+                onClick={() => setMobileMenuOpen(false)}
+                className="w-full py-2.5 px-3 rounded bg-burgundy-500 text-ivory-100 font-semibold text-xs sm:text-sm text-center flex items-center justify-center gap-2"
+              >
+                <LayoutDashboard className="w-4 h-4" />
+                <span>الدخول إلى لوحة الطالب</span>
+              </Link>
+            )}
 
-            {/* Instructor portal access in mobile menu */}
             <button
               onClick={() => {
                 setMobileMenuOpen(false);
-                onOpenAuthModal('INSTRUCTOR_LOGIN');
+                if (onOpenAuthModal) onOpenAuthModal('INSTRUCTOR_LOGIN');
               }}
-              className="w-full py-2.5 px-3 rounded-xl bg-darkBg border border-borderSubtle text-textSecondary/60 hover:text-gold-400 text-[11px] font-medium flex items-center justify-center gap-2 transition"
+              className="w-full py-2 px-3 text-center text-charcoal-100 hover:text-burgundy-500 text-xs font-sans transition-colors"
             >
-              <Lock className="w-3 h-3 text-gold-500/70" />
-              <span>بوابة Dr/Omar Magdi الخاصة</span>
+              بوابة د/عمر مجدي الخاصة
             </button>
           </div>
         </div>

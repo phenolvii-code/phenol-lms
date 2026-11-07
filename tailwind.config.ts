@@ -9,42 +9,66 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        darkBg: "#0B0C0F",
-        cardPrimary: "#15171D",
-        cardSecondary: "#20232B",
-        textPrimary: "#F3F4F6",
-        textSecondary: "#B1B6C2",
-        borderSubtle: "#2D313C",
+        // Minimal Academic Editorial Palette
+        ivory: {
+          50: "#FFFFFF",
+          100: "#FDFCFB",
+          200: "#FAF8F5", // Main canvas
+          300: "#F4F1EA", // Secondary surface
+          400: "#ECE7DE",
+        },
+        charcoal: {
+          50: "#6B7280",
+          100: "#454952", // Clear, high-contrast secondary text
+          200: "#2D3036",
+          300: "#222429",
+          900: "#18191B", // Primary reading text
+        },
+        hairline: {
+          DEFAULT: "#E5E2DC", // 1px structural dividers
+          subtle: "#EFECE6",
+          strong: "#D1CDC4",
+        },
         burgundy: {
-          50: "#fdf2f4",
-          100: "#fbe4e8",
-          200: "#f8cbd3",
-          300: "#f0a3b2",
-          400: "#e5728a",
-          500: "#641C32", // Primary Burgundy from Brief
+          50: "#FAF0F2",
+          100: "#F5DEE3",
+          200: "#E8B8C2",
+          300: "#D48293",
+          400: "#A33753",
+          500: "#641C32", // Primary Accent
           600: "#541629",
           700: "#451221",
-          800: "#3D1021", // Deep Burgundy from Brief
-          900: "#2d0a18",
-          950: "#1a050d",
+          800: "#3D1021", // Deep Burgundy
+          900: "#2E0A18",
         },
-        gold: {
-          400: "#e6c66e",
-          500: "#D4AF37",
-          600: "#b9942a",
+        ochre: {
+          DEFAULT: "#9E7D2B", // Muted gold / academic mark
+          light: "#C5A34E",
+          subtle: "#F9F6EE",
         },
-        ivory: "#FAF7F2",
       },
       fontFamily: {
-        sans: ["'IBM Plex Sans Arabic'", "'Alexandria'", "system-ui", "-apple-system", "sans-serif"],
-        display: ["'Alexandria'", "system-ui", "-apple-system", "sans-serif"],
-        editorial: ["Cinzel", "Georgia", "serif"],
-        formula: ["JetBrains Mono", "Courier New", "monospace"],
+        sans: ["'Almarai'", "'Noto Sans Arabic'", "-apple-system", "sans-serif"],
+        display: ["'Alexandria'", "'Almarai'", "sans-serif"],
+        editorial: ["'Cinzel'", "Georgia", "serif"],
+        formula: ["'JetBrains Mono'", "monospace"],
+      },
+      fontSize: {
+        xs: ["0.75rem", { lineHeight: "1.5" }],
+        sm: ["0.875rem", { lineHeight: "1.6" }],
+        base: ["1rem", { lineHeight: "1.75" }],
+        lg: ["1.125rem", { lineHeight: "1.75" }],
+        xl: ["1.25rem", { lineHeight: "1.6" }],
+        "2xl": ["1.5rem", { lineHeight: "1.5" }],
+        "3xl": ["1.875rem", { lineHeight: "1.5" }],
+        "4xl": ["2.25rem", { lineHeight: "1.45" }],
+        "5xl": ["3rem", { lineHeight: "1.4" }],
+        "6xl": ["3.75rem", { lineHeight: "1.35" }],
       },
       boxShadow: {
-        editorial: "0 20px 40px -15px rgba(0, 0, 0, 0.7)",
-        burgundyGlow: "0 0 30px -5px rgba(100, 28, 50, 0.35)",
-        goldGlow: "0 0 25px -5px rgba(212, 175, 55, 0.25)",
+        quiet: "0 1px 3px rgba(24, 25, 27, 0.04), 0 1px 2px rgba(24, 25, 27, 0.02)",
+        editorial: "0 10px 30px -10px rgba(24, 25, 27, 0.06)",
+        lift: "0 16px 36px -12px rgba(24, 25, 27, 0.08)",
       },
     },
   },

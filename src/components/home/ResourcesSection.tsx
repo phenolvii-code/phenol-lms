@@ -1,84 +1,82 @@
 'use client';
 
 import React from 'react';
-import { Network, FileText, Compass, ShieldAlert, Sparkles, Layers } from 'lucide-react';
 
 export const ResourcesSection: React.FC = () => {
   const tools = [
     {
-      icon: Network,
+      num: '01',
       title: 'خرائط المفاهيم المترابطة',
       subtitle: 'Concept Maps',
       desc: 'مخططات بصرية تربط فروع الكيمياء ببعضها لتسهيل رؤية الصورة الكلية للمادة وفهم تداخل القوانين دون انفصال.',
     },
     {
-      icon: FileText,
+      num: '02',
       title: 'أطلس الميكانزمات والاشتقاقات',
       subtitle: 'Mechanisms Atlas',
       desc: 'شرح متسلسل خطوة بخطوة بالرسم والتفسير وحركة الإلكترونات دون ترك أي فجوة منطقية بين البداية والنهاية.',
     },
     {
-      icon: Compass,
+      num: '03',
       title: 'مسائل التفكير والتحليل',
       subtitle: 'Analytical Problem Bank',
       desc: 'تطبيقات غير مباشرة ومسائل متدرجة تختبر الفهم الحقيقي وتنقل المعرفة إلى سياقات كيميائية جديدة.',
     },
     {
-      icon: ShieldAlert,
-      title: 'تصحيح المفاهيم الخاطئة',
-      subtitle: 'Misconception Guide',
-      desc: 'رصد أشهر الأخطاء الشائعة في التفكير والحل وتوضيح سبب الوقوع فيها وكيفية تلافيها بوعي كيميائي.',
+      num: '04',
+      title: 'دليل تصحيح المفاهيم الخاطئة',
+      subtitle: 'Misconceptions Guide',
+      desc: 'رصد أشهر الأخطاء الشائعة في التفكير والحل وتوضيح سبب الوقوع فيها وكيفية تلافيها بوعي كيميائي دقيق.',
     },
   ];
 
   return (
-    <section className="px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
-      <div className="border-t border-borderSubtle pt-16 sm:pt-24 space-y-10 sm:space-y-14">
+    <section className="py-16 sm:py-20 lg:py-24 border-t border-hairline px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+      <div className="space-y-12 sm:space-y-16">
         {/* Section Heading */}
-        <div className="max-w-3xl space-y-3.5 sm:space-y-4">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-cardPrimary border border-borderSubtle text-[11px] font-formula uppercase tracking-widest text-gold-500 font-bold">
-            <span className="w-1.5 h-1.5 rounded-full bg-gold-500" />
-            <span>Learning Resources • أدوات الفهم</span>
+        <div className="max-w-3xl space-y-3">
+          <div className="flex items-center gap-2">
+            <span className="font-formula text-xs text-burgundy-500 font-bold uppercase tracking-widest">
+              SECTION 06
+            </span>
+            <span className="text-hairline-strong">•</span>
+            <span className="text-xs sm:text-sm text-charcoal-100 font-sans font-medium">أدوات الفهم</span>
           </div>
-          <h2 className="text-2xl sm:text-4xl lg:text-5xl font-black text-textPrimary tracking-tight">
-            أدوات تساعدك على الفهم
+
+          <h2 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-charcoal-900 font-display">
+            أدوات مصممة لترسيخ الفهم
           </h2>
-          <p className="text-textSecondary text-sm sm:text-base lg:text-lg leading-relaxed font-normal">
-            مواد وأدوات تعليمية صممت خصيصاً لترسيخ الفهم والربط الذهني المنظم، بعيداً عن التشتيت والتلقين العشوائي.
+
+          <p className="text-sm sm:text-base text-charcoal-100 leading-[1.8] font-sans">
+            مواد ومراجع تدريبية صممت خصيصاً لترسيخ الربط الذهني المنظم، بعيداً عن التشتيت والتلقين العشوائي.
           </p>
         </div>
 
-        {/* Tools Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 sm:gap-6">
-          {tools.map((res, idx) => {
-            const Icon = res.icon;
-            return (
-              <div
-                key={idx}
-                className="bg-cardPrimary border border-borderSubtle p-6 sm:p-7 rounded-3xl space-y-4 hover:border-gold-500/50 hover:bg-cardSecondary/40 transition-all duration-300 shadow-editorial flex flex-col justify-between group hover:-translate-y-1"
-              >
-                <div className="space-y-3.5">
-                  <div className="w-12 h-12 rounded-2xl bg-cardSecondary border border-borderSubtle text-gold-400 group-hover:text-gold-300 group-hover:border-gold-500/40 flex items-center justify-center transition-colors">
-                    <Icon className="w-6 h-6" />
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-base sm:text-lg text-textPrimary group-hover:text-white transition-colors">
-                      {res.title}
-                    </h3>
-                    <span className="text-[10px] font-formula text-gold-500/80 block mt-0.5">
-                      {res.subtitle}
-                    </span>
-                  </div>
-                  <p className="text-xs sm:text-sm text-textSecondary leading-relaxed">{res.desc}</p>
-                </div>
-
-                <div className="pt-4 border-t border-borderSubtle/60 text-[11px] text-gold-400/90 font-medium flex items-center justify-between">
-                  <span>محتوى تحليلي أصيل</span>
-                  <span className="w-1.5 h-1.5 rounded-full bg-burgundy-500 group-hover:scale-125 transition-transform" />
-                </div>
+        {/* Tools 4 Columns Minimalist Row */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 border-t border-hairline pt-8">
+          {tools.map((res, idx) => (
+            <div
+              key={idx}
+              className="space-y-3 border-b border-hairline pb-6"
+            >
+              <div className="flex items-baseline justify-between">
+                <span className="font-editorial text-2xl font-bold text-burgundy-500">
+                  {res.num}
+                </span>
+                <span dir="ltr" className="font-formula text-xs text-charcoal-50 uppercase tracking-wider">
+                  {res.subtitle}
+                </span>
               </div>
-            );
-          })}
+
+              <h3 className="font-bold text-base text-charcoal-900 font-display">
+                {res.title}
+              </h3>
+
+              <p className="text-xs sm:text-sm text-charcoal-100 leading-[1.8] font-sans">
+                {res.desc}
+              </p>
+            </div>
+          ))}
         </div>
       </div>
     </section>

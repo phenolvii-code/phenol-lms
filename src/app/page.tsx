@@ -20,7 +20,6 @@ export default function Home() {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [authModalMode, setAuthModalMode] = useState<AuthModalMode>('REGISTER');
 
-  // Load user session on mount
   useEffect(() => {
     try {
       const saved = localStorage.getItem('phenol_auth_user');
@@ -56,16 +55,16 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-darkBg text-textPrimary flex flex-col font-sans selection:bg-burgundy-500 selection:text-white antialiased">
-      {/* Precision Academic Navbar */}
+    <div className="min-h-screen bg-ivory-200 text-charcoal-900 flex flex-col font-sans selection:bg-burgundy-500 selection:text-ivory-100 antialiased">
+      {/* Editorial Academic Navbar */}
       <Navbar
         currentUser={currentUser}
         onOpenAuthModal={handleOpenAuth}
         onLogout={handleLogout}
       />
 
-      {/* Main Content Sections with Fluid Vertical Spacing */}
-      <main className="flex-1 space-y-20 sm:space-y-28 lg:space-y-36 pb-20 sm:pb-28 overflow-hidden">
+      {/* Main Content Sections with Harmonious Vertical Rhythm */}
+      <main className="flex-1">
         {/* Section 01: Hero */}
         <HeroSection onStartJourney={() => handleOpenAuth('REGISTER')} />
 
@@ -94,41 +93,41 @@ export default function Home() {
         <FinalCtaSection onStart={() => handleOpenAuth('REGISTER')} />
       </main>
 
-      {/* Minimalist Editorial Footer */}
-      <footer className="border-t border-borderSubtle bg-darkBg py-12 text-xs text-textSecondary">
+      {/* Minimalist Editorial Colophon / Footer */}
+      <footer className="border-t border-hairline bg-ivory-100 py-12 text-sm text-charcoal-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-6 pb-8 border-b border-borderSubtle/60">
-            <PhenolLogo size={38} />
+          <div className="flex flex-col md:flex-row items-center justify-between gap-6 pb-6 border-b border-hairline">
+            <PhenolLogo size={36} subtitle="د/عمر مجدي" />
 
-            <div className="flex flex-wrap items-center justify-center gap-4 text-xs">
-              <a href="#philosophy" className="hover:text-gold-400 transition">الفلسفة</a>
-              <span className="text-borderSubtle">•</span>
-              <a href="#method" className="hover:text-gold-400 transition">طريقة فاينمان</a>
-              <span className="text-borderSubtle">•</span>
-              <a href="#comparison" className="hover:text-gold-400 transition">المقارنة التحليلية</a>
-              <span className="text-borderSubtle">•</span>
-              <a href="#programs" className="hover:text-gold-400 transition">المسارات</a>
-              <span className="text-borderSubtle">•</span>
-              <a href="#about" className="hover:text-gold-400 transition">عن الدكتور</a>
+            <div className="flex flex-wrap items-center justify-center gap-5 text-sm text-charcoal-100 font-sans">
+              <a href="#philosophy" className="hover:text-charcoal-900 transition-colors">الفلسفة</a>
+              <span className="text-hairline-strong">•</span>
+              <a href="#method" className="hover:text-charcoal-900 transition-colors">طريقة فاينمان</a>
+              <span className="text-hairline-strong">•</span>
+              <a href="#comparison" className="hover:text-charcoal-900 transition-colors">المقارنة التحليلية</a>
+              <span className="text-hairline-strong">•</span>
+              <a href="#programs" className="hover:text-charcoal-900 transition-colors">مسارات التعلم</a>
+              <span className="text-hairline-strong">•</span>
+              <a href="#about" className="hover:text-charcoal-900 transition-colors">عن د/عمر مجدي</a>
             </div>
           </div>
 
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-right">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-right text-xs sm:text-sm text-charcoal-100">
             <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-3">
-              <span className="font-editorial text-sm font-bold text-textPrimary uppercase tracking-wider">
+              <span className="font-editorial text-xs sm:text-sm font-bold text-charcoal-900 uppercase tracking-widest">
                 PHENOL
               </span>
-              <span className="text-borderSubtle">•</span>
-              <span className="font-formula text-xs text-gold-400 font-semibold">Dr/Omar Magdi</span>
-              <span className="hidden sm:inline text-borderSubtle">•</span>
-              <span className="text-gold-500 font-display text-sm">«من فهم شيئًا ملكه»</span>
-              <span className="hidden sm:inline text-borderSubtle">•</span>
-              <span className="text-textSecondary/80 font-formula text-[11px]">
+              <span className="text-hairline-strong">•</span>
+              <span className="font-sans font-semibold text-charcoal-900">د/عمر مجدي</span>
+              <span className="hidden sm:inline text-hairline-strong">•</span>
+              <span className="text-burgundy-500 font-display font-semibold text-xs sm:text-sm">«مَن فَهِمَ شَيْئًا مَلَكَهُ»</span>
+              <span className="hidden sm:inline text-hairline-strong">•</span>
+              <span dir="ltr" className="font-formula text-xs text-charcoal-50 inline-block">
                 Find the Simple. Master the Complex.
               </span>
             </div>
 
-            <div className="text-textSecondary/60 text-[11px] font-formula">
+            <div className="font-sans text-charcoal-50 text-xs">
               جميع الحقوق محفوظة © {new Date().getFullYear()} • PHENOL
             </div>
           </div>

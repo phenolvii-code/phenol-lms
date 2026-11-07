@@ -1,94 +1,93 @@
-@import url('https://fonts.googleapis.com/css2?family=Alexandria:wght@300;400;500;600;700;800;900&family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&family=Cinzel:wght@600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Alexandria:wght@400;500;600;700;800;900&family=Almarai:wght@300;400;700;800&family=Noto+Sans+Arabic:wght@400;500;600;700&family=Cinzel:wght@600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  --background: #0B0C0F;
-  --foreground: #F3F4F6;
+  --background: #FAF8F5;
+  --foreground: #18191B;
+  --surface-secondary: #F4F1EA;
   --burgundy: #641C32;
   --burgundy-deep: #3D1021;
-  --gold: #D4AF37;
-  --card-primary: #15171D;
-  --card-secondary: #20232B;
-  --border-subtle: #2D313C;
+  --border-hairline: #E5E2DC;
+  --muted-text: #454952;
 }
 
 html {
   scroll-behavior: smooth;
-  scroll-padding-top: 5rem;
+  scroll-padding-top: 5.5rem;
+  background-color: #FAF8F5;
 }
 
 body {
-  background-color: #0B0C0F;
-  color: #F3F4F6;
-  font-family: 'IBM Plex Sans Arabic', -apple-system, BlinkMacSystemFont, sans-serif;
-  letter-spacing: -0.01em;
+  background-color: #FAF8F5;
+  color: #18191B;
+  font-family: 'Almarai', 'Noto Sans Arabic', -apple-system, BlinkMacSystemFont, sans-serif;
+  letter-spacing: normal;
+  line-height: 1.75;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   overflow-x: hidden;
   min-height: 100dvh;
 }
 
+/* Headings with generous line heights to prevent Arabic diacritic & letter overlap */
+h1, h2, h3, h4, h5, h6 {
+  line-height: 1.45;
+}
+
 /* Luxury Modern Arabic Display Font (Alexandria) */
 .font-display {
-  font-family: 'Alexandria', sans-serif;
+  font-family: 'Alexandria', 'Almarai', sans-serif;
+  line-height: 1.4;
 }
 
-/* Fluid responsive typography utilities */
-.clamp-headline {
-  font-size: clamp(2.2rem, 1.5rem + 3.8vw, 4.75rem);
-  line-height: 1.18;
+/* Clear Academic Body Prose (Almarai & Noto Sans Arabic) */
+.font-sans {
+  font-family: 'Almarai', 'Noto Sans Arabic', sans-serif;
 }
 
-.clamp-subhead {
-  font-size: clamp(1rem, 0.9rem + 0.5vw, 1.25rem);
-  line-height: 1.8;
-}
-
-/* Editorial Serif for English titles & accents */
+/* Editorial Serif for Monograms & Publication Accents */
 .font-editorial {
   font-family: 'Cinzel', 'Georgia', serif;
 }
 
-/* Formula Monospace */
+/* Scientific Formula Monospace */
 .font-formula {
   font-family: 'JetBrains Mono', monospace;
 }
 
-/* Subtle academic glass */
-.academic-glass {
-  background: rgba(21, 23, 29, 0.88);
-  backdrop-filter: blur(18px);
-  -webkit-backdrop-filter: blur(18px);
-  border: 1px solid rgba(45, 49, 60, 0.7);
+/* Fluid responsive typography utilities with generous Arabic line-height */
+.clamp-headline {
+  font-size: clamp(2rem, 1.4rem + 2.8vw, 3.8rem);
+  line-height: 1.45;
+  padding-top: 0.25rem;
+  padding-bottom: 0.25rem;
 }
 
-/* Luxury Gold & Burgundy gradients */
-.text-gold-gradient {
-  background: linear-gradient(135deg, #FAF7F2 0%, #D4AF37 50%, #C59B27 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+.clamp-subhead {
+  font-size: clamp(0.95rem, 0.9rem + 0.35vw, 1.2rem);
+  line-height: 1.85;
 }
 
-.border-gold-glow {
-  border-color: rgba(212, 175, 55, 0.4);
-  box-shadow: 0 0 25px -5px rgba(212, 175, 55, 0.2);
+/* Hairline borders & editorial rules */
+.border-hairline {
+  border-color: #E5E2DC;
 }
 
-/* Custom Scrollbar */
+/* Custom Scrollbar - Warm Ivory & Burgundy */
 ::-webkit-scrollbar {
-  width: 7px;
-  height: 7px;
+  width: 6px;
+  height: 6px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #0B0C0F;
+  background: #FAF8F5;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #2D313C;
+  background: #D1CDC4;
   border-radius: 9999px;
 }
 
@@ -96,13 +95,13 @@ body {
   background: #641C32;
 }
 
-/* Selection */
+/* Selection - Deep Burgundy on Warm Ivory */
 ::selection {
   background: #641C32;
-  color: #FAF7F2;
+  color: #FAF8F5;
 }
 
-/* Mobile tap safety */
-button, a, input, select {
+/* Mobile touch targets */
+button, a, input, select, textarea {
   touch-action: manipulation;
 }

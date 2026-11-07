@@ -6,42 +6,50 @@ interface PhenolLogoProps {
   className?: string;
   size?: number;
   withText?: boolean;
-  variant?: 'gold' | 'white';
+  variant?: 'burgundy' | 'ink' | 'gold';
+  monochrome?: boolean;
+  subtitle?: string;
 }
 
 export const PhenolLogo: React.FC<PhenolLogoProps> = ({
   className = '',
-  size = 42,
+  size = 36,
   withText = true,
-  variant = 'gold',
+  variant = 'burgundy',
+  monochrome = false,
+  subtitle = 'د/عمر مجدي',
 }) => {
   const iconSrc =
-    variant === 'gold'
-      ? '/images/phenol-symbol-gold.png'
-      : '/images/phenol-symbol-white.png';
+    monochrome
+      ? '/images/phenol-symbol-ink.png'
+      : variant === 'burgundy'
+      ? '/images/phenol-symbol-burgundy.png'
+      : variant === 'ink'
+      ? '/images/phenol-symbol-ink.png'
+      : '/images/phenol-symbol-gold.png';
 
   return (
-    <div className={`flex items-center gap-3.5 group cursor-pointer ${className}`}>
-      {/* Authentic Geometric Emblem Container */}
+    <div className={`inline-flex items-center gap-3 select-none ${className}`}>
+      {/* Precision Geometric Emblem */}
       <div
-        className="relative flex items-center justify-center shrink-0 rounded-2xl bg-cardPrimary/90 border border-borderSubtle group-hover:border-gold-500/60 shadow-editorial transition-all duration-300 overflow-hidden p-1.5 backdrop-blur-md"
+        className="relative flex items-center justify-center shrink-0"
         style={{ width: size, height: size }}
       >
         <img
           src={iconSrc}
-          alt="Phenol - Dr. Omar Magdi Logo"
-          className="w-full h-full object-contain filter drop-shadow-[0_0_8px_rgba(212,175,55,0.35)] group-hover:scale-105 transition-transform duration-300"
+          alt={`PHENOL • ${subtitle}`}
+          className="w-full h-full object-contain"
           loading="eager"
         />
       </div>
 
       {withText && (
-        <div className="flex flex-col text-right select-none justify-center">
-          <span className="font-editorial text-base sm:text-lg tracking-wider text-textPrimary group-hover:text-white font-extrabold uppercase transition-colors leading-none">
+        <div className="flex flex-col text-right justify-center leading-tight">
+          <span className="font-editorial text-base sm:text-lg tracking-widest text-charcoal-900 font-bold uppercase">
             PHENOL
           </span>
-          <span className="text-[10px] sm:text-[11px] font-semibold text-gold-500 tracking-wide font-formula mt-0.5">
-            Dr/Omar Magdi
+          <span className="text-xs font-semibold text-charcoal-100 font-sans mt-0.5">
+            {subtitle}
           </span>
         </div>
       )}

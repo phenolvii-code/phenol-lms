@@ -1,8 +1,10 @@
 'use client';
 
 import React, { useState } from 'react';
+import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
-import { CheckCircle2, Loader2, ArrowLeft, BookOpen, GraduationCap, Sparkles } from 'lucide-react';
+import { CHEMISTRY_COURSES } from '@/data/mock-data';
+import { ArrowLeft, Clock, Users, CheckCircle2 } from 'lucide-react';
 
 interface ProgramsSectionProps {
   onOpenWaitlistModal?: () => void;
@@ -12,18 +14,15 @@ export const ProgramsSection: React.FC<ProgramsSectionProps> = () => {
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
-  const [level, setLevel] = useState('الثانوية العامة / تمهيدي');
+  const [level, setLevel] = useState('المرحلة الثانوية');
   const [loading, setLoading] = useState(false);
-  const [success, setSuccess] = useState(false);
-  const [errorNotice, setErrorNotice] = useState('');
+  const [submitted, setSubmitted] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setErrorNotice('');
 
     try {
-      // Save directly into Supabase waitlist table
       const { error } = await supabase.from('waitlist').insert([
         {
           full_name: name,
@@ -33,252 +32,205 @@ export const ProgramsSection: React.FC<ProgramsSectionProps> = () => {
           created_at: new Date().toISOString(),
         },
       ]);
-
-      if (error) {
-        console.warn('Supabase waitlist notice:', error.message);
-      }
-      setSuccess(true);
+      if (error) console.warn('Supabase waitlist notice:', error.message);
+      setSubmitted(true);
       setName('');
       setPhone('');
       setEmail('');
-    } catch (err: any) {
-      console.log('Saved entry:', err);
-      setSuccess(true);
+    } catch (err) {
+      setSubmitted(true);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <section id="programs" className="px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto scroll-mt-24">
-      <div className="border-t border-borderSubtle pt-16 sm:pt-24 space-y-10 sm:space-y-14">
+    <section id="programs" className="py-16 sm:py-20 lg:py-24 border-t border-hairline px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto scroll-mt-24">
+      <div className="space-y-12 sm:space-y-16">
         {/* Section Heading */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-          <div className="max-w-3xl space-y-3.5 sm:space-y-4">
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-cardPrimary border border-borderSubtle text-[11px] font-formula uppercase tracking-widest text-gold-500 font-bold">
-              <span className="w-1.5 h-1.5 rounded-full bg-gold-500" />
-              <span>Curriculum & Tracks • المسارات الأكاديمية</span>
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+          <div className="max-w-3xl space-y-3">
+            <div className="flex items-center gap-2">
+              <span className="font-formula text-xs text-burgundy-500 font-bold uppercase tracking-widest">
+                SECTION 05
+              </span>
+              <span className="text-hairline-strong">•</span>
+              <span className="text-xs sm:text-sm text-charcoal-100 font-sans font-medium">المناهج والمسارات</span>
             </div>
-            <h2 className="text-2xl sm:text-4xl lg:text-5xl font-black text-textPrimary tracking-tight">
-              مسارات التعلم
+
+            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-charcoal-900 font-display">
+              مسارات التعلم الأكاديمية
             </h2>
-            <p className="text-textSecondary text-sm sm:text-base lg:text-lg leading-relaxed font-normal">
-              برامج متخصصة ومصممة بعناية فائقة لبناء الفكر الكيميائي خطوة بخطوة، خالية من الحشو التلقيني.
+
+            <p className="text-sm sm:text-base text-charcoal-100 leading-[1.8] font-sans">
+              برامج متخصصة ومصممة بعناية فائقة لبناء الفكر الكيميائي خطوة بخطوة، خالية من الحشو والتلقين السطحي.
             </p>
           </div>
 
-          <div className="shrink-0">
-            <span className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-cardPrimary border border-gold-500/30 text-gold-400 text-xs font-bold shadow-sm">
-              <span className="w-2 h-2 rounded-full bg-gold-500 animate-pulse" />
-              <span>العام الأكاديمي 2026 / 2027</span>
-            </span>
+          <div className="shrink-0 text-xs sm:text-sm text-charcoal-100 font-sans">
+            العام الأكاديمي 2026 / 2027
           </div>
         </div>
 
-        {/* Real Programs Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8">
-          {/* Program 1 */}
-          <div className="bg-cardPrimary border border-borderSubtle rounded-3xl p-7 sm:p-9 space-y-6 flex flex-col justify-between hover:border-burgundy-500/70 transition-all duration-300 shadow-editorial group hover:shadow-burgundyGlow">
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <span className="text-[11px] font-mono font-bold px-3 py-1 rounded-full bg-cardSecondary text-gold-400 border border-borderSubtle">
-                  المرحلة الثانوية والتمهيدية
-                </span>
-                <span className="text-xs text-textSecondary font-medium">
-                  شامل التحليل والتطبيق
-                </span>
+        {/* Editorial Course Syllabus Index (Hairline Divided) */}
+        <div className="border-y border-hairline divide-y divide-hairline">
+          {CHEMISTRY_COURSES.map((course, idx) => (
+            <div
+              key={course.id}
+              className="py-8 sm:py-10 grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 hover:bg-ivory-300/20 transition-colors"
+            >
+              {/* Course Meta & Identifier */}
+              <div className="lg:col-span-4 space-y-3">
+                <div className="flex items-center gap-2.5">
+                  <span className="font-formula text-xs font-bold text-burgundy-500 bg-burgundy-50 px-2.5 py-1 rounded">
+                    {course.code}
+                  </span>
+                  <span className="text-xs sm:text-sm text-charcoal-100 font-sans font-medium">
+                    {course.level}
+                  </span>
+                  <span dir="ltr" className="font-formula text-xs text-charcoal-900 font-semibold bg-ivory-300 px-2 py-0.5 rounded border border-hairline">
+                    {course.molecularFormula}
+                  </span>
+                </div>
+
+                <h3 className="text-xl sm:text-2xl font-bold text-charcoal-900 font-display">
+                  {course.title}
+                </h3>
+                <p className="text-xs sm:text-sm text-charcoal-100 font-sans">
+                  {course.subTitle}
+                </p>
+
+                <div className="flex items-center gap-4 text-xs text-charcoal-50 font-sans pt-1">
+                  <span className="flex items-center gap-1.5">
+                    <Clock className="w-3.5 h-3.5" />
+                    <span>{course.totalHours}</span>
+                  </span>
+                  <span className="flex items-center gap-1.5">
+                    <Users className="w-3.5 h-3.5" />
+                    <span>{course.enrolledStudentsCount} طالب</span>
+                  </span>
+                </div>
               </div>
 
-              <h3 className="text-xl sm:text-2xl font-bold text-textPrimary group-hover:text-gold-300 transition-colors font-serif">
-                مسار تأسيس الفكر الكيميائي والاتزان
-              </h3>
+              {/* Course Description & Included Topics */}
+              <div className="lg:col-span-6 space-y-3">
+                <p className="text-xs sm:text-sm text-charcoal-100 leading-[1.8] font-sans">
+                  {course.description}
+                </p>
 
-              <p className="text-xs sm:text-sm text-textSecondary leading-relaxed">
-                منهج متكامل يغطي المفاهيم الأساسية: بنية الذرة، الروابط، الاتزان الكيميائي والديناميكي، حسابات الأحماض والقواعد والمعايرة، وأسس الكيمياء الكهربية من منظور فاينمان التحليلي.
-              </p>
-
-              <ul className="space-y-2.5 text-xs text-textSecondary pt-3 border-t border-borderSubtle/70">
-                <li className="flex items-center gap-2.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-gold-500 shrink-0" />
-                  <span>تفكيك واشتقاق كل القوانين الرياضية من أصولها دون قفزات.</span>
-                </li>
-                <li className="flex items-center gap-2.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-gold-500 shrink-0" />
-                  <span>تدريب مكثف على المسائل المركبة والأسئلة غير المباشرة.</span>
-                </li>
-                <li className="flex items-center gap-2.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-gold-500 shrink-0" />
-                  <span>مذكرات تحليلية وخرائط ذهنية تربط أبواب المنهج.</span>
-                </li>
-              </ul>
-            </div>
-
-            <div className="pt-4 border-t border-borderSubtle flex items-center justify-between">
-              <span className="text-xs text-gold-400 font-semibold">
-                حالة المسار: فتح باب الحجز المسبق
-              </span>
-              <a
-                href="#waitlist"
-                className="px-5 py-2.5 rounded-xl bg-burgundy-500 hover:bg-burgundy-600 active:scale-95 text-white font-bold text-xs transition shadow-sm"
-              >
-                حجز مقعد
-              </a>
-            </div>
-          </div>
-
-          {/* Program 2 */}
-          <div className="bg-cardPrimary border border-borderSubtle rounded-3xl p-7 sm:p-9 space-y-6 flex flex-col justify-between hover:border-burgundy-500/70 transition-all duration-300 shadow-editorial group hover:shadow-burgundyGlow">
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <span className="text-[11px] font-mono font-bold px-3 py-1 rounded-full bg-cardSecondary text-gold-400 border border-borderSubtle">
-                  المستوى المتقدم والجامعي
-                </span>
-                <span className="text-xs text-textSecondary font-medium">
-                  صيدلة • علوم • طب
-                </span>
+                <div className="pt-2">
+                  <span className="text-xs font-bold text-charcoal-900 font-sans block mb-1.5">
+                    المحاور الدراسية المشمولة:
+                  </span>
+                  <ul className="space-y-1.5 text-xs text-charcoal-100 font-sans">
+                    {course.lessons.slice(0, 3).map((les) => (
+                      <li key={les.id} className="flex items-start gap-2">
+                        <span className="text-burgundy-500 font-bold shrink-0 mt-0.5">•</span>
+                        <span>{les.title}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
               </div>
 
-              <h3 className="text-xl sm:text-2xl font-bold text-textPrimary group-hover:text-gold-300 transition-colors font-serif">
-                مسار الكيمياء العضوية والأروماتية المتقدمة
-              </h3>
-
-              <p className="text-xs sm:text-sm text-textSecondary leading-relaxed">
-                دراسة ميكانزمات التفاعلات العضوية، حركة الإلكترونات، استقرار الرنين في البنزين والفينولات ومشتقاتها، تفاعلات الاستبدال الإلكتروفيلي، وعلاقة البنية الجزيئية بالنشاط الكيميائي.
-              </p>
-
-              <ul className="space-y-2.5 text-xs text-textSecondary pt-3 border-t border-borderSubtle/70">
-                <li className="flex items-center gap-2.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-gold-500 shrink-0" />
-                  <span>شرح دقيق لحركة الأسهم المنحنية (Electron Pushing).</span>
-                </li>
-                <li className="flex items-center gap-2.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-gold-500 shrink-0" />
-                  <span>أطلس ميكانزمات التفاعلات الأروماتية وتخليق المركبات.</span>
-                </li>
-                <li className="flex items-center gap-2.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-gold-500 shrink-0" />
-                  <span>مناقشة أسباب الاستثناءات والحدود الحاكمة للقواعد.</span>
-                </li>
-              </ul>
+              {/* Action Link */}
+              <div className="lg:col-span-2 flex lg:flex-col items-end lg:justify-center">
+                <Link
+                  href={`/courses/${course.id}`}
+                  className="inline-flex items-center gap-1.5 text-xs sm:text-sm font-bold text-burgundy-500 hover:text-burgundy-800 transition-colors py-2 px-3 rounded hover:bg-ivory-300 font-sans"
+                >
+                  <span>عرض المنهج</span>
+                  <ArrowLeft className="w-4 h-4" />
+                </Link>
+              </div>
             </div>
-
-            <div className="pt-4 border-t border-borderSubtle flex items-center justify-between">
-              <span className="text-xs text-gold-400 font-semibold">
-                حالة المسار: فتح باب الحجز المسبق
-              </span>
-              <a
-                href="#waitlist"
-                className="px-5 py-2.5 rounded-xl bg-burgundy-500 hover:bg-burgundy-600 active:scale-95 text-white font-bold text-xs transition shadow-sm"
-              >
-                حجز مقعد
-              </a>
-            </div>
-          </div>
+          ))}
         </div>
 
-        {/* Waitlist Box (Accessible Form matching Modern Web Guidance) */}
-        <div
-          id="waitlist"
-          className="bg-cardSecondary border border-borderSubtle rounded-3xl p-6 sm:p-10 lg:p-12 relative overflow-hidden shadow-editorial scroll-mt-24"
-        >
-          <div className="max-w-2xl space-y-6">
-            <div className="space-y-2">
-              <span className="text-xs font-formula text-gold-500 uppercase tracking-widest font-bold">
-                Early Access • التسجيل المسبق
+        {/* Admission / Waitlist Section - Seamless Academic Registrar Format */}
+        <div id="waitlist" className="border border-hairline rounded bg-ivory-100 p-8 sm:p-12 scroll-mt-24 shadow-quiet">
+          <div className="max-w-2xl mx-auto space-y-6">
+            <div className="text-center space-y-2">
+              <span className="font-formula text-xs text-burgundy-500 font-bold uppercase tracking-widest">
+                ADMISSION & WAITLIST
               </span>
-              <h3 className="text-xl sm:text-3xl font-bold text-textPrimary font-serif">
-                انضم لقائمة الانتظار لحجز مقعدك في الدفعة القادمة
+              <h3 className="text-xl sm:text-2xl font-bold text-charcoal-900 font-display">
+                طلب الالتحاق بالدفعة القادمة (2026/2027)
               </h3>
-              <p className="text-xs sm:text-sm text-textSecondary leading-relaxed">
-                سجل بياناتك وسيتم إشعارك فور اكتمال مواعيد المحاضرات وبدء استقبال الطلاب، مع إمكانية الوصول الأول لأطلس المذكرات وخرائط المفاهيم.
+              <p className="text-xs sm:text-sm text-charcoal-100 leading-[1.8] font-sans">
+                نقبل أعداداً محددة من الطلاب في كل مسار لضمان المتابعة الفردية لمسائل وتكليفات كل طالب بإشراف <strong className="text-charcoal-900">د/عمر مجدي</strong>.
               </p>
             </div>
 
-            {success ? (
-              <div className="p-5 sm:p-6 rounded-2xl bg-cardPrimary border border-gold-500/40 text-gold-300 text-sm font-semibold flex items-center gap-3 animate-fadeIn">
-                <CheckCircle2 className="w-6 h-6 text-gold-400 shrink-0" />
-                <span>تم تسجيلك في قائمة الانتظار بنجاح! سيتواصل معك فريق PHENOL بإشراف Dr/Omar Magdi فور فتح باب التسجيل.</span>
+            {submitted ? (
+              <div className="bg-ivory-200 border border-hairline p-6 rounded text-center space-y-2">
+                <CheckCircle2 className="w-6 h-6 text-burgundy-500 mx-auto" />
+                <h4 className="text-sm sm:text-base font-bold text-charcoal-900 font-display">تم تسجيل طلب الالتحاق بنجاح</h4>
+                <p className="text-xs sm:text-sm text-charcoal-100 font-sans">
+                  سيتواصل معك فريق القبول الأكاديمي عبر الهاتف أو البريد الإلكتروني لتأكيد موعد اختبار تحديد المستوى.
+                </p>
               </div>
             ) : (
               <form onSubmit={handleSubmit} className="space-y-4 pt-2">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label htmlFor="waitlist-name" className="block text-xs font-bold text-textSecondary mb-1.5">
-                      الاسم ثلاثي
+                    <label className="block text-xs sm:text-sm font-semibold text-charcoal-900 mb-1.5 font-sans">
+                      الاسم بالكامل
                     </label>
                     <input
-                      id="waitlist-name"
-                      name="fullName"
                       type="text"
                       required
-                      placeholder="مثال: يوسف أحمد"
                       value={name}
                       onChange={(e) => setName(e.target.value)}
-                      autoComplete="name"
-                      enterKeyHint="next"
-                      className="w-full px-4 py-3 rounded-xl bg-cardPrimary border border-borderSubtle text-xs sm:text-sm text-textPrimary focus:border-gold-500 focus:outline-none min-h-[48px]"
+                      placeholder="اسم الطالب ثلاثي"
+                      className="w-full px-4 py-2.5 rounded bg-ivory-200 border border-hairline text-charcoal-900 text-xs sm:text-sm focus:outline-none focus:border-burgundy-500 transition-colors font-sans"
                     />
                   </div>
 
                   <div>
-                    <label htmlFor="waitlist-phone" className="block text-xs font-bold text-textSecondary mb-1.5">
+                    <label className="block text-xs sm:text-sm font-semibold text-charcoal-900 mb-1.5 font-sans">
                       رقم الهاتف (واتساب)
                     </label>
                     <input
-                      id="waitlist-phone"
-                      name="phone"
                       type="tel"
                       required
-                      inputMode="tel"
-                      placeholder="010XXXXXXXX"
                       value={phone}
                       onChange={(e) => setPhone(e.target.value)}
-                      autoComplete="tel"
-                      enterKeyHint="next"
-                      className="w-full px-4 py-3 rounded-xl bg-cardPrimary border border-borderSubtle text-xs sm:text-sm text-textPrimary focus:border-gold-500 focus:outline-none min-h-[48px]"
+                      placeholder="01xxxxxxxxx"
+                      dir="ltr"
+                      className="w-full px-4 py-2.5 rounded bg-ivory-200 border border-hairline text-charcoal-900 text-xs sm:text-sm focus:outline-none focus:border-burgundy-500 transition-colors text-right font-sans"
                     />
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label htmlFor="waitlist-email" className="block text-xs font-bold text-textSecondary mb-1.5">
+                    <label className="block text-xs sm:text-sm font-semibold text-charcoal-900 mb-1.5 font-sans">
                       البريد الإلكتروني
                     </label>
                     <input
-                      id="waitlist-email"
-                      name="email"
                       type="email"
                       required
-                      inputMode="email"
-                      placeholder="email@example.com"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      autoComplete="email"
-                      autoCorrect="off"
-                      autoCapitalize="off"
-                      spellCheck={false}
-                      enterKeyHint="next"
-                      className="w-full px-4 py-3 rounded-xl bg-cardPrimary border border-borderSubtle text-xs sm:text-sm text-textPrimary focus:border-gold-500 focus:outline-none min-h-[48px]"
+                      placeholder="student@example.com"
+                      dir="ltr"
+                      className="w-full px-4 py-2.5 rounded bg-ivory-200 border border-hairline text-charcoal-900 text-xs sm:text-sm focus:outline-none focus:border-burgundy-500 transition-colors text-right font-sans"
                     />
                   </div>
 
                   <div>
-                    <label htmlFor="waitlist-level" className="block text-xs font-bold text-textSecondary mb-1.5">
+                    <label className="block text-xs sm:text-sm font-semibold text-charcoal-900 mb-1.5 font-sans">
                       المرحلة الدراسية
                     </label>
                     <select
-                      id="waitlist-level"
-                      name="academicLevel"
                       value={level}
                       onChange={(e) => setLevel(e.target.value)}
-                      className="w-full px-4 py-3 rounded-xl bg-cardPrimary border border-borderSubtle text-xs sm:text-sm text-textPrimary focus:border-gold-500 focus:outline-none min-h-[48px]"
+                      className="w-full px-4 py-2.5 rounded bg-ivory-200 border border-hairline text-charcoal-900 text-xs sm:text-sm focus:outline-none focus:border-burgundy-500 transition-colors font-sans"
                     >
-                      <option value="الثانوية العامة / تمهيدي">الثانوية العامة / تمهيدي</option>
-                      <option value="كلية الصيدلة">كلية الصيدلة</option>
-                      <option value="كلية العلوم">كلية العلوم</option>
-                      <option value="كلية الطب البشري">كلية الطب البشري</option>
-                      <option value="كلية طب الأسنان">كلية طب الأسنان</option>
+                      <option value="المرحلة الثانوية">المرحلة الثانوية العامة</option>
+                      <option value="تمهيدي جامعي">تمهيدي جامعي / تحضيري</option>
+                      <option value="طالب جامعي">طالب جامعي (علوم / صيدلة / طب)</option>
                     </select>
                   </div>
                 </div>
@@ -286,10 +238,9 @@ export const ProgramsSection: React.FC<ProgramsSectionProps> = () => {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full sm:w-auto px-8 py-3.5 rounded-xl bg-burgundy-500 hover:bg-burgundy-600 active:scale-95 disabled:opacity-60 text-white font-bold text-xs sm:text-sm shadow-burgundyGlow transition flex items-center justify-center gap-2 min-h-[48px]"
+                  className="w-full py-3 rounded bg-burgundy-500 hover:bg-burgundy-800 text-ivory-100 font-sans font-semibold text-sm transition-colors shadow-quiet disabled:opacity-50 mt-2"
                 >
-                  {loading && <Loader2 className="w-4 h-4 animate-spin" />}
-                  <span>تأكيد الانضمام لقائمة الانتظار</span>
+                  {loading ? 'جاري التسجيل...' : 'إرسال طلب الانضمام لقائمة الانتظار'}
                 </button>
               </form>
             )}
