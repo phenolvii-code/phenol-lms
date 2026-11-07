@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Phenol | د. عمر مجدي - كيمياء ومواد علمية",
-  description: "المنصة التخصصية في شرح الكيمياء والمواد العلمية للدكتور عمر مجدي (Dr. Omar Magdi) - كيمياء عضوية، فيزيائية، وحيوية بهوية برجندي ودهبي راقية.",
+  title: "Dr. Omar Magdi | The Chemistry Counselor — من فهم شيئًا ملكه",
+  description: "هوية تعليمية متخصصة في تعليم الكيمياء والعلوم للدكتور عمر مجدي. لا تحفظ الكيمياء. افهم كيف تعمل.",
 };
 
 export default function RootLayout({
@@ -12,8 +12,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ar" dir="rtl">
-      <body className="antialiased selection:bg-burgundy-100 selection:text-burgundy-900">
+    <html lang="ar" dir="rtl" className="dark">
+      <body className="bg-darkBg text-textPrimary antialiased selection:bg-burgundy-500 selection:text-white">
         {children}
       </body>
     </html>

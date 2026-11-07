@@ -1,66 +1,64 @@
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Cairo:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&family=Cinzel:wght@500;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  --bg-main: #fcfbfa;
-  --color-burgundy-primary: #380612;
-  --color-gold-accent: #d4af37;
+  --background: #0B0C0F;
+  --foreground: #F3F4F6;
+  --burgundy: #641C32;
+  --burgundy-deep: #3D1021;
 }
 
 body {
-  font-family: 'Cairo', 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
-  background-color: var(--bg-main);
-  color: #1f1a1c;
-  min-height: 100vh;
+  background-color: #0B0C0F;
+  color: #F3F4F6;
+  font-family: 'Cairo', system-ui, -apple-system, sans-serif;
   letter-spacing: -0.01em;
   -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
 }
 
-/* Chemical formula font */
+/* Editorial Serif for English titles */
+.font-editorial {
+  font-family: 'Cinzel', 'Georgia', serif;
+}
+
+/* Formula Monospace */
 .font-formula {
-  font-family: 'JetBrains Mono', 'Cairo', monospace;
+  font-family: 'JetBrains Mono', monospace;
 }
 
-/* Glassmorphism subtle Apple aesthetic */
-.apple-glass {
-  background: rgba(255, 255, 255, 0.85);
+/* Subtle academic glass */
+.academic-glass {
+  background: rgba(21, 23, 29, 0.85);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(56, 6, 18, 0.06);
+  border: 1px solid #2D313C;
 }
 
-.apple-glass-dark {
-  background: rgba(45, 7, 16, 0.92);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(212, 175, 55, 0.2);
-}
-
-/* Custom subtle scrollbar */
+/* Scrollbar */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 7px;
+  height: 7px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #f8f6f4;
+  background: #0B0C0F;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #d4af37;
+  background: #2D313C;
   border-radius: 9999px;
-  opacity: 0.6;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #b58f26;
+  background: #641C32;
 }
 
 /* Selection */
 ::selection {
-  background: #fbe4e8;
-  color: #5a0f20;
+  background: #641C32;
+  color: #FAF7F2;
 }

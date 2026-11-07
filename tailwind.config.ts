@@ -9,38 +9,40 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
+        darkBg: "#0B0C0F",
+        cardPrimary: "#15171D",
+        cardSecondary: "#20232B",
+        textPrimary: "#F3F4F6",
+        textSecondary: "#B1B6C2",
+        borderSubtle: "#2D313C",
         burgundy: {
-          50: "#fdf3f5",
+          50: "#fdf2f4",
           100: "#fbe4e8",
-          200: "#f7cbd3",
+          200: "#f8cbd3",
           300: "#f0a3b2",
           400: "#e5728a",
-          500: "#d34665",
-          600: "#bc2e4e",
-          700: "#9c1e3a",
-          800: "#821b32",
-          900: "#5a0f20",
-          950: "#380612", // deep luxury velvet burgundy
+          500: "#641C32", // Primary Burgundy from Brief
+          600: "#541629",
+          700: "#451221",
+          800: "#3D1021", // Deep Burgundy from Brief
+          900: "#2d0a18",
+          950: "#1a050d",
         },
         gold: {
-          50: "#fdfbf5",
-          100: "#f9f4e6",
-          200: "#f3e7c8",
-          300: "#e9d49e",
-          400: "#ddbd70",
-          500: "#d4af37", // elegant luxury gold
-          600: "#b58f26",
-          700: "#916d20",
-          800: "#765620",
-          900: "#63471f",
-          950: "#39260c",
+          400: "#e6c66e",
+          500: "#D4AF37",
+          600: "#b9942a",
         },
+        ivory: "#FAF7F2",
       },
       fontFamily: {
-        sans: ["var(--font-geist-sans)", "Cairo", "system-ui", "sans-serif"],
+        sans: ["Cairo", "system-ui", "-apple-system", "sans-serif"],
+        serif: ["Georgia", "Cambria", "Times New Roman", "serif"],
+        formula: ["JetBrains Mono", "Courier New", "monospace"],
       },
       boxShadow: {
-        luxury: "0 10px 30px -5px rgba(56, 6, 18, 0.12)",
+        editorial: "0 20px 40px -15px rgba(0, 0, 0, 0.7)",
+        burgundyGlow: "0 0 30px -5px rgba(100, 28, 50, 0.35)",
         goldGlow: "0 0 25px -5px rgba(212, 175, 55, 0.25)",
       },
     },
