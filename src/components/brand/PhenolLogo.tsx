@@ -1,62 +1,48 @@
+'use client';
+
 import React from 'react';
 
 interface PhenolLogoProps {
   className?: string;
   size?: number;
   withText?: boolean;
+  variant?: 'gold' | 'white';
 }
 
 export const PhenolLogo: React.FC<PhenolLogoProps> = ({
   className = '',
-  size = 40,
+  size = 42,
   withText = true,
+  variant = 'gold',
 }) => {
+  const iconSrc =
+    variant === 'gold'
+      ? '/images/phenol-symbol-gold.png'
+      : '/images/phenol-symbol-white.png';
+
   return (
-    <div className={`flex items-center gap-3.5 ${className}`}>
-      {/* Precision Geometric Scientific Icon */}
+    <div className={`flex items-center gap-3.5 group cursor-pointer ${className}`}>
+      {/* Authentic Geometric Emblem Container */}
       <div
-        className="relative flex items-center justify-center shrink-0 rounded-2xl bg-cardPrimary border border-borderSubtle shadow-editorial group-hover:border-burgundy-500 transition-colors"
+        className="relative flex items-center justify-center shrink-0 rounded-2xl bg-cardPrimary/90 border border-borderSubtle group-hover:border-gold-500/60 shadow-editorial transition-all duration-300 overflow-hidden p-1.5 backdrop-blur-md"
         style={{ width: size, height: size }}
       >
-        <svg
-          viewBox="0 0 100 100"
-          className="w-3/5 h-3/5 text-gold-500 drop-shadow-[0_0_6px_rgba(212,175,55,0.3)]"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="4"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        >
-          {/* Benzene Ring Hexagon */}
-          <polygon points="50,22 78,38 78,70 50,86 22,70 22,38" />
-          {/* Inner Resonance Circle */}
-          <circle cx="50" cy="54" r="17" strokeDasharray="4 3.5" strokeWidth="2.5" />
-          {/* Hydroxyl terminal bond */}
-          <line x1="50" y1="22" x2="50" y2="8" strokeWidth="4" />
-          {/* -OH Terminal */}
-          <text
-            x="50"
-            y="7"
-            fill="#D4AF37"
-            fontSize="10"
-            fontWeight="bold"
-            textAnchor="middle"
-            stroke="none"
-            fontFamily="system-ui, sans-serif"
-          >
-            OH
-          </text>
-        </svg>
+        <img
+          src={iconSrc}
+          alt="Phenol - Dr. Omar Magdi Logo"
+          className="w-full h-full object-contain filter drop-shadow-[0_0_8px_rgba(212,175,55,0.35)] group-hover:scale-105 transition-transform duration-300"
+          loading="eager"
+        />
       </div>
 
       {withText && (
-        <div className="flex flex-col text-right">
+        <div className="flex flex-col text-right select-none">
           <div className="flex items-center gap-1.5">
-            <span className="font-editorial text-lg tracking-wider text-textPrimary font-bold uppercase">
+            <span className="font-editorial text-base sm:text-lg tracking-wider text-textPrimary group-hover:text-white font-bold uppercase transition-colors">
               Dr. Omar Magdi
             </span>
           </div>
-          <span className="text-[11px] font-medium text-gold-500 tracking-wide">
+          <span className="text-[10px] sm:text-[11px] font-semibold text-gold-500 tracking-wide">
             The Chemistry Counselor
           </span>
         </div>

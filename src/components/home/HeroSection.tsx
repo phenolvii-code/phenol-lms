@@ -30,9 +30,13 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onStartJourney }) => {
       </div>
 
       <div className="relative z-10 max-w-4xl mx-auto text-center space-y-7 sm:space-y-10">
-        {/* Precision Identity Tag */}
-        <div className="inline-flex items-center gap-2 px-3.5 sm:px-4 py-2 rounded-full bg-cardPrimary/90 border border-borderSubtle text-xs tracking-wide shadow-editorial backdrop-blur-md">
-          <span className="w-2 h-2 rounded-full bg-gold-500 animate-pulse" />
+        {/* Precision Identity Tag with Official Emblem */}
+        <div className="inline-flex items-center gap-2.5 px-4 py-2 rounded-full bg-cardPrimary/90 border border-borderSubtle hover:border-gold-500/40 text-xs tracking-wide shadow-editorial backdrop-blur-md transition-colors">
+          <img
+            src="/images/phenol-symbol-gold.png"
+            alt="Phenol Emblem"
+            className="w-4 h-4 object-contain drop-shadow-[0_0_6px_rgba(212,175,55,0.4)]"
+          />
           <span className="font-editorial uppercase text-gold-500 font-bold tracking-widest text-[11px] sm:text-xs">
             Dr. Omar Magdi
           </span>

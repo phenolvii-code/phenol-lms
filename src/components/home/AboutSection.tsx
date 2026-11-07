@@ -57,13 +57,13 @@ export const AboutSection: React.FC = () => {
             </div>
           </div>
 
-          {/* Abstract Watermark Monogram */}
-          <div
-            className="absolute -left-6 -bottom-10 select-none pointer-events-none opacity-5 font-serif text-[160px] sm:text-[220px] text-white"
+          {/* Abstract Watermark Official Emblem */}
+          <img
+            src="/images/phenol-symbol-white.png"
+            alt=""
+            className="absolute -left-8 -bottom-12 w-52 sm:w-80 h-52 sm:h-80 object-contain select-none pointer-events-none opacity-[0.045]"
             aria-hidden="true"
-          >
-            OM
-          </div>
+          />
         </div>
       </div>
     </section>

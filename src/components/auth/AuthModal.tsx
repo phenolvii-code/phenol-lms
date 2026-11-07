@@ -175,7 +175,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         <div className="p-6 bg-gradient-to-r from-burgundy-950 via-cardSecondary to-burgundy-950 border-b border-borderSubtle text-textPrimary relative flex items-center justify-between">
           <div>
             <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-cardPrimary border border-gold-500/30 text-gold-400 font-bold text-[10px] sm:text-[11px] mb-1.5">
-              <Sparkles className="w-3.5 h-3.5 text-gold-400" />
+              <img
+                src="/images/phenol-symbol-gold.png"
+                alt="Phenol"
+                className="w-3.5 h-3.5 object-contain"
+              />
               <span>منصة Phenol الأكاديمية</span>
             </div>
             <h3 id="auth-modal-title" className="text-lg sm:text-xl font-bold font-serif text-textPrimary">
