@@ -150,7 +150,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     ) {
       const instructorUser: AuthUser = {
         id: 'dr-omar-magdi',
-        name: 'د. عمر مجدي',
+        name: 'Dr/Omar Magdi',
         email: instructorEmail,
         role: 'INSTRUCTOR',
         avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80',
@@ -177,15 +177,15 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-cardPrimary border border-gold-500/30 text-gold-400 font-bold text-[10px] sm:text-[11px] mb-1.5">
               <img
                 src="/images/phenol-symbol-gold.png"
-                alt="Phenol"
+                alt="PHENOL"
                 className="w-3.5 h-3.5 object-contain"
               />
-              <span>منصة Phenol الأكاديمية</span>
+              <span className="font-editorial uppercase tracking-wider">منصة PHENOL الأكاديمية</span>
             </div>
             <h3 id="auth-modal-title" className="text-lg sm:text-xl font-bold font-serif text-textPrimary">
               {mode === 'LOGIN' && 'تسجيل دخول الطالب'}
               {mode === 'REGISTER' && 'إنشاء حساب طالب جديد'}
-              {mode === 'INSTRUCTOR_LOGIN' && 'بوابة د. عمر مجدي الخاصة'}
+              {mode === 'INSTRUCTOR_LOGIN' && 'بوابة Dr/Omar Magdi الخاصة'}
             </h3>
           </div>
 
@@ -487,7 +487,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 type="submit"
                 className="w-full mt-2 py-3.5 rounded-xl bg-burgundy-500 hover:bg-burgundy-600 active:scale-95 text-white font-bold text-xs sm:text-sm shadow-burgundyGlow transition min-h-[48px]"
               >
-                الدخول بصلاحيات د. عمر مجدي
+                الدخول بصلاحيات Dr/Omar Magdi
               </button>
             </form>
           )}

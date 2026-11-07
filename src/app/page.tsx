@@ -116,18 +116,20 @@ export default function Home() {
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-right">
             <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-3">
               <span className="font-editorial text-sm font-bold text-textPrimary uppercase tracking-wider">
-                Dr. Omar Magdi
+                PHENOL
               </span>
+              <span className="text-borderSubtle">•</span>
+              <span className="font-formula text-xs text-gold-400 font-semibold">Dr/Omar Magdi</span>
               <span className="hidden sm:inline text-borderSubtle">•</span>
-              <span className="text-gold-500 font-serif text-sm">«من فهم شيئًا ملكه»</span>
+              <span className="text-gold-500 font-display text-sm">«من فهم شيئًا ملكه»</span>
               <span className="hidden sm:inline text-borderSubtle">•</span>
               <span className="text-textSecondary/80 font-formula text-[11px]">
                 Find the Simple. Master the Complex.
               </span>
             </div>
 
-            <div className="text-textSecondary/60 text-[11px]">
-              جميع الحقوق محفوظة © {new Date().getFullYear()} • The Chemistry Counselor
+            <div className="text-textSecondary/60 text-[11px] font-formula">
+              جميع الحقوق محفوظة © {new Date().getFullYear()} • PHENOL
             </div>
           </div>
         </div>

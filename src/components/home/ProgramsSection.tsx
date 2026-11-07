@@ -197,7 +197,7 @@ export const ProgramsSection: React.FC<ProgramsSectionProps> = () => {
             {success ? (
               <div className="p-5 sm:p-6 rounded-2xl bg-cardPrimary border border-gold-500/40 text-gold-300 text-sm font-semibold flex items-center gap-3 animate-fadeIn">
                 <CheckCircle2 className="w-6 h-6 text-gold-400 shrink-0" />
-                <span>تم تسجيلك في قائمة الانتظار بنجاح! سيتواصل معك د. عمر مجدي فور فتح باب التسجيل.</span>
+                <span>تم تسجيلك في قائمة الانتظار بنجاح! سيتواصل معك فريق PHENOL بإشراف Dr/Omar Magdi فور فتح باب التسجيل.</span>
               </div>
             ) : (
               <form onSubmit={handleSubmit} className="space-y-4 pt-2">

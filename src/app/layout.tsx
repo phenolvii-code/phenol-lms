@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Dr. Omar Magdi | The Chemistry Counselor — من فهم شيئًا ملكه",
-  description: "هوية تعليمية متخصصة في تعليم الكيمياء والعلوم للدكتور عمر مجدي. لا تحفظ الكيمياء. افهم كيف تعمل.",
+  title: "PHENOL | Dr/Omar Magdi — «من فهم شيئاً ملكه»",
+  description: "منصة PHENOL التعليمية المتخصصة في الكيمياء بإشراف Dr/Omar Magdi. «من فهم شيئًا ملكه» — Find the Simple. Master the Complex.",
 };
 
 export default function RootLayout({

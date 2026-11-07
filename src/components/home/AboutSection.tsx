@@ -21,7 +21,7 @@ export const AboutSection: React.FC = () => {
           <div className="max-w-3xl space-y-7 sm:space-y-8 relative z-10">
             <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-cardSecondary border border-borderSubtle text-[11px] font-formula uppercase tracking-widest text-gold-500 font-bold">
               <span className="w-1.5 h-1.5 rounded-full bg-gold-500" />
-              <span>About Dr. Omar Magdi • كلمة ورؤية</span>
+              <span>About Dr/Omar Magdi • كلمة ورؤية</span>
             </div>
 
             <h2 className="text-2xl sm:text-4xl lg:text-5xl font-black text-textPrimary tracking-tight font-serif leading-tight">
@@ -43,11 +43,11 @@ export const AboutSection: React.FC = () => {
             {/* Signature Block */}
             <div className="pt-6 border-t border-borderSubtle flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div className="border-r-2 border-gold-500 pr-4">
-                <span className="block font-editorial text-textPrimary font-bold text-lg sm:text-xl">
-                  Dr. Omar Magdi
+                <span className="block font-formula text-textPrimary font-bold text-lg sm:text-xl">
+                  Dr/Omar Magdi
                 </span>
-                <span className="text-xs text-gold-500 font-medium tracking-wide">
-                  The Chemistry Counselor
+                <span className="text-xs text-gold-500 font-extrabold tracking-widest font-editorial uppercase">
+                  PHENOL
                 </span>
               </div>
 

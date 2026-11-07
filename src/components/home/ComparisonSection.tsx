@@ -69,7 +69,7 @@ export const ComparisonSection: React.FC = () => {
             </div>
             <div className="flex items-center gap-2 text-gold-400">
               <span className="w-2.5 h-2.5 rounded-full bg-gold-500" />
-              <span>منهج د. عمر مجدي — The Chemistry Counselor</span>
+              <span>منهج PHENOL — بإشراف Dr/Omar Magdi</span>
             </div>
           </div>
 

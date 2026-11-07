@@ -69,7 +69,7 @@ export const FeynmanMethodSection: React.FC = () => {
               كيف تتعلم معنا؟
             </h2>
             <p className="text-textSecondary text-sm sm:text-base leading-relaxed font-normal">
-              تستمد طريقة د. عمر مجدي إلهامها من فلسفة الفيزيائي ريتشارد فاينمان: رحلة تعليمية من 6 مراحل تبدأ بالفهم الأصيل وتنتهي بالتمكن التام.
+              تستمد طريقة PHENOL بإشراف Dr/Omar Magdi إلهامها من فلسفة الفيزيائي ريتشارد فاينمان: رحلة تعليمية من 6 مراحل تبدأ بالفهم الأصيل وتنتهي بالتمكن التام.
             </p>
           </div>
 

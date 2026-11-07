@@ -36,14 +36,12 @@ export const PhenolLogo: React.FC<PhenolLogoProps> = ({
       </div>
 
       {withText && (
-        <div className="flex flex-col text-right select-none">
-          <div className="flex items-center gap-1.5">
-            <span className="font-editorial text-base sm:text-lg tracking-wider text-textPrimary group-hover:text-white font-bold uppercase transition-colors">
-              Dr. Omar Magdi
-            </span>
-          </div>
-          <span className="text-[10px] sm:text-[11px] font-semibold text-gold-500 tracking-wide">
-            The Chemistry Counselor
+        <div className="flex flex-col text-right select-none justify-center">
+          <span className="font-editorial text-base sm:text-lg tracking-wider text-textPrimary group-hover:text-white font-extrabold uppercase transition-colors leading-none">
+            PHENOL
+          </span>
+          <span className="text-[10px] sm:text-[11px] font-semibold text-gold-500 tracking-wide font-formula mt-0.5">
+            Dr/Omar Magdi
           </span>
         </div>
       )}

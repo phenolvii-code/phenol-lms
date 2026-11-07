@@ -36,8 +36,9 @@ const config: Config = {
         ivory: "#FAF7F2",
       },
       fontFamily: {
-        sans: ["Cairo", "system-ui", "-apple-system", "sans-serif"],
-        serif: ["Georgia", "Cambria", "Times New Roman", "serif"],
+        sans: ["'IBM Plex Sans Arabic'", "'Alexandria'", "system-ui", "-apple-system", "sans-serif"],
+        display: ["'Alexandria'", "system-ui", "-apple-system", "sans-serif"],
+        editorial: ["Cinzel", "Georgia", "serif"],
         formula: ["JetBrains Mono", "Courier New", "monospace"],
       },
       boxShadow: {

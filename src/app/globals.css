@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&family=Cinzel:wght@500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Alexandria:wght@300;400;500;600;700;800;900&family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&family=Cinzel:wght@600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -23,7 +23,7 @@ html {
 body {
   background-color: #0B0C0F;
   color: #F3F4F6;
-  font-family: 'Cairo', system-ui, -apple-system, sans-serif;
+  font-family: 'IBM Plex Sans Arabic', -apple-system, BlinkMacSystemFont, sans-serif;
   letter-spacing: -0.01em;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -31,15 +31,20 @@ body {
   min-height: 100dvh;
 }
 
+/* Luxury Modern Arabic Display Font (Alexandria) */
+.font-display {
+  font-family: 'Alexandria', sans-serif;
+}
+
 /* Fluid responsive typography utilities */
 .clamp-headline {
-  font-size: clamp(2rem, 1.4rem + 3.2vw, 4.25rem);
-  line-height: 1.15;
+  font-size: clamp(2.2rem, 1.5rem + 3.8vw, 4.75rem);
+  line-height: 1.18;
 }
 
 .clamp-subhead {
   font-size: clamp(1rem, 0.9rem + 0.5vw, 1.25rem);
-  line-height: 1.7;
+  line-height: 1.8;
 }
 
 /* Editorial Serif for English titles & accents */
