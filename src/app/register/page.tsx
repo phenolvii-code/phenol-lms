@@ -1,36 +1,22 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
-import { AuthUser, ADMIN_EMAILS } from '@/types/auth';
 import { PhenolLogo } from '@/components/brand/PhenolLogo';
-import { setUserPassword } from '@/lib/auth-passwords';
-import { getStudentAcademicCode } from '@/lib/student-code';
-import { recordRegisteredStudent } from '@/lib/enrollment-storage';
-import { awardReferralPoints } from '@/lib/referral-system';
 import { GoogleIcon, WhatsAppIcon } from '@/components/auth/AuthIcons';
-import { WhatsAppPromptModal } from '@/components/auth/WhatsAppPromptModal';
-import { GoogleAccountModal } from '@/components/auth/GoogleAccountModal';
-import { GOOGLE_CLIENT_ID, parseGoogleJwt } from '@/lib/google-auth';
 import { Lock, Mail, User, Phone, ShieldAlert, ArrowRight } from 'lucide-react';
 
 export default function RegisterPage() {
   const router = useRouter();
   const [fullName, setFullName] = useState('');
-  const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [academicLevel, setAcademicLevel] = useState('High School Senior');
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-
-  // Pending user awaiting WhatsApp verification
-  const [pendingUser, setPendingUser] = useState<AuthUser | null>(null);
-
-  // Google Account Chooser
-  const [showGoogleChooser, setShowGoogleChooser] = useState(false);
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -39,93 +25,58 @@ export default function RegisterPage() {
 
     const cleanEmail = email.trim().toLowerCase();
 
-    if (!fullName || !cleanEmail || !password || !phone) {
+    if (!fullName.trim() || !cleanEmail || !password || !phone.trim()) {
       setErrorMessage('Please fill in all required fields');
       setIsLoading(false);
       return;
     }
 
+    if (password.length < 6) {
+      setErrorMessage('Password must be at least 6 characters long');
+      setIsLoading(false);
+      return;
+    }
+
+    const refCode =
+      typeof window !== 'undefined'
+        ? sessionStorage.getItem('phenol_ref_code') || localStorage.getItem('phenol_ref_code')
+        : null;
+
     try {
-      setUserPassword(cleanEmail, password);
-
-      const academicCode = getStudentAcademicCode({
-        id: `stu-${Date.now()}`,
-        name: fullName,
-        email: cleanEmail,
-        role: 'STUDENT',
-        avatar: '',
-        registeredAt: '',
-      });
-
-      const { data, error } = await supabase.auth.signUp({
+      const { error } = await supabase.auth.signUp({
         email: cleanEmail,
         password,
         options: {
           data: {
-            full_name: fullName,
-            phone: phone,
+            full_name: fullName.trim(),
+            phone: phone.trim(),
             academic_level: academicLevel,
-            academic_code: academicCode,
+            referred_by: refCode || undefined,
           },
         },
       });
 
-      const newStudent: AuthUser = {
-        id: data?.user?.id || `stu-${Date.now()}`,
-        name: fullName,
-        email: cleanEmail,
-        phone: phone,
-        role: 'STUDENT',
-        avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80',
-        registeredAt: new Date().toISOString(),
-        academicCode,
-      };
+      if (error) {
+        setErrorMessage(error.message);
+        return;
+      }
 
-      localStorage.setItem('phenol_auth_user', JSON.stringify(newStudent));
-      recordRegisteredStudent(newStudent);
-      awardReferralPoints(cleanEmail);
       router.push('/dashboard');
-    } catch (err: any) {
-      setErrorMessage(err.message || 'Registration failed');
+    } catch {
+      setErrorMessage('Registration failed. Please check your information and try again.');
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Initialize Google One-Tap if script loaded
-  useEffect(() => {
-    if (typeof window !== 'undefined' && (window as any).google?.accounts?.id) {
-      try {
-        (window as any).google.accounts.id.initialize({
-          client_id: GOOGLE_CLIENT_ID,
-          callback: (response: any) => {
-            if (response?.credential) {
-              const payload = parseGoogleJwt(response.credential);
-              if (payload) {
-                handleGoogleAccountSelected({
-                  email: payload.email,
-                  name: payload.name,
-                  avatar: payload.picture,
-                });
-              }
-            }
-          },
-        });
-        (window as any).google.accounts.id.prompt();
-      } catch (err) {
-        // Fallback gracefully
-      }
-    }
-  }, []);
-
   const handleGoogleAuth = async () => {
     setIsLoading(true);
     setErrorMessage(null);
     try {
-      const { data, error } = await supabase.auth.signInWithOAuth({
+      const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/dashboard?auth=google`,
+          redirectTo: `${window.location.origin}/dashboard`,
         },
       });
 
@@ -133,66 +84,14 @@ export default function RegisterPage() {
         setErrorMessage(error.message);
         setIsLoading(false);
       }
-    } catch (err: any) {
-      setErrorMessage(err.message || 'Google Sign-Up failed');
+    } catch {
+      setErrorMessage('Google Sign-Up failed. Please try again.');
       setIsLoading(false);
     }
   };
 
-  const handleGoogleAccountSelected = (account: { email: string; name: string; avatar?: string }) => {
-    setShowGoogleChooser(false);
-
-    const cleanEmail = account.email.trim().toLowerCase();
-    const isAdmin =
-      cleanEmail === 'phenolvii@gmail.com' ||
-      cleanEmail.includes('phenolvii') ||
-      ADMIN_EMAILS.includes(cleanEmail);
-
-    const googleUser: AuthUser = {
-      id: isAdmin ? 'dr-omar-magdi' : `g-${Date.now()}`,
-      name: isAdmin ? 'Dr. Omar Magdi' : account.name,
-      email: cleanEmail,
-      role: isAdmin ? 'INSTRUCTOR' : 'STUDENT',
-      avatar:
-        account.avatar ||
-        (isAdmin
-          ? 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80'
-          : 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=80'),
-      registeredAt: new Date().toISOString(),
-      title: isAdmin ? 'Academic Director & Senior Fellow' : undefined,
-    };
-
-    if (isAdmin) {
-      localStorage.setItem('phenol_auth_user', JSON.stringify(googleUser));
-      router.push('/dashboard');
-      return;
-    }
-
-    // STUDENT REQUIRES WHATSAPP IMMEDIATELY!
-    setPendingUser(googleUser);
-  };
-
   return (
     <div className="min-h-screen bg-ivory-200 flex flex-col justify-between p-4 sm:p-6 font-sans selection:bg-burgundy-500 selection:text-ivory-100">
-      {/* WhatsApp Modal when required */}
-      {pendingUser && (
-        <WhatsAppPromptModal
-          isOpen={true}
-          user={pendingUser}
-          onSuccess={(completedUser) => {
-            setPendingUser(null);
-            router.push('/dashboard');
-          }}
-        />
-      )}
-
-      {/* Authentic Google Account Chooser */}
-      <GoogleAccountModal
-        isOpen={showGoogleChooser}
-        onClose={() => setShowGoogleChooser(false)}
-        onSelectAccount={handleGoogleAccountSelected}
-      />
-
       <header className="max-w-5xl mx-auto w-full flex items-center justify-between py-4">
         <Link href="/" aria-label="PHENOL Home">
           <PhenolLogo size={36} subtitle="Dr. Omar Magdi" />
@@ -205,7 +104,7 @@ export default function RegisterPage() {
         </Link>
       </header>
 
-      <main className="max-w-md w-full mx-auto my-auto">
+      <main className="max-w-md w-full mx-auto my-auto py-8">
         <div className="bg-ivory-100 border border-hairline rounded-lg p-6 sm:p-8 shadow-editorial space-y-6">
           <div className="text-center space-y-1.5 border-b border-hairline pb-5">
             <span className="font-formula text-xs text-burgundy-500 font-bold uppercase tracking-widest block">

@@ -1,9 +1,9 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
-import { AuthUser, AuthModalMode } from '@/types/auth';
-import { getPersistentAvatar } from '@/lib/user-profile';
+import { AuthModalMode } from '@/types/auth';
+import { useCurrentUser } from '@/lib/auth/useCurrentUser';
 import { Navbar } from '@/components/layout/Navbar';
 import { AuthModal } from '@/components/auth/AuthModal';
 import { HeroSection } from '@/components/home/HeroSection';
@@ -20,54 +20,13 @@ import { Mail, Send, Youtube, Facebook } from 'lucide-react';
 import { WhatsAppIcon } from '@/components/auth/AuthIcons';
 
 export default function Home() {
-  const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
+  const { user: currentUser, signOut } = useCurrentUser();
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [authModalMode, setAuthModalMode] = useState<AuthModalMode>('LOGIN');
-
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem('phenol_auth_user');
-      if (saved) {
-        const u = JSON.parse(saved);
-        if (u?.email) {
-          u.avatar = getPersistentAvatar(u.email, u.avatar);
-        }
-        setCurrentUser(u);
-      }
-    } catch (e) {
-      console.error(e);
-    }
-
-    const handleProfileUpdated = (e: any) => {
-      if (e.detail) {
-        setCurrentUser(e.detail);
-      }
-    };
-    window.addEventListener('phenol_profile_updated', handleProfileUpdated);
-    return () => window.removeEventListener('phenol_profile_updated', handleProfileUpdated);
-  }, []);
 
   const handleOpenAuth = (mode: AuthModalMode) => {
     setAuthModalMode(mode);
     setIsAuthModalOpen(true);
-  };
-
-  const handleLoginSuccess = (user: AuthUser) => {
-    setCurrentUser(user);
-    try {
-      localStorage.setItem('phenol_auth_user', JSON.stringify(user));
-    } catch (e) {
-      console.error(e);
-    }
-  };
-
-  const handleLogout = () => {
-    setCurrentUser(null);
-    try {
-      localStorage.removeItem('phenol_auth_user');
-    } catch (e) {
-      console.error(e);
-    }
   };
 
   return (
@@ -76,7 +35,7 @@ export default function Home() {
       <Navbar
         currentUser={currentUser}
         onOpenAuthModal={handleOpenAuth}
-        onLogout={handleLogout}
+        onLogout={signOut}
       />
 
       {/* Main Content Sections with Harmonious Vertical Rhythm */}
@@ -221,7 +180,6 @@ export default function Home() {
         isOpen={isAuthModalOpen}
         initialMode={authModalMode}
         onClose={() => setIsAuthModalOpen(false)}
-        onLoginSuccess={handleLoginSuccess}
       />
     </div>
   );

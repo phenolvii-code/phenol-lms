@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { AuthUser, ADMIN_EMAILS } from '@/types/auth';
+import { AuthUser } from '@/types/auth';
 import { PhenolLogo } from '@/components/brand/PhenolLogo';
 import { WhatsAppPromptModal } from '@/components/auth/WhatsAppPromptModal';
 import { WhatsAppIcon } from '@/components/auth/AuthIcons';
@@ -29,7 +29,7 @@ import {
 } from '@/types/lms';
 import { BookletsView } from '@/components/booklets/BookletsView';
 import { supabase } from '@/lib/supabase';
-import { getUserPassword, setUserPassword, verifyUserPassword } from '@/lib/auth-passwords';
+// auth-passwords removed
 import { getStoredCourses, saveStoredCourses, markCourseDeleted } from '@/lib/courses-storage';
 import { getStoredPosts, saveStoredPosts, markPostDeleted, syncWithServerTimeline } from '@/lib/timeline-storage';
 import { StudentProfileModal } from '@/components/profile/StudentProfileModal';
@@ -245,7 +245,7 @@ export default function DashboardPage() {
             const isAdmin =
               cleanEmail === 'phenolvii@gmail.com' ||
               cleanEmail.includes('phenolvii') ||
-              ADMIN_EMAILS.includes(cleanEmail);
+              false;
             const userPhone = session.user.user_metadata?.phone || session.user.user_metadata?.whatsapp;
             const customProfile = getPersistentProfile(cleanEmail);
             const persistentAvatar = getPersistentAvatar(cleanEmail) ||
@@ -285,7 +285,7 @@ export default function DashboardPage() {
           const isAdmin =
             cleanEmail === 'phenolvii@gmail.com' ||
             cleanEmail.includes('phenolvii') ||
-            ADMIN_EMAILS.includes(cleanEmail);
+            false;
           const userPhone = session.user.user_metadata?.phone || session.user.user_metadata?.whatsapp;
           const customProfile = getPersistentProfile(cleanEmail);
           const persistentAvatar = getPersistentAvatar(cleanEmail) ||
@@ -324,7 +324,7 @@ export default function DashboardPage() {
           const isAdmin =
             cleanEmail === 'phenolvii@gmail.com' ||
             cleanEmail.includes('phenolvii') ||
-            ADMIN_EMAILS.includes(cleanEmail);
+            false;
 
           // Role enforcement & anti-tampering
           if (u.role === 'INSTRUCTOR' && !isAdmin) {
@@ -591,8 +591,13 @@ export default function DashboardPage() {
 
     const userEmail = currentUser.email.trim().toLowerCase();
 
-    // 1. Verify current password
-    if (!verifyUserPassword(userEmail, currentPasswordInput)) {
+    // 1. Verify current password via Supabase Auth
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      email: userEmail,
+      password: currentPasswordInput,
+    });
+
+    if (signInError) {
       setPasswordChangeStatus({
         type: 'error',
         message: 'Current password is incorrect. Please verify your existing password.',
@@ -622,13 +627,16 @@ export default function DashboardPage() {
     }
 
     try {
-      // 4. Save custom password
-      setUserPassword(userEmail, newPasswordInput);
-
-      // 5. Update in Supabase if active session
-      try {
-        await supabase.auth.updateUser({ password: newPasswordInput });
-      } catch (err) {}
+      // 4. Update in Supabase Auth
+      const { error: updateError } = await supabase.auth.updateUser({ password: newPasswordInput });
+      if (updateError) {
+        setPasswordChangeStatus({
+          type: 'error',
+          message: updateError.message,
+        });
+        setPasswordLoading(false);
+        return;
+      }
 
       setPasswordChangeStatus({
         type: 'success',

@@ -3,11 +3,9 @@
 import React, { useState } from 'react';
 import { AuthUser } from '@/types/auth';
 import { supabase } from '@/lib/supabase';
-import { getStudentAcademicCode } from '@/lib/student-code';
-import { recordRegisteredStudent } from '@/lib/enrollment-storage';
 import { PhenolLogo } from '@/components/brand/PhenolLogo';
 import { WhatsAppIcon } from '@/components/auth/AuthIcons';
-import { ShieldCheck, Phone, CheckCircle2, ArrowRight } from 'lucide-react';
+import { ShieldCheck, Phone, ArrowRight } from 'lucide-react';
 
 interface WhatsAppPromptModalProps {
   isOpen: boolean;
@@ -39,8 +37,6 @@ export const WhatsAppPromptModal: React.FC<WhatsAppPromptModalProps> = ({
     setErrorMessage(null);
 
     const cleanPhone = phone.trim();
-
-    // Egyptian & International phone validation
     const digitsOnly = cleanPhone.replace(/\D/g, '');
     if (digitsOnly.length < 10) {
       setErrorMessage('Please enter a valid WhatsApp phone number (at least 10 digits).');
@@ -49,41 +45,30 @@ export const WhatsAppPromptModal: React.FC<WhatsAppPromptModalProps> = ({
     }
 
     try {
-      // 1. Assign deterministic academic code if not present
-      const academicCode = user.academicCode || getStudentAcademicCode({
-        ...user,
-        phone: cleanPhone,
-      });
+      // Direct update to registered_students allowed columns as permitted by RLS
+      const { error } = await supabase
+        .from('registered_students')
+        .update({
+          phone: cleanPhone,
+          academic_track: academicTrack,
+          last_active: new Date().toISOString(),
+        })
+        .eq('id', user.id);
+
+      if (error) {
+        throw error;
+      }
 
       const updatedUser: AuthUser = {
         ...user,
         phone: cleanPhone,
         whatsapp: cleanPhone,
-        academicCode,
         academicTrack,
       };
 
-      // 2. Save to LocalStorage
-      localStorage.setItem('phenol_auth_user', JSON.stringify(updatedUser));
-
-      // 3. Sync to Supabase user metadata
-      try {
-        await supabase.auth.updateUser({
-          data: {
-            phone: cleanPhone,
-            whatsapp: cleanPhone,
-            academic_track: academicTrack,
-            academic_code: academicCode,
-          },
-        });
-      } catch (err) {}
-
-      // 4. Record student in permanent roster so Dr. Omar sees them immediately
-      recordRegisteredStudent(updatedUser);
-
       onSuccess(updatedUser);
-    } catch (err: any) {
-      setErrorMessage(err.message || 'Failed to save WhatsApp number. Please try again.');
+    } catch {
+      setErrorMessage('Failed to save WhatsApp number. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -99,106 +84,83 @@ export const WhatsAppPromptModal: React.FC<WhatsAppPromptModalProps> = ({
               <WhatsAppIcon className="w-5 h-5 fill-emerald-600" />
             </div>
             <div>
-              <span className="font-editorial text-xs font-bold uppercase tracking-wider text-charcoal-900 block">
-                PHENOL ACADEMY
-              </span>
-              <span className="text-xs text-charcoal-100 font-sans">
-                Student WhatsApp Verification
-              </span>
+              <h3 className="font-editorial text-sm font-bold uppercase tracking-wider text-charcoal-900">
+                WhatsApp Verification
+              </h3>
+              <p className="text-xs text-charcoal-100 font-sans">Required for cohort communication</p>
             </div>
           </div>
-
-          <div className="text-[11px] font-mono px-2 py-0.5 rounded bg-emerald-100 border border-emerald-300 text-emerald-800 font-semibold">
-            Required Step
-          </div>
+          <PhenolLogo size={24} withText={false} />
         </div>
 
-        {/* User Identity Preview */}
-        <div className="p-6 space-y-5">
-          <div className="flex items-center gap-3 p-3 bg-ivory-50 border border-hairline rounded">
-            <img
-              src={user.avatar}
-              alt={user.name}
-              className="w-10 h-10 rounded-full object-cover border border-hairline shrink-0"
-            />
-            <div className="min-w-0">
-              <p className="text-xs font-bold text-charcoal-900 truncate">{user.name}</p>
-              <p className="text-xs text-charcoal-100 truncate font-mono">{user.email}</p>
-            </div>
-          </div>
-
-          {/* Explanation Banner */}
-          <div className="p-3.5 bg-emerald-50/60 border border-emerald-200 rounded text-xs text-charcoal-800 space-y-1.5 leading-relaxed">
-            <div className="flex items-center gap-2 text-emerald-800 font-semibold">
-              <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
-              <span>Required: Student WhatsApp Number</span>
-            </div>
-            <p className="text-charcoal-100 text-[11px]">
-              A valid WhatsApp phone number is required to link with your academic code, receive lecture schedules, and coordinate directly with Dr. Omar Magdi.
+        {/* Body */}
+        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          <div className="p-3.5 bg-emerald-50/60 border border-emerald-200/60 rounded text-xs text-emerald-900 flex items-start gap-2.5">
+            <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+            <p>
+              Dr. Omar communicates directly via WhatsApp to coordinate problem-solving sessions and provide feedback.
             </p>
           </div>
 
-          {/* Error Message */}
           {errorMessage && (
-            <div className="p-3 bg-burgundy-50 border border-burgundy-200 text-burgundy-900 rounded text-xs">
+            <div className="p-3 rounded bg-burgundy-50 border border-burgundy-200 text-burgundy-900 text-xs">
               {errorMessage}
             </div>
           )}
 
-          {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-xs font-semibold text-charcoal-900 mb-1.5">
-                WhatsApp Phone Number <span className="text-burgundy-500">*</span>
-              </label>
-              <div className="relative">
-                <div className="absolute left-3 top-2.5 flex items-center gap-1.5 text-emerald-600">
-                  <WhatsAppIcon className="w-4 h-4 fill-emerald-600" />
-                  <span className="text-xs font-mono font-bold text-charcoal-100 border-r border-hairline pr-1.5">
-                    +20
-                  </span>
-                </div>
-                <input
-                  type="tel"
-                  required
-                  autoFocus
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  placeholder="010xxxxxxxx"
-                  className="w-full pl-20 pr-3.5 py-2.5 text-sm font-mono bg-ivory-50 border border-hairline rounded text-charcoal-900 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
-                />
-              </div>
-              <span className="text-[10px] text-charcoal-100 mt-1 block">
-                Ex: 01012345678, 011..., 012..., or 015...
-              </span>
+          <div>
+            <label className="block text-xs font-semibold text-charcoal-900 mb-1.5 font-sans">
+              WhatsApp Contact Number
+            </label>
+            <div className="relative">
+              <Phone className="w-4 h-4 text-charcoal-50 absolute left-3 top-3 pointer-events-none" />
+              <input
+                type="tel"
+                required
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                placeholder="+20 10xxxxxxxx"
+                className="w-full pl-9 pr-3.5 py-2.5 text-sm bg-ivory-50 border border-hairline rounded text-charcoal-900 focus:outline-none focus:border-emerald-500 font-mono"
+              />
             </div>
+          </div>
 
-            <div>
-              <label className="block text-xs font-semibold text-charcoal-900 mb-1.5">
-                Academic Program <span className="text-burgundy-500">*</span>
-              </label>
-              <select
-                value={academicTrack}
-                onChange={(e) => setAcademicTrack(e.target.value)}
-                className="w-full px-3 py-2.5 text-xs bg-ivory-50 border border-hairline rounded text-charcoal-900 focus:outline-none focus:border-burgundy-500"
+          <div>
+            <label className="block text-xs font-semibold text-charcoal-900 mb-1.5 font-sans">
+              Academic Program
+            </label>
+            <select
+              value={academicTrack}
+              onChange={(e) => setAcademicTrack(e.target.value)}
+              className="w-full px-3 py-2.5 text-sm bg-ivory-50 border border-hairline rounded text-charcoal-900 focus:outline-none focus:border-burgundy-500 font-sans"
+            >
+              <option value="thanaweya-arabic">Thanaweya Amma (Arabic)</option>
+              <option value="thanaweya-languages">Thanaweya Amma (Languages / Experimental)</option>
+              <option value="igcse-alevel">IGCSE / A-Level Chemistry</option>
+              <option value="university">University Chemistry</option>
+            </select>
+          </div>
+
+          <div className="pt-2 flex items-center gap-3">
+            {canClose && onClose && (
+              <button
+                type="button"
+                onClick={onClose}
+                className="flex-1 py-2.5 rounded border border-hairline text-charcoal-100 hover:text-charcoal-900 text-xs font-semibold transition-colors"
               >
-                <option value="thanaweya-arabic">Public Secondary AR</option>
-                <option value="thanaweya-languages">Public Secondary EN</option>
-                <option value="igcse-stem">IGCSE & A-Level Chemistry</option>
-                <option value="university">University Chemistry</option>
-              </select>
-            </div>
-
+                Later
+              </button>
+            )}
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full py-2.5 rounded bg-emerald-600 hover:bg-emerald-700 text-ivory-100 text-sm font-semibold transition-colors shadow-quiet flex items-center justify-center gap-2 mt-2"
+              className="flex-1 py-2.5 rounded bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-xs font-semibold transition-colors shadow-quiet flex items-center justify-center gap-2"
             >
-              <span>{isLoading ? 'Saving WhatsApp...' : 'Confirm WhatsApp & Enter Academy'}</span>
+              <span>{isLoading ? 'Saving...' : 'Confirm Contact'}</span>
               <ArrowRight className="w-4 h-4" />
             </button>
-          </form>
-        </div>
+          </div>
+        </form>
       </div>
     </div>
   );

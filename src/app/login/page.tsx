@@ -1,17 +1,11 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
-import { AuthUser, ADMIN_EMAILS } from '@/types/auth';
 import { PhenolLogo } from '@/components/brand/PhenolLogo';
-import { verifyUserPassword } from '@/lib/auth-passwords';
-import { recordRegisteredStudent } from '@/lib/enrollment-storage';
 import { GoogleIcon } from '@/components/auth/AuthIcons';
-import { WhatsAppPromptModal } from '@/components/auth/WhatsAppPromptModal';
-import { GoogleAccountModal } from '@/components/auth/GoogleAccountModal';
-import { GOOGLE_CLIENT_ID, parseGoogleJwt } from '@/lib/google-auth';
 import { Lock, Mail, ShieldAlert, ArrowRight } from 'lucide-react';
 
 export default function LoginPage() {
@@ -21,23 +15,12 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  // Pending user awaiting WhatsApp verification
-  const [pendingUser, setPendingUser] = useState<AuthUser | null>(null);
-
-  // Google Account Chooser
-  const [showGoogleChooser, setShowGoogleChooser] = useState(false);
-
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setErrorMessage(null);
 
     const cleanEmail = email.trim().toLowerCase();
-    const isAdmin =
-      cleanEmail === 'phenolvii@gmail.com' ||
-      cleanEmail.includes('phenolvii') ||
-      cleanEmail.includes('admin@phenol') ||
-      ADMIN_EMAILS.includes(cleanEmail);
 
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
@@ -45,100 +28,27 @@ export default function LoginPage() {
         password,
       });
 
-      if (!error && data?.user) {
-        const userPhone = data.user.user_metadata?.phone || data.user.user_metadata?.whatsapp;
-        const userObj: AuthUser = {
-          id: data.user.id,
-          name: isAdmin ? 'Dr. Omar Magdi' : (data.user.user_metadata?.full_name || cleanEmail.split('@')[0]),
-          email: data.user.email || cleanEmail,
-          phone: userPhone,
-          role: isAdmin ? 'INSTRUCTOR' : 'STUDENT',
-          avatar: isAdmin
-            ? 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80'
-            : (data.user.user_metadata?.avatar_url || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=80'),
-          registeredAt: data.user.created_at,
-          title: isAdmin ? 'Academic Director & Senior Fellow' : undefined,
-          specialization: isAdmin ? 'Organic Reaction Mechanisms & Physical Chemistry' : undefined,
-        };
-
-        if (!isAdmin && (!userPhone || userPhone.trim().length < 6)) {
-          setPendingUser(userObj);
-          return;
-        }
-
-        localStorage.setItem('phenol_auth_user', JSON.stringify(userObj));
-        if (!isAdmin) {
-          recordRegisteredStudent(userObj);
-        }
-        router.push('/dashboard');
+      if (error || !data?.user) {
+        setErrorMessage('Invalid email or password. Please verify your credentials.');
         return;
       }
 
-      // Check custom passwords and verified master keys
-      if (verifyUserPassword(cleanEmail, password)) {
-        const userObj: AuthUser = {
-          id: isAdmin ? 'dr-omar-magdi' : `student-${cleanEmail.replace(/[^a-zA-Z0-9]/g, '')}`,
-          name: isAdmin ? 'Dr. Omar Magdi' : (cleanEmail.split('@')[0] || 'Enrolled Scholar'),
-          email: cleanEmail,
-          role: isAdmin ? 'INSTRUCTOR' : 'STUDENT',
-          avatar: isAdmin
-            ? 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80'
-            : 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=80',
-          registeredAt: '2026-01-01',
-          title: isAdmin ? 'Academic Director & Senior Fellow' : undefined,
-          specialization: isAdmin ? 'Organic Reaction Mechanisms & Physical Chemistry' : undefined,
-          bio: isAdmin ? 'Specialist in organic mechanisms, reaction kinetics, and first-principles pedagogy across 4 Core Tracks.' : undefined,
-        };
-        localStorage.setItem('phenol_auth_user', JSON.stringify(userObj));
-        if (!isAdmin) {
-          recordRegisteredStudent(userObj);
-        }
-        router.push('/dashboard');
-        return;
-      }
-
+      router.push('/dashboard');
+    } catch {
       setErrorMessage('Invalid email or password. Please verify your credentials.');
-    } catch (err: any) {
-      setErrorMessage(err.message || 'An error occurred during sign in');
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Initialize Google One-Tap if script loaded
-  useEffect(() => {
-    if (typeof window !== 'undefined' && (window as any).google?.accounts?.id) {
-      try {
-        (window as any).google.accounts.id.initialize({
-          client_id: GOOGLE_CLIENT_ID,
-          callback: (response: any) => {
-            if (response?.credential) {
-              const payload = parseGoogleJwt(response.credential);
-              if (payload) {
-                handleGoogleAccountSelected({
-                  email: payload.email,
-                  name: payload.name,
-                  avatar: payload.picture,
-                });
-              }
-            }
-          },
-        });
-        (window as any).google.accounts.id.prompt();
-      } catch (err) {
-        // Fallback gracefully
-      }
-    }
-  }, []);
-
   const handleGoogleAuth = async () => {
     setIsLoading(true);
     setErrorMessage(null);
     try {
-      const { data, error } = await supabase.auth.signInWithOAuth({
+      const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/dashboard?auth=google`,
+          redirectTo: `${window.location.origin}/dashboard`,
         },
       });
 
@@ -146,66 +56,14 @@ export default function LoginPage() {
         setErrorMessage(error.message);
         setIsLoading(false);
       }
-    } catch (err: any) {
-      setErrorMessage(err.message || 'Google Sign-In failed');
+    } catch {
+      setErrorMessage('Google Sign-In failed. Please try again.');
       setIsLoading(false);
     }
   };
 
-  const handleGoogleAccountSelected = (account: { email: string; name: string; avatar?: string }) => {
-    setShowGoogleChooser(false);
-
-    const cleanEmail = account.email.trim().toLowerCase();
-    const isAdmin =
-      cleanEmail === 'phenolvii@gmail.com' ||
-      cleanEmail.includes('phenolvii') ||
-      ADMIN_EMAILS.includes(cleanEmail);
-
-    const googleUser: AuthUser = {
-      id: isAdmin ? 'dr-omar-magdi' : `g-${Date.now()}`,
-      name: isAdmin ? 'Dr. Omar Magdi' : account.name,
-      email: cleanEmail,
-      role: isAdmin ? 'INSTRUCTOR' : 'STUDENT',
-      avatar:
-        account.avatar ||
-        (isAdmin
-          ? 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80'
-          : 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=80'),
-      registeredAt: new Date().toISOString(),
-      title: isAdmin ? 'Academic Director & Senior Fellow' : undefined,
-    };
-
-    if (isAdmin) {
-      localStorage.setItem('phenol_auth_user', JSON.stringify(googleUser));
-      router.push('/dashboard');
-      return;
-    }
-
-    // REQUIRE WHATSAPP NUMBER IMMEDIATELY!
-    setPendingUser(googleUser);
-  };
-
   return (
     <div className="min-h-screen bg-ivory-200 flex flex-col justify-between p-4 sm:p-6 font-sans selection:bg-burgundy-500 selection:text-ivory-100">
-      {/* WhatsApp Modal when required */}
-      {pendingUser && (
-        <WhatsAppPromptModal
-          isOpen={true}
-          user={pendingUser}
-          onSuccess={(completedUser) => {
-            setPendingUser(null);
-            router.push('/dashboard');
-          }}
-        />
-      )}
-
-      {/* Authentic Google Account Chooser */}
-      <GoogleAccountModal
-        isOpen={showGoogleChooser}
-        onClose={() => setShowGoogleChooser(false)}
-        onSelectAccount={handleGoogleAccountSelected}
-      />
-
       <header className="max-w-5xl mx-auto w-full flex items-center justify-between py-4">
         <Link href="/" aria-label="PHENOL Home">
           <PhenolLogo size={36} subtitle="Dr. Omar Magdi" />

@@ -7,7 +7,7 @@ export interface AuthUser {
   phone?: string;
   governorate?: string;
   role: UserRole;
-  avatar: string;
+  avatar?: string;
   registeredAt: string;
   title?: string;
   bio?: string;
@@ -16,11 +16,5 @@ export interface AuthUser {
   whatsapp?: string;
   academicTrack?: string;
 }
-
-export const ADMIN_EMAILS = [
-  'phenolvii@gmail.com',
-  'admin@phenol.academy',
-  'dromar@phenol.academy',
-];
 
 export type AuthModalMode = 'LOGIN' | 'REGISTER' | 'INSTRUCTOR_LOGIN' | 'WHATSAPP_REQUIRED';

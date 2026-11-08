@@ -1,38 +1,31 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { AuthUser } from '@/types/auth';
-import { CourseEnrollment, getStoredEnrollments } from '@/lib/enrollment-storage';
-import { verifyUserPassword, setUserPassword } from '@/lib/auth-passwords';
+import { supabase } from '@/lib/supabase';
+import { updateOwnStudentProfile } from '@/lib/data/students';
+import { listMyEnrollments, CourseEnrollmentRecord } from '@/lib/data/enrollments';
+import { listMyReferrals, ReferralRecord } from '@/lib/data/referrals';
+import { generateCourseReferralLink, REFERRAL_MILESTONES } from '@/lib/referral-system';
+import { Initials } from '@/components/ui/Initials';
 import { WhatsAppIcon } from '@/components/auth/AuthIcons';
-import { compressAvatarFile, saveUserProfile } from '@/lib/user-profile';
-import {
-  getReferralStats,
-  generateCourseReferralLink,
-  REFERRAL_MILESTONES,
-  ReferralStats,
-} from '@/lib/referral-system';
 import {
   X,
   User,
-  Phone,
   Shield,
   KeyRound,
   GraduationCap,
   Copy,
   Check,
-  Upload,
-  Sparkles,
   Share2,
   Gift,
-  Award,
 } from 'lucide-react';
 
 interface StudentProfileModalProps {
   isOpen: boolean;
   user: AuthUser;
   onClose: () => void;
-  onSave: (updatedUser: AuthUser) => void;
+  onSave?: (updatedUser: AuthUser) => void;
 }
 
 export const StudentProfileModal: React.FC<StudentProfileModalProps> = ({
@@ -47,12 +40,11 @@ export const StudentProfileModal: React.FC<StudentProfileModalProps> = ({
   const [name, setName] = useState(user.name || '');
   const [phone, setPhone] = useState(user.phone || user.whatsapp || '');
   const [track, setTrack] = useState(user.academicTrack || 'Public Secondary AR');
-  const [avatar, setAvatar] = useState(user.avatar || '');
   const [copiedCode, setCopiedCode] = useState(false);
   const [copiedRefLink, setCopiedRefLink] = useState(false);
 
   // Referral State
-  const [referralStats, setReferralStats] = useState<ReferralStats | null>(null);
+  const [referrals, setReferrals] = useState<ReferralRecord[]>([]);
 
   // Security Form State
   const [currentPassword, setCurrentPassword] = useState('');
@@ -64,25 +56,21 @@ export const StudentProfileModal: React.FC<StudentProfileModalProps> = ({
   });
 
   // Enrolled Courses for this student
-  const [studentEnrollments, setStudentEnrollments] = useState<CourseEnrollment[]>([]);
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [studentEnrollments, setStudentEnrollments] = useState<CourseEnrollmentRecord[]>([]);
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
       setName(user.name || '');
       setPhone(user.phone || user.whatsapp || '');
       setTrack(user.academicTrack || 'Public Secondary AR');
-      setAvatar(user.avatar || '');
       setPasswordStatus({ type: 'idle', message: '' });
 
-      const all = getStoredEnrollments();
-      const myEnrollments = all.filter(
-        (e) => e.studentEmail.toLowerCase() === user.email.toLowerCase()
-      );
-      setStudentEnrollments(myEnrollments);
+      // Fetch student enrollments from database
+      listMyEnrollments().then(setStudentEnrollments);
 
-      const code = user.academicCode || 'PH-SCHOLAR';
-      setReferralStats(getReferralStats(code));
+      // Fetch referrals from database
+      listMyReferrals().then(setReferrals);
     }
   }, [isOpen, user]);
 
@@ -104,40 +92,36 @@ export const StudentProfileModal: React.FC<StudentProfileModalProps> = ({
     setTimeout(() => setCopiedRefLink(false), 2000);
   };
 
-  const handleImageFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      try {
-        const compressed = await compressAvatarFile(file);
-        setAvatar(compressed);
-        const quick = {
-          ...user,
-          avatar: compressed,
-        };
-        onSave(quick);
-        await saveUserProfile(quick);
-      } catch (err) {
-        alert('Failed to process image');
+  const handleSaveInfo = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSaving(true);
+    try {
+      await updateOwnStudentProfile({
+        name: name.trim() || user.name,
+        phone: phone.trim(),
+        academic_track: track,
+      });
+
+      const updated: AuthUser = {
+        ...user,
+        name: name.trim() || user.name,
+        phone: phone.trim(),
+        whatsapp: phone.trim(),
+        academicTrack: track,
+      };
+
+      if (onSave) {
+        onSave(updated);
       }
+      onClose();
+    } catch {
+      alert('Failed to save profile changes. Please try again.');
+    } finally {
+      setIsSaving(false);
     }
   };
 
-  const handleSaveInfo = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const updated: AuthUser = {
-      ...user,
-      name: name.trim() || user.name,
-      phone: phone.trim(),
-      whatsapp: phone.trim(),
-      academicTrack: track,
-      avatar: avatar.trim() || user.avatar,
-    };
-    onSave(updated);
-    await saveUserProfile(updated);
-    onClose();
-  };
-
-  const handleChangePassword = (e: React.FormEvent) => {
+  const handleChangePassword = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!currentPassword || !newPassword) {
       setPasswordStatus({ type: 'error', message: 'Please fill all password fields.' });
@@ -154,55 +138,52 @@ export const StudentProfileModal: React.FC<StudentProfileModalProps> = ({
       return;
     }
 
-    if (!verifyUserPassword(user.email, currentPassword)) {
-      setPasswordStatus({ type: 'error', message: 'Current password is incorrect.' });
-      return;
-    }
+    try {
+      // Re-authenticate with current credentials
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: user.email,
+        password: currentPassword,
+      });
 
-    setUserPassword(user.email, newPassword);
-    setPasswordStatus({ type: 'success', message: 'Password updated successfully!' });
-    setCurrentPassword('');
-    setNewPassword('');
-    setConfirmPassword('');
+      if (signInError) {
+        setPasswordStatus({ type: 'error', message: 'Current password is incorrect.' });
+        return;
+      }
+
+      // Update password in Supabase Auth
+      const { error: updateError } = await supabase.auth.updateUser({
+        password: newPassword,
+      });
+
+      if (updateError) {
+        setPasswordStatus({ type: 'error', message: updateError.message });
+        return;
+      }
+
+      setPasswordStatus({ type: 'success', message: 'Password updated successfully!' });
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+    } catch {
+      setPasswordStatus({ type: 'error', message: 'An error occurred while updating password.' });
+    }
   };
 
   const activeCourses = studentEnrollments.filter((e) => e.status === 'ACTIVE');
   const userCode = user.academicCode || 'PH-SCHOLAR';
+  const totalPoints = referrals.reduce((sum, r) => sum + (r.points || 0), 0);
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-5 bg-charcoal-900/75 backdrop-blur-md animate-fade-in font-sans">
       <div className="relative w-full max-w-3xl bg-ivory-100 rounded-2xl border border-hairline shadow-editorial overflow-hidden flex flex-col max-h-[92vh]">
-        
         {/* Top Masthead */}
         <div className="p-5 sm:p-6 pb-4 border-b border-hairline bg-ivory-200 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-4">
-            <div className="relative group">
-              <img
-                src={avatar || user.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80'}
-                alt={user.name}
-                className="w-14 h-14 rounded-full object-cover border-2 border-burgundy-900 shadow-sm"
-              />
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                title="Upload photo from device"
-                className="absolute inset-0 bg-charcoal-900/60 rounded-full opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center text-white text-[10px] font-semibold transition-opacity"
-              >
-                <Upload className="w-4 h-4 mb-0.5" />
-                <span>Upload</span>
-              </button>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                onChange={handleImageFileChange}
-                className="hidden"
-              />
-            </div>
+            <Initials name={name || user.name} size="lg" />
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="text-base sm:text-lg font-bold text-charcoal-900 font-display">
-                  {user.name}
+                  {name || user.name}
                 </h2>
                 <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-50 text-emerald-800 border border-emerald-200">
                   Enrolled Scholar
@@ -280,9 +261,9 @@ export const StudentProfileModal: React.FC<StudentProfileModalProps> = ({
           >
             <Share2 className="w-3.5 h-3.5" />
             <span>Referrals & Points</span>
-            {referralStats && referralStats.points > 0 && (
+            {totalPoints > 0 && (
               <span className="text-[10px] bg-burgundy-100 text-burgundy-900 font-mono px-1.5 py-0.2 rounded-full font-bold">
-                {referralStats.points} pts
+                {totalPoints} pts
               </span>
             )}
           </button>
@@ -303,42 +284,9 @@ export const StudentProfileModal: React.FC<StudentProfileModalProps> = ({
 
         {/* Tab Content Body */}
         <div className="p-5 sm:p-6 overflow-y-auto space-y-5 flex-1">
-          
           {/* TAB 1: PERSONAL INFORMATION */}
           {activeTab === 'info' && (
             <form onSubmit={handleSaveInfo} className="space-y-4">
-              
-              {/* Photo Upload Section */}
-              <div className="p-4 rounded-xl bg-ivory-200/70 border border-hairline flex flex-col sm:flex-row items-center gap-4">
-                <img
-                  src={avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80'}
-                  alt="Profile"
-                  className="w-16 h-16 rounded-full object-cover border-2 border-burgundy-900 shrink-0"
-                />
-                <div className="flex-1 space-y-2 text-center sm:text-left">
-                  <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
-                    <button
-                      type="button"
-                      onClick={() => fileInputRef.current?.click()}
-                      className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-burgundy-900 hover:bg-black text-ivory-100 text-xs font-semibold rounded transition-colors shadow-sm"
-                    >
-                      <Upload className="w-3.5 h-3.5" />
-                      <span>Upload Photo from Device</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setAvatar('https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80')}
-                      className="text-[11px] text-charcoal-50 hover:text-charcoal-900 underline"
-                    >
-                      Reset Default
-                    </button>
-                  </div>
-                  <p className="text-[11px] text-charcoal-50 font-sans">
-                    PNG, JPG, or WEBP under 2MB. Your photo appears on test submissions and course roster.
-                  </p>
-                </div>
-              </div>
-
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-semibold text-charcoal-900 mb-1">
@@ -395,135 +343,78 @@ export const StudentProfileModal: React.FC<StudentProfileModalProps> = ({
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 text-xs bg-burgundy-900 hover:bg-black text-ivory-100 rounded font-semibold transition-colors"
+                  disabled={isSaving}
+                  className="px-5 py-2 text-xs bg-burgundy-900 hover:bg-black text-ivory-100 rounded font-semibold transition-colors disabled:opacity-50"
                 >
-                  Save Profile Changes
+                  {isSaving ? 'Saving...' : 'Save Profile Changes'}
                 </button>
               </div>
             </form>
           )}
 
-          {/* TAB 2: ACADEMIC COURSES & PERFORMANCE */}
+          {/* TAB 2: COURSES & PROGRESS */}
           {activeTab === 'academics' && (
             <div className="space-y-4">
-              <div className="grid grid-cols-3 gap-3 text-center">
-                <div className="p-3 bg-white rounded-xl border border-hairline">
-                  <span className="text-[10px] font-mono text-charcoal-50 uppercase block">Active Courses</span>
-                  <span className="text-xl font-bold font-editorial text-burgundy-900">{activeCourses.length}</span>
-                </div>
-                <div className="p-3 bg-white rounded-xl border border-hairline">
-                  <span className="text-[10px] font-mono text-charcoal-50 uppercase block">Total Lessons Watched</span>
-                  <span className="text-xl font-bold font-editorial text-charcoal-900">
-                    {activeCourses.reduce((acc, c) => acc + c.completedLessonsCount, 0)}
-                  </span>
-                </div>
-                <div className="p-3 bg-white rounded-xl border border-hairline">
-                  <span className="text-[10px] font-mono text-charcoal-50 uppercase block">Average Grade</span>
-                  <span className="text-xl font-bold font-editorial text-emerald-700">
-                    {activeCourses.length > 0 ? '92%' : 'N/A'}
-                  </span>
-                </div>
+              <div className="flex items-center justify-between border-b border-hairline pb-3">
+                <h3 className="text-xs font-bold font-mono uppercase tracking-wider text-charcoal-900">
+                  Enrolled Cohorts ({activeCourses.length})
+                </h3>
+                <span className="text-xs text-charcoal-100 font-sans">Verified Registrations</span>
               </div>
 
-              <div className="space-y-3">
-                <h3 className="text-xs font-bold text-charcoal-900 uppercase tracking-wider font-mono">
-                  Enrolled Course Modules & Progress
-                </h3>
-
-                {studentEnrollments.length === 0 ? (
-                  <div className="p-6 text-center bg-white rounded-xl border border-hairline text-charcoal-100 text-xs">
-                    You have not requested any courses yet. Browse available courses in the catalog and request activation.
-                  </div>
-                ) : (
-                  studentEnrollments.map((enr) => (
+              {activeCourses.length === 0 ? (
+                <div className="p-8 text-center bg-ivory-200/50 rounded-xl border border-hairline">
+                  <GraduationCap className="w-8 h-8 text-charcoal-50 mx-auto mb-2" />
+                  <p className="text-xs text-charcoal-100">No active course enrollments yet.</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {activeCourses.map((enr) => (
                     <div
                       key={enr.id}
-                      className="p-3.5 bg-white rounded-xl border border-hairline space-y-2.5 shadow-sm"
+                      className="p-4 rounded-xl bg-white border border-hairline space-y-2 shadow-quiet"
                     >
                       <div className="flex items-center justify-between">
-                        <div>
-                          <span className="text-[10px] font-mono font-bold text-burgundy-900 bg-burgundy-50 px-2 py-0.5 rounded border border-burgundy-200">
-                            {enr.courseCode}
-                          </span>
-                          <h4 className="text-xs font-bold text-charcoal-900 mt-1">
-                            {enr.courseTitle}
-                          </h4>
-                        </div>
-                        <span
-                          className={`text-[10px] font-mono px-2 py-0.5 rounded font-bold ${
-                            enr.status === 'ACTIVE'
-                              ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
-                              : 'bg-amber-50 text-amber-800 border border-amber-200'
-                          }`}
-                        >
-                          {enr.status === 'ACTIVE' ? 'Active Access' : 'Pending Approval'}
+                        <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-burgundy-50 text-burgundy-900 font-bold">
+                          {enr.course_code || 'CHEM'}
+                        </span>
+                        <span className="text-[10px] font-mono text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                          Active
                         </span>
                       </div>
-
-                      {enr.status === 'ACTIVE' && (
-                        <div className="space-y-1">
-                          <div className="flex items-center justify-between text-[11px] text-charcoal-100 font-mono">
-                            <span>Progress: {enr.progressPercent}%</span>
-                            <span>{enr.completedLessonsCount} / {enr.totalLessonsCount} Modules</span>
-                          </div>
-                          <div className="w-full h-1.5 bg-ivory-200 rounded-full overflow-hidden">
-                            <div
-                              className="h-full bg-burgundy-900 rounded-full"
-                              style={{ width: `${enr.progressPercent}%` }}
-                            />
-                          </div>
-                        </div>
-                      )}
+                      <h4 className="text-xs font-bold text-charcoal-900">{enr.course_title}</h4>
                     </div>
-                  ))
-                )}
-              </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 
-          {/* TAB 3: REFERRALS & ACADEMIC REWARD POINTS */}
+          {/* TAB 3: REFERRALS & POINTS */}
           {activeTab === 'referrals' && (
-            <div className="space-y-5">
-              
-              {/* Points Banner */}
-              <div className="p-5 rounded-xl bg-gradient-to-r from-burgundy-900 to-black text-ivory-100 shadow-md flex flex-col sm:flex-row items-center justify-between gap-4">
-                <div className="space-y-1 text-center sm:text-left">
-                  <div className="flex items-center justify-center sm:justify-start gap-1.5 text-amber-400 text-xs font-mono font-bold uppercase tracking-wider">
-                    <Sparkles className="w-3.5 h-3.5" />
-                    <span>Academic Ambassador Points</span>
+            <div className="space-y-4">
+              <div className="p-4 rounded-xl bg-ivory-200/60 border border-hairline space-y-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div>
+                    <h3 className="text-xs font-bold text-charcoal-900">Your Unique Referral Link</h3>
+                    <p className="text-[11px] text-charcoal-100">
+                      Earn 50 academic reward points when a referred peer activates their first cohort.
+                    </p>
                   </div>
-                  <h3 className="text-2xl font-bold font-editorial">
-                    {referralStats?.points || 0} <span className="text-sm font-sans font-normal text-ivory-200">Points Earned</span>
-                  </h3>
-                  <p className="text-xs text-ivory-200/80 font-sans">
-                    Each colleague who registers with your link earns you <strong className="text-ivory-100">+50 Points</strong>.
-                  </p>
-                </div>
-
-                <div className="flex items-center gap-3 bg-white/10 px-4 py-3 rounded-xl border border-white/15">
-                  <div className="text-center">
-                    <span className="text-xs font-mono text-ivory-200/70 block uppercase">Referrals</span>
-                    <span className="text-lg font-bold font-mono text-ivory-100">{referralStats?.successfulReferrals || 0}</span>
-                  </div>
-                  <div className="w-px h-8 bg-white/20" />
-                  <div className="text-center">
-                    <span className="text-xs font-mono text-ivory-200/70 block uppercase">Link Clicks</span>
-                    <span className="text-lg font-bold font-mono text-ivory-100">{referralStats?.totalClicks || 0}</span>
+                  <div className="text-left sm:text-right">
+                    <span className="text-xl font-mono font-bold text-burgundy-900 block">
+                      {totalPoints} Pts
+                    </span>
+                    <span className="text-[10px] text-charcoal-100">Confirmed Points</span>
                   </div>
                 </div>
-              </div>
 
-              {/* Referral Link Box */}
-              <div className="p-4 rounded-xl bg-white border border-hairline space-y-2">
-                <label className="block text-xs font-bold text-charcoal-900">
-                  Your Personal Referral Link:
-                </label>
                 <div className="flex items-center gap-2">
                   <input
                     type="text"
                     readOnly
                     value={generateCourseReferralLink('catalog', userCode)}
-                    className="flex-1 px-3 py-2 text-xs font-mono bg-ivory-100 border border-hairline rounded text-charcoal-900 select-all"
+                    className="flex-1 px-3 py-2 text-xs bg-white border border-hairline rounded font-mono text-charcoal-900 select-all"
                   />
                   <button
                     type="button"
@@ -540,12 +431,12 @@ export const StudentProfileModal: React.FC<StudentProfileModalProps> = ({
               <div className="space-y-3">
                 <h4 className="text-xs font-bold font-mono uppercase tracking-wider text-charcoal-900 flex items-center gap-1.5">
                   <Gift className="w-4 h-4 text-burgundy-500" />
-                  <span>Milestone Rewards & Unlocks</span>
+                  <span>Milestone Rewards</span>
                 </h4>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   {REFERRAL_MILESTONES.map((m) => {
-                    const isUnlocked = (referralStats?.points || 0) >= m.pointsNeeded;
+                    const isUnlocked = totalPoints >= m.pointsNeeded;
                     return (
                       <div
                         key={m.pointsNeeded}
@@ -556,14 +447,14 @@ export const StudentProfileModal: React.FC<StudentProfileModalProps> = ({
                         }`}
                       >
                         <div className="flex items-center justify-between">
-                          <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded ${
-                            isUnlocked ? 'bg-emerald-200/60 text-emerald-900' : 'bg-ivory-200 text-charcoal-100'
-                          }`}>
+                          <span
+                            className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded ${
+                              isUnlocked ? 'bg-emerald-200/60 text-emerald-900' : 'bg-ivory-200 text-charcoal-100'
+                            }`}
+                          >
                             {m.badge}
                           </span>
-                          <span className="text-xs font-mono font-bold">
-                            {m.pointsNeeded} Pts
-                          </span>
+                          <span className="text-xs font-mono font-bold">{m.pointsNeeded} Pts</span>
                         </div>
                         <h5 className="text-xs font-bold">{m.rewardTitle}</h5>
                         <p className="text-[11px] leading-relaxed text-charcoal-100">
@@ -574,7 +465,6 @@ export const StudentProfileModal: React.FC<StudentProfileModalProps> = ({
                   })}
                 </div>
               </div>
-
             </div>
           )}
 

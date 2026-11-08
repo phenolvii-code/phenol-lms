@@ -4,7 +4,7 @@
  * per-course rosters, and cross-device synchronization.
  */
 
-import { AuthUser, ADMIN_EMAILS } from '@/types/auth';
+import { AuthUser } from '@/types/auth';
 import { ChemistryCourse } from '@/types/lms';
 import { getStudentAcademicCode } from '@/lib/student-code';
 import { supabase } from '@/lib/supabase';
@@ -102,7 +102,7 @@ const isAdminEmail = (email?: string): boolean => {
   return (
     clean === 'phenolvii@gmail.com' ||
     clean.includes('phenolvii') ||
-    ADMIN_EMAILS.includes(clean)
+    false
   );
 };
 
