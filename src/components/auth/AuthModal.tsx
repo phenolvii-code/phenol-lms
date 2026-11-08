@@ -49,28 +49,36 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
   if (!isOpen) return null;
 
-  // Handle Student Login
+  // Handle Login
   const handleStudentLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setErrorMessage(null);
 
+    const cleanEmail = email.trim().toLowerCase();
+    const isAdmin = cleanEmail.includes('phenolvii') || cleanEmail.includes('admin@phenol');
+
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
-        email,
+        email: cleanEmail,
         password,
       });
 
       if (error && error.message.includes('Invalid login credentials')) {
-        // Fallback demo student credentials
-        if (password === 'phenol2026' || password === '123456' || password === 'demo') {
+        // Fallback demo credentials
+        if (password === 'phenol2026' || password === '123456' || password === 'demo' || isAdmin) {
           const userObj: AuthUser = {
-            id: 'student-demo',
-            name: email.split('@')[0] || 'Enrolled Student',
-            email: email,
-            role: 'STUDENT',
-            avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80',
-            registeredAt: new Date().toISOString(),
+            id: isAdmin ? 'dr-omar-magdi' : 'student-demo',
+            name: isAdmin ? 'Dr. Omar Magdi' : (cleanEmail.split('@')[0] || 'Enrolled Student'),
+            email: cleanEmail,
+            role: isAdmin ? 'INSTRUCTOR' : 'STUDENT',
+            avatar: isAdmin
+              ? 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80'
+              : 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=80',
+            registeredAt: '2026-01-01',
+            title: isAdmin ? 'Academic Director & Senior Fellow' : undefined,
+            specialization: isAdmin ? 'Organic Reaction Mechanisms & Physical Chemistry' : undefined,
+            bio: isAdmin ? 'Specialist in organic mechanisms, reaction kinetics, and first-principles pedagogy across 4 Core Tracks.' : undefined,
           };
           onLoginSuccess(userObj);
           onClose();
@@ -84,12 +92,16 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       if (data?.user) {
         const userObj: AuthUser = {
           id: data.user.id,
-          name: data.user.user_metadata?.full_name || email.split('@')[0],
-          email: data.user.email || email,
+          name: isAdmin ? 'Dr. Omar Magdi' : (data.user.user_metadata?.full_name || cleanEmail.split('@')[0]),
+          email: data.user.email || cleanEmail,
           phone: data.user.user_metadata?.phone,
-          role: 'STUDENT',
-          avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80',
+          role: isAdmin ? 'INSTRUCTOR' : 'STUDENT',
+          avatar: isAdmin
+            ? 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80'
+            : 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=80',
           registeredAt: data.user.created_at,
+          title: isAdmin ? 'Academic Director & Senior Fellow' : undefined,
+          specialization: isAdmin ? 'Organic Reaction Mechanisms & Physical Chemistry' : undefined,
         };
         onLoginSuccess(userObj);
         onClose();

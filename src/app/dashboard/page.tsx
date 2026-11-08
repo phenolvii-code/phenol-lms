@@ -13,6 +13,7 @@ import {
   WAITLIST_APPLICANTS,
   ENROLLED_STUDENTS,
   ACADEMIC_TRACKS,
+  INITIAL_TIMELINE_POSTS,
 } from '@/data/mock-data';
 import {
   AcademicCategory,
@@ -21,6 +22,8 @@ import {
   StudentSubmission,
   WaitlistApplication,
   EnrolledStudent,
+  TimelinePost,
+  TimelineComment,
 } from '@/types/lms';
 import { BookletsView } from '@/components/booklets/BookletsView';
 import { supabase } from '@/lib/supabase';
@@ -47,6 +50,15 @@ import {
   Award,
   ExternalLink,
   Plus,
+  Trash2,
+  Edit3,
+  Heart,
+  Lightbulb,
+  FlaskConical,
+  MessageSquare,
+  Send,
+  Settings,
+  Sparkles,
 } from 'lucide-react';
 
 export default function DashboardPage() {
@@ -57,26 +69,31 @@ export default function DashboardPage() {
   const [adminViewMode, setAdminViewMode] = useState<'ADMIN' | 'STUDENT_PREVIEW'>('ADMIN');
 
   // Instructor Admin Tabs
-  const [adminTab, setAdminTab] = useState<'waitlist' | 'submissions' | 'curriculum' | 'roster'>('curriculum');
+  const [adminTab, setAdminTab] = useState<'curriculum' | 'waitlist' | 'timeline' | 'submissions' | 'roster'>('curriculum');
 
   // Student Tabs
-  const [studentTab, setStudentTab] = useState<'courses' | 'tasks' | 'booklets' | 'quizzes'>('courses');
+  const [studentTab, setStudentTab] = useState<'courses' | 'timeline' | 'tasks' | 'booklets' | 'quizzes'>('courses');
 
   // Filter Track for Curriculum and Waitlist
   const [trackFilter, setTrackFilter] = useState<AcademicCategory | 'all'>('all');
 
-  // Data states
+  // Core Data states
   const [courses, setCourses] = useState<ChemistryCourse[]>(CHEMISTRY_COURSES);
   const [submissions, setSubmissions] = useState<StudentSubmission[]>(SUBMISSIONS);
   const [waitlist, setWaitlist] = useState<WaitlistApplication[]>(WAITLIST_APPLICANTS);
   const [students, setStudents] = useState<EnrolledStudent[]>(ENROLLED_STUDENTS);
+  const [posts, setPosts] = useState<TimelinePost[]>(INITIAL_TIMELINE_POSTS);
 
-  // Grading Modal State for Dr. Omar
-  const [gradingSubmission, setGradingSubmission] = useState<StudentSubmission | null>(null);
-  const [inputGrade, setInputGrade] = useState<number>(20);
-  const [inputFeedback, setInputFeedback] = useState<string>('');
+  // Profile Modal State
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+  const [profileName, setProfileName] = useState('');
+  const [profileTitle, setProfileTitle] = useState('');
+  const [profileSpecialization, setProfileSpecialization] = useState('');
+  const [profileBio, setProfileBio] = useState('');
+  const [profileAvatar, setProfileAvatar] = useState('');
+  const [profilePhone, setProfilePhone] = useState('');
 
-  // Course Builder Modal State for Dr. Omar
+  // Course Builder (Create Course) Modal State
   const [isCreateCourseOpen, setIsCreateCourseOpen] = useState(false);
   const [newCourseCategory, setNewCourseCategory] = useState<AcademicCategory>('thanaweya-arabic');
   const [newCourseCode, setNewCourseCode] = useState('');
@@ -87,7 +104,19 @@ export default function DashboardPage() {
   const [newCourseHours, setNewCourseHours] = useState('30 Academic Hours');
   const [newCourseDesc, setNewCourseDesc] = useState('');
 
-  // Add Lecture Modal for Dr. Omar
+  // Course Editor (Edit Course) Modal State
+  const [isEditCourseOpen, setIsEditCourseOpen] = useState(false);
+  const [editingCourseId, setEditingCourseId] = useState<string | null>(null);
+  const [editCourseCategory, setEditCourseCategory] = useState<AcademicCategory>('thanaweya-arabic');
+  const [editCourseCode, setEditCourseCode] = useState('');
+  const [editCourseTitle, setEditCourseTitle] = useState('');
+  const [editCourseSubtitle, setEditCourseSubtitle] = useState('');
+  const [editCourseLevel, setEditCourseLevel] = useState('');
+  const [editCourseFormula, setEditCourseFormula] = useState('');
+  const [editCourseHours, setEditCourseHours] = useState('');
+  const [editCourseDesc, setEditCourseDesc] = useState('');
+
+  // Add Lecture Modal State
   const [isAddLectureOpen, setIsAddLectureOpen] = useState(false);
   const [newLectureCourse, setNewLectureCourse] = useState(CHEMISTRY_COURSES[0].id);
   const [newLectureTitle, setNewLectureTitle] = useState('');
@@ -95,13 +124,33 @@ export default function DashboardPage() {
   const [newLectureSummary, setNewLectureSummary] = useState('');
   const [newLectureFormula, setNewLectureFormula] = useState('');
 
-  // Manual Applicant Modal
+  // Edit Lecture Modal State
+  const [isEditLessonOpen, setIsEditLessonOpen] = useState(false);
+  const [editingLessonCourseId, setEditingLessonCourseId] = useState<string | null>(null);
+  const [editingLessonId, setEditingLessonId] = useState<string | null>(null);
+  const [editLessonTitle, setEditLessonTitle] = useState('');
+  const [editLessonDuration, setEditLessonDuration] = useState('');
+  const [editLessonSummary, setEditLessonSummary] = useState('');
+  const [editLessonFormula, setEditLessonFormula] = useState('');
+
+  // Manual Applicant Modal State
   const [isAddApplicantOpen, setIsAddApplicantOpen] = useState(false);
   const [manualName, setManualName] = useState('');
   const [manualPhone, setManualPhone] = useState('');
   const [manualEmail, setManualEmail] = useState('');
   const [manualTrack, setManualTrack] = useState<AcademicCategory>('thanaweya-arabic');
   const [manualCourse, setManualCourse] = useState('');
+
+  // Timeline Post Composer State
+  const [newPostContent, setNewPostContent] = useState('');
+  const [newPostFormula, setNewPostFormula] = useState('');
+  const [newPostTrack, setNewPostTrack] = useState('General Discussion');
+  const [commentInputs, setCommentInputs] = useState<Record<string, string>>({});
+
+  // Grading Modal State for Dr. Omar
+  const [gradingSubmission, setGradingSubmission] = useState<StudentSubmission | null>(null);
+  const [inputGrade, setInputGrade] = useState<number>(20);
+  const [inputFeedback, setInputFeedback] = useState<string>('');
 
   // Student Task Submission State
   const [isSubmitModalOpen, setIsSubmitModalOpen] = useState(false);
@@ -113,13 +162,20 @@ export default function DashboardPage() {
   const [selectedAnswers, setSelectedAnswers] = useState<Record<string, number>>({});
   const [quizSubmitted, setQuizSubmitted] = useState(false);
 
-  // Initialize and load saved state
+  // Initialize and load saved state from localStorage & Supabase
   useEffect(() => {
     try {
       // 1. Auth check
       const savedUser = localStorage.getItem('phenol_auth_user');
       if (savedUser) {
-        setCurrentUser(JSON.parse(savedUser));
+        const u: AuthUser = JSON.parse(savedUser);
+        setCurrentUser(u);
+        setProfileName(u.name || 'Dr. Omar Magdi');
+        setProfileTitle(u.title || (u.role === 'INSTRUCTOR' ? 'Academic Director & Senior Fellow' : 'Enrolled Scholar'));
+        setProfileSpecialization(u.specialization || (u.role === 'INSTRUCTOR' ? 'Organic Reaction Mechanisms & Physical Chemistry' : 'Chemistry Major'));
+        setProfileBio(u.bio || (u.role === 'INSTRUCTOR' ? 'Specialist in organic mechanisms, reaction kinetics, and first-principles pedagogy across 4 Core Tracks.' : 'Dedicated to learning chemistry through foundational logic.'));
+        setProfileAvatar(u.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80');
+        setProfilePhone(u.phone || '+201012345678');
       } else {
         const defaultInstructor: AuthUser = {
           id: 'dr-omar-magdi',
@@ -128,8 +184,16 @@ export default function DashboardPage() {
           role: 'INSTRUCTOR',
           avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80',
           registeredAt: '2026-01-01',
+          title: 'Academic Director & Senior Fellow',
+          specialization: 'Organic Reaction Mechanisms & Physical Chemistry',
+          bio: 'Specialist in organic mechanisms, reaction kinetics, and first-principles pedagogy across 4 Core Tracks.',
         };
         setCurrentUser(defaultInstructor);
+        setProfileName(defaultInstructor.name);
+        setProfileTitle(defaultInstructor.title || '');
+        setProfileSpecialization(defaultInstructor.specialization || '');
+        setProfileBio(defaultInstructor.bio || '');
+        setProfileAvatar(defaultInstructor.avatar);
         localStorage.setItem('phenol_auth_user', JSON.stringify(defaultInstructor));
       }
 
@@ -142,7 +206,16 @@ export default function DashboardPage() {
         }
       }
 
-      // 3. Waitlist Applications from local storage and Supabase
+      // 3. Timeline Posts from local storage
+      const savedPosts = localStorage.getItem('phenol_timeline_posts');
+      if (savedPosts) {
+        const parsed = JSON.parse(savedPosts);
+        if (Array.isArray(parsed)) {
+          setPosts(parsed);
+        }
+      }
+
+      // 4. Waitlist Applications from local storage and Supabase
       const savedWaitlist = localStorage.getItem('phenol_waitlist_applications');
       if (savedWaitlist) {
         const parsedWl = JSON.parse(savedWaitlist);
@@ -151,7 +224,7 @@ export default function DashboardPage() {
         }
       }
 
-      // Try fetching Supabase waitlist in the background
+      // Background sync from Supabase
       (async () => {
         try {
           const { data, error } = await supabase.from('waitlist_applications').select('*').order('created_at', { ascending: false });
@@ -182,13 +255,13 @@ export default function DashboardPage() {
         }
       })();
 
-      // 4. Submissions from local storage
+      // 5. Submissions from local storage
       const savedSubmissions = localStorage.getItem('phenol_submissions');
       if (savedSubmissions) {
         setSubmissions(JSON.parse(savedSubmissions));
       }
 
-      // 5. Enrolled students from local storage
+      // 6. Enrolled students from local storage
       const savedStudents = localStorage.getItem('phenol_students');
       if (savedStudents) {
         setStudents(JSON.parse(savedStudents));
@@ -208,62 +281,153 @@ export default function DashboardPage() {
   const isInstructor = currentUser?.role === 'INSTRUCTOR';
   const showAdminInterface = isInstructor && adminViewMode === 'ADMIN';
 
-  // Waitlist Status Actions
-  const handleUpdateWaitlistStatus = (id: string, status: 'approved' | 'declined' | 'contacted') => {
-    const updated = waitlist.map((app) => (app.id === id ? { ...app, status } : app));
-    setWaitlist(updated);
-    try {
-      localStorage.setItem('phenol_waitlist_applications', JSON.stringify(updated));
-    } catch (e) {}
-
-    // If approved, automatically enroll student into the cohort roster
-    if (status === 'approved') {
-      const targetApp = waitlist.find((a) => a.id === id);
-      if (targetApp && !students.some((s) => s.email === targetApp.email)) {
-        const newStudent: EnrolledStudent = {
-          id: `st-${Date.now()}`,
-          code: `PHN-2026-${Math.floor(100 + Math.random() * 900)}`,
-          fullName: targetApp.fullName,
-          email: targetApp.email,
-          phone: targetApp.phone,
-          trackCode: targetApp.targetCourse.split(' - ')[0] || targetApp.academicTrack,
-          enrolledAt: new Date().toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }),
-          progressPercent: 0,
-          averageGrade: 100,
-          status: 'active',
-        };
-        const updatedStudents = [newStudent, ...students];
-        setStudents(updatedStudents);
-        try {
-          localStorage.setItem('phenol_students', JSON.stringify(updatedStudents));
-        } catch (e) {}
-      }
-    }
-  };
-
-  // Submit Grade Action
-  const handleSaveGrade = (e: React.FormEvent) => {
+  // ==========================================================================
+  // PROFILE UPDATE ACTION
+  // ==========================================================================
+  const handleSaveProfile = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!gradingSubmission) return;
+    if (!currentUser) return;
 
-    const updated = submissions.map((s) =>
-      s.id === gradingSubmission.id
-        ? {
-            ...s,
-            grade: inputGrade,
-            drFeedback: inputFeedback,
-            status: 'graded' as const,
-          }
-        : s
-    );
-    setSubmissions(updated);
+    const updatedUser: AuthUser = {
+      ...currentUser,
+      name: profileName.trim() || currentUser.name,
+      title: profileTitle.trim() || currentUser.title,
+      specialization: profileSpecialization.trim() || currentUser.specialization,
+      bio: profileBio.trim() || currentUser.bio,
+      avatar: profileAvatar.trim() || currentUser.avatar,
+      phone: profilePhone.trim() || currentUser.phone,
+    };
+
+    setCurrentUser(updatedUser);
     try {
-      localStorage.setItem('phenol_submissions', JSON.stringify(updated));
+      localStorage.setItem('phenol_auth_user', JSON.stringify(updatedUser));
     } catch (e) {}
-    setGradingSubmission(null);
+
+    setIsProfileModalOpen(false);
   };
 
-  // Course Builder: Create Course
+  // ==========================================================================
+  // TIMELINE ACTIONS (POST, COMMENT, REACT, MODERATE/DELETE)
+  // ==========================================================================
+  const handleCreatePost = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newPostContent.trim()) return;
+
+    const newPost: TimelinePost = {
+      id: `post-${Date.now()}`,
+      authorName: currentUser?.name || 'Dr. Omar Magdi',
+      authorEmail: currentUser?.email || 'phenolvii@gmail.com',
+      authorRole: currentUser?.role === 'INSTRUCTOR' ? 'INSTRUCTOR' : 'STUDENT',
+      authorAvatar: currentUser?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80',
+      trackBadge: newPostTrack,
+      content: newPostContent,
+      molecularFormula: newPostFormula.trim() || undefined,
+      createdAt: 'Just now',
+      reactions: { flask: 0, bulb: 0, heart: 0 },
+      comments: [],
+    };
+
+    const updated = [newPost, ...posts];
+    setPosts(updated);
+    try {
+      localStorage.setItem('phenol_timeline_posts', JSON.stringify(updated));
+    } catch (e) {}
+
+    setNewPostContent('');
+    setNewPostFormula('');
+  };
+
+  const handleToggleReaction = (postId: string, type: 'flask' | 'bulb' | 'heart') => {
+    const updated = posts.map((p) => {
+      if (p.id === postId) {
+        const isReacted = p.myReactions?.[type];
+        const newReactions = {
+          ...p.reactions,
+          [type]: isReacted ? Math.max(0, p.reactions[type] - 1) : p.reactions[type] + 1,
+        };
+        const newMyReactions = {
+          ...p.myReactions,
+          [type]: !isReacted,
+        };
+        return {
+          ...p,
+          reactions: newReactions,
+          myReactions: newMyReactions,
+        };
+      }
+      return p;
+    });
+
+    setPosts(updated);
+    try {
+      localStorage.setItem('phenol_timeline_posts', JSON.stringify(updated));
+    } catch (e) {}
+  };
+
+  const handleAddComment = (postId: string, e: React.FormEvent) => {
+    e.preventDefault();
+    const text = commentInputs[postId];
+    if (!text || !text.trim()) return;
+
+    const newComment: TimelineComment = {
+      id: `c-${Date.now()}`,
+      authorName: currentUser?.name || 'Scholar',
+      authorEmail: currentUser?.email || '',
+      authorRole: currentUser?.role === 'INSTRUCTOR' ? 'INSTRUCTOR' : 'STUDENT',
+      authorAvatar: currentUser?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80',
+      content: text.trim(),
+      createdAt: 'Just now',
+    };
+
+    const updated = posts.map((p) => {
+      if (p.id === postId) {
+        return {
+          ...p,
+          comments: [...p.comments, newComment],
+        };
+      }
+      return p;
+    });
+
+    setPosts(updated);
+    try {
+      localStorage.setItem('phenol_timeline_posts', JSON.stringify(updated));
+    } catch (e) {}
+
+    setCommentInputs((prev) => ({ ...prev, [postId]: '' }));
+  };
+
+  // Admin / Author Delete Post
+  const handleDeletePost = (postId: string) => {
+    if (!confirm('Are you sure you want to delete this post?')) return;
+    const updated = posts.filter((p) => p.id !== postId);
+    setPosts(updated);
+    try {
+      localStorage.setItem('phenol_timeline_posts', JSON.stringify(updated));
+    } catch (e) {}
+  };
+
+  // Admin / Author Delete Comment
+  const handleDeleteComment = (postId: string, commentId: string) => {
+    if (!confirm('Are you sure you want to delete this comment?')) return;
+    const updated = posts.map((p) => {
+      if (p.id === postId) {
+        return {
+          ...p,
+          comments: p.comments.filter((c) => c.id !== commentId),
+        };
+      }
+      return p;
+    });
+    setPosts(updated);
+    try {
+      localStorage.setItem('phenol_timeline_posts', JSON.stringify(updated));
+    } catch (e) {}
+  };
+
+  // ==========================================================================
+  // COURSE BUILDER & MANAGEMENT (CREATE, EDIT, DELETE COURSE & LESSONS)
+  // ==========================================================================
   const handleCreateCourse = (e: React.FormEvent) => {
     e.preventDefault();
     const trackObj = ACADEMIC_TRACKS.find((t) => t.id === newCourseCategory);
@@ -299,7 +463,60 @@ export default function DashboardPage() {
     setNewCourseDesc('');
   };
 
-  // Add Lecture Action
+  const handleOpenEditCourse = (course: ChemistryCourse) => {
+    setEditingCourseId(course.id);
+    setEditCourseCategory(course.category);
+    setEditCourseCode(course.code);
+    setEditCourseTitle(course.title);
+    setEditCourseSubtitle(course.subTitle || '');
+    setEditCourseLevel(course.level);
+    setEditCourseFormula(course.molecularFormula || '');
+    setEditCourseHours(course.totalHours || '30 Academic Hours');
+    setEditCourseDesc(course.description);
+    setIsEditCourseOpen(true);
+  };
+
+  const handleUpdateCourse = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingCourseId) return;
+
+    const trackObj = ACADEMIC_TRACKS.find((t) => t.id === editCourseCategory);
+    const updated = courses.map((c) => {
+      if (c.id === editingCourseId) {
+        return {
+          ...c,
+          category: editCourseCategory,
+          categoryName: trackObj?.name || c.categoryName,
+          code: editCourseCode,
+          title: editCourseTitle,
+          subTitle: editCourseSubtitle,
+          level: editCourseLevel,
+          molecularFormula: editCourseFormula || undefined,
+          totalHours: editCourseHours,
+          description: editCourseDesc,
+        };
+      }
+      return c;
+    });
+
+    setCourses(updated);
+    try {
+      localStorage.setItem('phenol_courses', JSON.stringify(updated));
+    } catch (e) {}
+
+    setIsEditCourseOpen(false);
+    setEditingCourseId(null);
+  };
+
+  const handleDeleteCourse = (courseId: string, title: string) => {
+    if (!confirm(`Are you sure you want to permanently delete course "${title}" and all its syllabus modules?`)) return;
+    const updated = courses.filter((c) => c.id !== courseId);
+    setCourses(updated);
+    try {
+      localStorage.setItem('phenol_courses', JSON.stringify(updated));
+    } catch (e) {}
+  };
+
   const handleAddLecture = (e: React.FormEvent) => {
     e.preventDefault();
     const updated = courses.map((course) => {
@@ -332,7 +549,101 @@ export default function DashboardPage() {
     setNewLectureFormula('');
   };
 
-  // Add Manual Applicant Action
+  const handleOpenEditLesson = (courseId: string, lesson: ChemistryLesson) => {
+    setEditingLessonCourseId(courseId);
+    setEditingLessonId(lesson.id);
+    setEditLessonTitle(lesson.title);
+    setEditLessonDuration(lesson.duration);
+    setEditLessonSummary(lesson.summary);
+    setEditLessonFormula(lesson.keyFormulas?.[0] || '');
+    setIsEditLessonOpen(true);
+  };
+
+  const handleUpdateLesson = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingLessonCourseId || !editingLessonId) return;
+
+    const updated = courses.map((course) => {
+      if (course.id === editingLessonCourseId) {
+        const updatedLessons = course.lessons.map((l) => {
+          if (l.id === editingLessonId) {
+            return {
+              ...l,
+              title: editLessonTitle,
+              duration: editLessonDuration,
+              summary: editLessonSummary,
+              keyFormulas: editLessonFormula ? [editLessonFormula] : undefined,
+            };
+          }
+          return l;
+        });
+        return { ...course, lessons: updatedLessons };
+      }
+      return course;
+    });
+
+    setCourses(updated);
+    try {
+      localStorage.setItem('phenol_courses', JSON.stringify(updated));
+    } catch (e) {}
+
+    setIsEditLessonOpen(false);
+    setEditingLessonCourseId(null);
+    setEditingLessonId(null);
+  };
+
+  const handleDeleteLesson = (courseId: string, lessonId: string, title: string) => {
+    if (!confirm(`Remove module "${title}" from the syllabus?`)) return;
+    const updated = courses.map((course) => {
+      if (course.id === courseId) {
+        return {
+          ...course,
+          lessons: course.lessons.filter((l) => l.id !== lessonId),
+        };
+      }
+      return course;
+    });
+
+    setCourses(updated);
+    try {
+      localStorage.setItem('phenol_courses', JSON.stringify(updated));
+    } catch (e) {}
+  };
+
+  // ==========================================================================
+  // ADMISSIONS & WAITLIST ACTIONS
+  // ==========================================================================
+  const handleUpdateWaitlistStatus = (id: string, status: 'approved' | 'declined' | 'contacted') => {
+    const updated = waitlist.map((app) => (app.id === id ? { ...app, status } : app));
+    setWaitlist(updated);
+    try {
+      localStorage.setItem('phenol_waitlist_applications', JSON.stringify(updated));
+    } catch (e) {}
+
+    if (status === 'approved') {
+      const targetApp = waitlist.find((a) => a.id === id);
+      if (targetApp && !students.some((s) => s.email === targetApp.email)) {
+        const newStudent: EnrolledStudent = {
+          id: `st-${Date.now()}`,
+          code: `PHN-2026-${Math.floor(100 + Math.random() * 900)}`,
+          fullName: targetApp.fullName,
+          email: targetApp.email,
+          phone: targetApp.phone,
+          trackCode: targetApp.targetCourse.split(' - ')[0] || targetApp.academicTrack,
+          enrolledAt: new Date().toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }),
+          progressPercent: 0,
+          averageGrade: 100,
+          status: 'active',
+        };
+        const updatedStudents = [newStudent, ...students];
+        setStudents(updatedStudents);
+        try {
+          localStorage.setItem('phenol_students', JSON.stringify(updatedStudents));
+        } catch (e) {}
+      }
+    }
+  };
+
   const handleAddApplicant = (e: React.FormEvent) => {
     e.preventDefault();
     const trackObj = ACADEMIC_TRACKS.find((t) => t.id === manualTrack);
@@ -359,6 +670,28 @@ export default function DashboardPage() {
     setManualName('');
     setManualPhone('');
     setManualEmail('');
+  };
+
+  // Grading desk
+  const handleSaveGrade = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!gradingSubmission) return;
+
+    const updated = submissions.map((s) =>
+      s.id === gradingSubmission.id
+        ? {
+            ...s,
+            grade: inputGrade,
+            drFeedback: inputFeedback,
+            status: 'graded' as const,
+          }
+        : s
+    );
+    setSubmissions(updated);
+    try {
+      localStorage.setItem('phenol_submissions', JSON.stringify(updated));
+    } catch (e) {}
+    setGradingSubmission(null);
   };
 
   // Student Task Submit
@@ -389,12 +722,11 @@ export default function DashboardPage() {
     setSelectedAnswers((prev) => ({ ...prev, [qId]: optIdx }));
   };
 
-  // Filtered courses based on selected track filter
+  // Filtered views
   const displayedCourses = trackFilter === 'all'
     ? courses
     : courses.filter((c) => c.category === trackFilter);
 
-  // Filtered waitlist based on selected track filter
   const displayedWaitlist = trackFilter === 'all'
     ? waitlist
     : waitlist.filter((w) => {
@@ -424,7 +756,7 @@ export default function DashboardPage() {
             </div>
 
             {/* User Profile & Mode Controls */}
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3 sm:gap-4">
               {/* Instructor Mode Switcher (Admin vs Student Preview) */}
               {isInstructor && (
                 <button
@@ -449,27 +781,36 @@ export default function DashboardPage() {
                 </button>
               )}
 
-              {/* Profile Card */}
+              {/* Profile Card & Settings Trigger */}
               <div className="flex items-center gap-3">
-                <div className="text-right hidden sm:block">
-                  <span className="text-xs sm:text-sm font-bold text-charcoal-900 block leading-tight">
-                    {currentUser?.name || 'Dr. Omar Magdi'}
-                  </span>
-                  <span className="text-[11px] text-charcoal-100 font-sans block">
-                    {isInstructor
-                      ? 'Academic Director & Senior Fellow'
-                      : 'Enrolled Scholar'}
-                  </span>
-                </div>
+                <button
+                  onClick={() => setIsProfileModalOpen(true)}
+                  className="flex items-center gap-2.5 text-right p-1 rounded hover:bg-ivory-300/40 transition-colors group"
+                  title="Edit Profile"
+                >
+                  <div className="hidden sm:block">
+                    <span className="text-xs sm:text-sm font-bold text-charcoal-900 block leading-tight group-hover:text-burgundy-500 transition-colors">
+                      {currentUser?.name || 'Dr. Omar Magdi'}
+                    </span>
+                    <span className="text-[11px] text-charcoal-100 font-sans block">
+                      {currentUser?.title || (isInstructor ? 'Academic Director' : 'Enrolled Scholar')}
+                    </span>
+                  </div>
 
-                <img
-                  src={
-                    currentUser?.avatar ||
-                    'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80'
-                  }
-                  alt={currentUser?.name || 'User'}
-                  className="w-9 h-9 rounded-full object-cover border border-hairline ring-2 ring-burgundy-500/20"
-                />
+                  <div className="relative">
+                    <img
+                      src={
+                        currentUser?.avatar ||
+                        'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80'
+                      }
+                      alt={currentUser?.name || 'User'}
+                      className="w-9 h-9 rounded-full object-cover border border-hairline ring-2 ring-burgundy-500/20 group-hover:ring-burgundy-500/50 transition-all"
+                    />
+                    <div className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-burgundy-500 text-ivory-100 flex items-center justify-center border border-ivory-100 shadow-sm">
+                      <Settings className="w-2.5 h-2.5" />
+                    </div>
+                  </div>
+                </button>
 
                 <button
                   onClick={handleLogout}
@@ -577,6 +918,20 @@ export default function DashboardPage() {
                 </button>
 
                 <button
+                  onClick={() => setAdminTab('timeline')}
+                  className={`pb-3 border-b-2 transition-colors flex items-center gap-2 whitespace-nowrap ${
+                    adminTab === 'timeline'
+                      ? 'border-burgundy-500 text-burgundy-500'
+                      : 'border-transparent text-charcoal-100 hover:text-charcoal-900'
+                  }`}
+                >
+                  <span>Academic Timeline</span>
+                  <span className="font-formula text-xs px-2 py-0.5 rounded-full bg-burgundy-50 text-burgundy-500 border border-burgundy-200">
+                    {posts.length}
+                  </span>
+                </button>
+
+                <button
                   onClick={() => setAdminTab('waitlist')}
                   className={`pb-3 border-b-2 transition-colors flex items-center gap-2 whitespace-nowrap ${
                     adminTab === 'waitlist'
@@ -585,7 +940,7 @@ export default function DashboardPage() {
                   }`}
                 >
                   <span>Admissions & Waitlist</span>
-                  <span className="font-formula text-xs px-2 py-0.5 rounded-full bg-burgundy-50 text-burgundy-500 border border-burgundy-200">
+                  <span className="font-formula text-xs px-2 py-0.5 rounded-full bg-ivory-300 text-charcoal-900">
                     {waitlist.length}
                   </span>
                 </button>
@@ -632,7 +987,7 @@ export default function DashboardPage() {
                     </button>
                     <button
                       onClick={() => setIsAddLectureOpen(true)}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded bg-ivory-100 border border-hairline hover:border-charcoal-100 text-charcoal-900 text-xs font-semibold transition-colors"
+                      className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded bg-ivory-100 border border-hairline hover:border-charcoal-100 text-charcoal-900 text-xs font-semibold transition-colors"
                     >
                       <PlusCircle className="w-3.5 h-3.5 text-burgundy-500" />
                       <span>Add Lecture</span>
@@ -662,7 +1017,7 @@ export default function DashboardPage() {
                       Chemistry Tracks & Course Syllabi
                     </h2>
                     <p className="text-xs text-charcoal-100 font-sans mt-0.5">
-                      Structured under Dr. Omar Magdi&apos;s 4 core educational tracks. Add modules, edit syllabi, or create new courses.
+                      Organized under Dr. Omar Magdi&apos;s 4 core educational tracks. Edit, delete, or build courses and lecture modules.
                     </p>
                   </div>
 
@@ -701,8 +1056,8 @@ export default function DashboardPage() {
                       key={course.id}
                       className="border border-hairline rounded bg-ivory-100 p-6 space-y-4 shadow-quiet"
                     >
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-hairline pb-4">
-                        <div>
+                      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 border-b border-hairline pb-4">
+                        <div className="space-y-2">
                           <div className="flex flex-wrap items-center gap-2">
                             <span className="font-formula text-xs font-bold text-burgundy-500 bg-burgundy-50 px-2.5 py-0.5 rounded border border-burgundy-200">
                               {course.code}
@@ -719,73 +1074,375 @@ export default function DashboardPage() {
                               </span>
                             )}
                           </div>
-                          <h3 className="text-lg font-bold text-charcoal-900 font-display mt-2">
+                          <h3 className="text-lg font-bold text-charcoal-900 font-display">
                             {course.title}
                           </h3>
-                          <p className="text-xs text-charcoal-50 font-sans mt-0.5">
+                          <p className="text-xs text-charcoal-50 font-sans">
                             {course.subTitle}
+                          </p>
+                          <p className="text-xs text-charcoal-100 font-sans leading-relaxed pt-1 max-w-2xl">
+                            {course.description}
                           </p>
                         </div>
 
-                        <div className="flex items-center gap-3 shrink-0">
-                          <span className="font-formula text-xs text-charcoal-100">
-                            {course.lessons.length} Modules • {course.totalHours}
-                          </span>
+                        {/* Course Controls: Edit & Delete */}
+                        <div className="flex items-center gap-2 shrink-0 pt-1">
+                          <button
+                            onClick={() => handleOpenEditCourse(course)}
+                            title="Edit Course Details"
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded border border-hairline hover:border-burgundy-500 text-charcoal-900 hover:text-burgundy-500 bg-ivory-50 text-xs font-semibold transition-colors"
+                          >
+                            <Edit3 className="w-3.5 h-3.5" />
+                            <span>Edit</span>
+                          </button>
+
+                          <button
+                            onClick={() => handleDeleteCourse(course.id, course.title)}
+                            title="Delete Entire Course"
+                            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded border border-rose-200 text-rose-700 hover:bg-rose-50 text-xs font-semibold transition-colors"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+
                           <Link
                             href={`/courses/${course.id}`}
-                            className="inline-flex items-center gap-1 text-xs font-semibold text-burgundy-500 hover:underline"
+                            className="inline-flex items-center gap-1 px-3 py-1.5 rounded bg-ivory-300 hover:bg-ivory-400 text-xs font-semibold text-charcoal-900 transition-colors"
                           >
-                            <span>Live Page</span>
+                            <span>Live View</span>
                             <ExternalLink className="w-3 h-3" />
                           </Link>
                         </div>
                       </div>
 
                       {/* Lessons List in Course */}
-                      {course.lessons.length > 0 ? (
-                        <div className="divide-y divide-hairline">
-                          {course.lessons.map((lesson, idx) => (
-                            <div
-                              key={lesson.id}
-                              className="py-3 flex items-center justify-between text-xs font-sans hover:bg-ivory-200 px-2 rounded transition-colors"
-                            >
-                              <div className="flex items-center gap-3">
-                                <span className="font-formula font-bold text-charcoal-50 w-6">
-                                  {idx + 1 < 10 ? `0${idx + 1}` : idx + 1}
-                                </span>
-                                <div>
-                                  <span className="font-semibold text-charcoal-900 block">
-                                    {lesson.title}
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between text-xs font-formula text-charcoal-50">
+                          <span>Modules & Lectures ({course.lessons.length})</span>
+                          <span>{course.totalHours}</span>
+                        </div>
+
+                        {course.lessons.length > 0 ? (
+                          <div className="divide-y divide-hairline border-t border-hairline">
+                            {course.lessons.map((lesson, idx) => (
+                              <div
+                                key={lesson.id}
+                                className="py-3 flex items-center justify-between text-xs font-sans hover:bg-ivory-200 px-2 rounded transition-colors gap-3"
+                              >
+                                <div className="flex items-start gap-3">
+                                  <span className="font-formula font-bold text-charcoal-50 w-6 pt-0.5">
+                                    {idx + 1 < 10 ? `0${idx + 1}` : idx + 1}
                                   </span>
-                                  <span className="text-charcoal-50 text-[11px]">
-                                    {lesson.summary}
+                                  <div>
+                                    <div className="flex items-center gap-2">
+                                      <span className="font-semibold text-charcoal-900 block">
+                                        {lesson.title}
+                                      </span>
+                                      {lesson.keyFormulas && lesson.keyFormulas.length > 0 && (
+                                        <span className="font-formula text-[10px] text-burgundy-500 bg-burgundy-50 px-1.5 py-0.2 rounded border border-burgundy-200">
+                                          {lesson.keyFormulas[0]}
+                                        </span>
+                                      )}
+                                    </div>
+                                    <span className="text-charcoal-50 text-[11px] block mt-0.5">
+                                      {lesson.summary}
+                                    </span>
+                                  </div>
+                                </div>
+
+                                <div className="flex items-center gap-2 shrink-0">
+                                  <span className="font-formula text-charcoal-50 mr-2">
+                                    {lesson.duration}
                                   </span>
+
+                                  {/* Edit Lesson */}
+                                  <button
+                                    onClick={() => handleOpenEditLesson(course.id, lesson)}
+                                    title="Edit Module"
+                                    className="p-1.5 rounded hover:bg-ivory-300 text-charcoal-50 hover:text-charcoal-900 transition-colors"
+                                  >
+                                    <Edit3 className="w-3.5 h-3.5" />
+                                  </button>
+
+                                  {/* Delete Lesson */}
+                                  <button
+                                    onClick={() => handleDeleteLesson(course.id, lesson.id, lesson.title)}
+                                    title="Delete Module"
+                                    className="p-1.5 rounded hover:bg-rose-50 text-charcoal-50 hover:text-rose-700 transition-colors"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
                                 </div>
                               </div>
-
-                              <div className="flex items-center gap-3 shrink-0">
-                                <span className="font-formula text-charcoal-50">
-                                  {lesson.duration}
-                                </span>
-                                <span className="px-2 py-0.5 rounded bg-emerald-50 text-emerald-800 border border-emerald-200 font-formula text-[10px] uppercase font-bold">
-                                  Active
-                                </span>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <div className="py-6 text-center text-xs text-charcoal-50 border border-dashed border-hairline rounded bg-ivory-50">
-                          <span>No lecture modules added yet. Click &quot;Add Lecture&quot; to begin building this syllabus.</span>
-                        </div>
-                      )}
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="py-6 text-center text-xs text-charcoal-50 border border-dashed border-hairline rounded bg-ivory-50">
+                            <span>No lecture modules added yet. Click &quot;Add Lecture&quot; to build this syllabus.</span>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   ))}
                 </div>
               </div>
             )}
 
-            {/* TAB 2: ADMISSIONS & WAITLIST MANAGEMENT */}
+            {/* TAB 2: ACADEMIC TIMELINE & COMMUNITY */}
+            {adminTab === 'timeline' && (
+              <div className="space-y-8 max-w-4xl mx-auto">
+                <div className="border-b border-hairline pb-4 flex items-center justify-between">
+                  <div>
+                    <h2 className="text-xl font-bold text-charcoal-900 font-display">
+                      Academic Timeline & Discussion Feed
+                    </h2>
+                    <p className="text-xs text-charcoal-100 font-sans mt-0.5">
+                      Publish announcements, dissect chemical mechanisms with scholars, and moderate comments.
+                    </p>
+                  </div>
+                  <span className="font-formula text-xs text-burgundy-500 font-bold bg-burgundy-50 px-2.5 py-1 rounded border border-burgundy-200">
+                    Admin Moderation Enabled
+                  </span>
+                </div>
+
+                {/* New Post Composer */}
+                <form onSubmit={handleCreatePost} className="border border-hairline rounded bg-ivory-100 p-5 space-y-4 shadow-quiet">
+                  <div className="flex items-center gap-3">
+                    <img
+                      src={currentUser?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80'}
+                      alt="Avatar"
+                      className="w-9 h-9 rounded-full object-cover border border-hairline"
+                    />
+                    <div>
+                      <span className="text-xs font-bold text-charcoal-900 block">
+                        {currentUser?.name || 'Dr. Omar Magdi'}
+                      </span>
+                      <span className="text-[10px] font-formula text-burgundy-500 font-semibold uppercase">
+                        {currentUser?.title || 'Instructor / Academic Director'}
+                      </span>
+                    </div>
+                  </div>
+
+                  <textarea
+                    rows={3}
+                    required
+                    value={newPostContent}
+                    onChange={(e) => setNewPostContent(e.target.value)}
+                    placeholder="Share an academic insight, reaction mechanism challenge, or cohort announcement..."
+                    className="w-full px-3.5 py-2.5 text-xs sm:text-sm bg-ivory-50 border border-hairline rounded text-charcoal-900 placeholder:text-charcoal-50/50 focus:outline-none focus:border-burgundy-500 leading-relaxed"
+                  />
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                    <div>
+                      <input
+                        type="text"
+                        value={newPostFormula}
+                        onChange={(e) => setNewPostFormula(e.target.value)}
+                        placeholder="Key Formula / Equation (e.g. C₆H₅OH + NaOH ⇌ ...)"
+                        className="w-full px-3 py-2 text-xs bg-ivory-50 border border-hairline rounded font-formula text-charcoal-900 focus:outline-none focus:border-burgundy-500"
+                      />
+                    </div>
+                    <div>
+                      <select
+                        value={newPostTrack}
+                        onChange={(e) => setNewPostTrack(e.target.value)}
+                        className="w-full px-3 py-2 text-xs bg-ivory-50 border border-hairline rounded text-charcoal-900 focus:outline-none focus:border-burgundy-500"
+                      >
+                        <option value="General Announcement">General Academic Announcement</option>
+                        <option value="Thanaweya Amma (Arabic)">Thanaweya Amma (Arabic)</option>
+                        <option value="Thanaweya Amma (Languages)">Thanaweya Amma (Languages)</option>
+                        <option value="IGCSE & A-Level / STEM">IGCSE & A-Level / STEM</option>
+                        <option value="University Chemistry">University Chemistry</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end pt-1">
+                    <button
+                      type="submit"
+                      className="inline-flex items-center gap-2 px-5 py-2.5 rounded bg-burgundy-500 hover:bg-burgundy-800 text-ivory-100 text-xs font-semibold shadow-quiet transition-colors"
+                    >
+                      <Send className="w-3.5 h-3.5" />
+                      <span>Publish to Timeline</span>
+                    </button>
+                  </div>
+                </form>
+
+                {/* Posts Feed */}
+                <div className="space-y-6">
+                  {posts.map((post) => (
+                    <div
+                      key={post.id}
+                      className="border border-hairline rounded bg-ivory-100 p-6 space-y-4 shadow-quiet"
+                    >
+                      {/* Post Header */}
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex items-center gap-3">
+                          <img
+                            src={post.authorAvatar}
+                            alt={post.authorName}
+                            className="w-10 h-10 rounded-full object-cover border border-hairline"
+                          />
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="font-bold text-sm text-charcoal-900">
+                                {post.authorName}
+                              </span>
+                              {post.authorRole === 'INSTRUCTOR' ? (
+                                <span className="font-formula text-[10px] font-bold text-burgundy-500 bg-burgundy-50 px-2 py-0.2 rounded border border-burgundy-200">
+                                  INSTRUCTOR
+                                </span>
+                              ) : (
+                                <span className="font-formula text-[10px] font-semibold text-charcoal-100 bg-ivory-300 px-2 py-0.2 rounded">
+                                  SCHOLAR
+                                </span>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-2 text-xs font-formula text-charcoal-50 mt-0.5">
+                              <span>{post.createdAt}</span>
+                              {post.trackBadge && (
+                                <>
+                                  <span>•</span>
+                                  <span className="text-burgundy-500 font-medium">
+                                    {post.trackBadge}
+                                  </span>
+                                </>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Admin Moderation: Delete Post */}
+                        {isInstructor && (
+                          <button
+                            onClick={() => handleDeletePost(post.id)}
+                            title="Delete Post (Admin Moderation)"
+                            className="p-1.5 rounded hover:bg-rose-50 text-charcoal-50 hover:text-rose-700 transition-colors"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        )}
+                      </div>
+
+                      {/* Post Content */}
+                      <div className="space-y-2.5 pt-1">
+                        <p className="text-xs sm:text-sm text-charcoal-900 leading-relaxed font-sans">
+                          {post.content}
+                        </p>
+
+                        {post.molecularFormula && (
+                          <div className="font-formula text-xs text-charcoal-900 bg-ivory-200 px-3 py-1.5 rounded border border-hairline inline-block">
+                            {post.molecularFormula}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Reaction Buttons */}
+                      <div className="pt-3 border-t border-hairline flex items-center gap-4 text-xs font-formula">
+                        <button
+                          onClick={() => handleToggleReaction(post.id, 'flask')}
+                          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded transition-colors ${
+                            post.myReactions?.flask
+                              ? 'bg-burgundy-50 text-burgundy-600 font-bold border border-burgundy-200'
+                              : 'hover:bg-ivory-200 text-charcoal-100'
+                          }`}
+                        >
+                          <FlaskConical className="w-3.5 h-3.5 text-burgundy-500" />
+                          <span>{post.reactions.flask} Mastery</span>
+                        </button>
+
+                        <button
+                          onClick={() => handleToggleReaction(post.id, 'bulb')}
+                          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded transition-colors ${
+                            post.myReactions?.bulb
+                              ? 'bg-amber-50 text-amber-800 font-bold border border-amber-200'
+                              : 'hover:bg-ivory-200 text-charcoal-100'
+                          }`}
+                        >
+                          <Lightbulb className="w-3.5 h-3.5 text-amber-600" />
+                          <span>{post.reactions.bulb} Insight</span>
+                        </button>
+
+                        <button
+                          onClick={() => handleToggleReaction(post.id, 'heart')}
+                          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded transition-colors ${
+                            post.myReactions?.heart
+                              ? 'bg-rose-50 text-rose-700 font-bold border border-rose-200'
+                              : 'hover:bg-ivory-200 text-charcoal-100'
+                          }`}
+                        >
+                          <Heart className="w-3.5 h-3.5 text-rose-600" />
+                          <span>{post.reactions.heart} Resonance</span>
+                        </button>
+                      </div>
+
+                      {/* Comments Thread */}
+                      <div className="space-y-3 pt-2">
+                        {post.comments.length > 0 && (
+                          <div className="space-y-2.5 bg-ivory-50 p-4 rounded border border-hairline">
+                            {post.comments.map((comm) => (
+                              <div key={comm.id} className="flex items-start justify-between gap-2 text-xs">
+                                <div className="space-y-1">
+                                  <div className="flex items-center gap-2">
+                                    <span className="font-bold text-charcoal-900">
+                                      {comm.authorName}
+                                    </span>
+                                    {comm.authorRole === 'INSTRUCTOR' && (
+                                      <span className="font-formula text-[9px] font-bold text-burgundy-500 bg-burgundy-50 px-1.5 py-0.1 rounded border border-burgundy-200">
+                                        Dr. Omar Magdi
+                                      </span>
+                                    )}
+                                    <span className="font-formula text-[10px] text-charcoal-50">
+                                      {comm.createdAt}
+                                    </span>
+                                  </div>
+                                  <p className="text-charcoal-100 font-sans leading-relaxed">
+                                    {comm.content}
+                                  </p>
+                                </div>
+
+                                {isInstructor && (
+                                  <button
+                                    onClick={() => handleDeleteComment(post.id, comm.id)}
+                                    title="Delete Comment (Admin)"
+                                    className="p-1 text-charcoal-50 hover:text-rose-700 rounded"
+                                  >
+                                    <Trash2 className="w-3 h-3" />
+                                  </button>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* Add Comment Box */}
+                        <form
+                          onSubmit={(e) => handleAddComment(post.id, e)}
+                          className="flex items-center gap-2 pt-1"
+                        >
+                          <input
+                            type="text"
+                            value={commentInputs[post.id] || ''}
+                            onChange={(e) =>
+                              setCommentInputs((prev) => ({ ...prev, [post.id]: e.target.value }))
+                            }
+                            placeholder="Write an academic response or question..."
+                            className="flex-1 px-3 py-2 text-xs bg-ivory-50 border border-hairline rounded text-charcoal-900 placeholder:text-charcoal-50/50 focus:outline-none focus:border-burgundy-500"
+                          />
+                          <button
+                            type="submit"
+                            className="px-4 py-2 rounded bg-burgundy-500 hover:bg-burgundy-800 text-ivory-100 text-xs font-semibold shadow-quiet transition-colors"
+                          >
+                            Reply
+                          </button>
+                        </form>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* TAB 3: ADMISSIONS & WAITLIST MANAGEMENT */}
             {adminTab === 'waitlist' && (
               <div className="space-y-6">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -961,7 +1618,7 @@ export default function DashboardPage() {
               </div>
             )}
 
-            {/* TAB 3: GRADING DESK (SUBMISSIONS) */}
+            {/* TAB 4: GRADING DESK (SUBMISSIONS) */}
             {adminTab === 'submissions' && (
               <div className="space-y-6">
                 <div>
@@ -1059,7 +1716,7 @@ export default function DashboardPage() {
               </div>
             )}
 
-            {/* TAB 4: COHORT STUDENT ROSTER */}
+            {/* TAB 5: COHORT STUDENT ROSTER */}
             {adminTab === 'roster' && (
               <div className="space-y-6">
                 <div>
@@ -1161,10 +1818,10 @@ export default function DashboardPage() {
             </div>
 
             {/* Student Navigation Tabs */}
-            <div className="border-b border-hairline flex items-center gap-8 text-sm font-semibold">
+            <div className="border-b border-hairline flex items-center gap-8 text-sm font-semibold overflow-x-auto">
               <button
                 onClick={() => setStudentTab('courses')}
-                className={`pb-3 border-b-2 transition-colors ${
+                className={`pb-3 border-b-2 transition-colors whitespace-nowrap ${
                   studentTab === 'courses'
                     ? 'border-burgundy-500 text-burgundy-500'
                     : 'border-transparent text-charcoal-100 hover:text-charcoal-900'
@@ -1172,9 +1829,24 @@ export default function DashboardPage() {
               >
                 Curriculum Tracks ({courses.length})
               </button>
+
+              <button
+                onClick={() => setStudentTab('timeline')}
+                className={`pb-3 border-b-2 transition-colors whitespace-nowrap flex items-center gap-1.5 ${
+                  studentTab === 'timeline'
+                    ? 'border-burgundy-500 text-burgundy-500'
+                    : 'border-transparent text-charcoal-100 hover:text-charcoal-900'
+                }`}
+              >
+                <span>Academic Timeline</span>
+                <span className="font-formula text-xs px-2 py-0.5 rounded-full bg-burgundy-50 text-burgundy-500 border border-burgundy-200">
+                  {posts.length}
+                </span>
+              </button>
+
               <button
                 onClick={() => setStudentTab('tasks')}
-                className={`pb-3 border-b-2 transition-colors flex items-center gap-1.5 ${
+                className={`pb-3 border-b-2 transition-colors whitespace-nowrap flex items-center gap-1.5 ${
                   studentTab === 'tasks'
                     ? 'border-burgundy-500 text-burgundy-500'
                     : 'border-transparent text-charcoal-100 hover:text-charcoal-900'
@@ -1185,9 +1857,10 @@ export default function DashboardPage() {
                   {submissions.length}
                 </span>
               </button>
+
               <button
                 onClick={() => setStudentTab('booklets')}
-                className={`pb-3 border-b-2 transition-colors ${
+                className={`pb-3 border-b-2 transition-colors whitespace-nowrap ${
                   studentTab === 'booklets'
                     ? 'border-burgundy-500 text-burgundy-500'
                     : 'border-transparent text-charcoal-100 hover:text-charcoal-900'
@@ -1195,9 +1868,10 @@ export default function DashboardPage() {
               >
                 Academic Booklets
               </button>
+
               <button
                 onClick={() => setStudentTab('quizzes')}
-                className={`pb-3 border-b-2 transition-colors ${
+                className={`pb-3 border-b-2 transition-colors whitespace-nowrap ${
                   studentTab === 'quizzes'
                     ? 'border-burgundy-500 text-burgundy-500'
                     : 'border-transparent text-charcoal-100 hover:text-charcoal-900'
@@ -1280,7 +1954,197 @@ export default function DashboardPage() {
               </div>
             )}
 
-            {/* STUDENT TAB 2: TASKS */}
+            {/* STUDENT TAB 2: TIMELINE */}
+            {studentTab === 'timeline' && (
+              <div className="space-y-8 max-w-4xl mx-auto">
+                <div className="border-b border-hairline pb-4">
+                  <h2 className="text-xl font-bold text-charcoal-900 font-display">
+                    Academic Community Feed
+                  </h2>
+                  <p className="text-xs text-charcoal-100 font-sans mt-0.5">
+                    Engage in conceptual discussions with Dr. Omar Magdi and fellow scholars across all 4 cohorts.
+                  </p>
+                </div>
+
+                {/* Student New Question / Post */}
+                <form onSubmit={handleCreatePost} className="border border-hairline rounded bg-ivory-100 p-5 space-y-4 shadow-quiet">
+                  <div className="flex items-center gap-3">
+                    <img
+                      src={currentUser?.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=80'}
+                      alt="Avatar"
+                      className="w-9 h-9 rounded-full object-cover border border-hairline"
+                    />
+                    <div>
+                      <span className="text-xs font-bold text-charcoal-900 block">
+                        {currentUser?.name || 'Scholar'}
+                      </span>
+                      <span className="text-[10px] font-formula text-charcoal-50 uppercase">
+                        Ask a Conceptual Chemistry Question
+                      </span>
+                    </div>
+                  </div>
+
+                  <textarea
+                    rows={3}
+                    required
+                    value={newPostContent}
+                    onChange={(e) => setNewPostContent(e.target.value)}
+                    placeholder="Ask a question about electron pushing, reaction mechanisms, or equilibrium..."
+                    className="w-full px-3.5 py-2.5 text-xs sm:text-sm bg-ivory-50 border border-hairline rounded text-charcoal-900 placeholder:text-charcoal-50/50 focus:outline-none focus:border-burgundy-500 leading-relaxed"
+                  />
+
+                  <div className="flex justify-end pt-1">
+                    <button
+                      type="submit"
+                      className="inline-flex items-center gap-2 px-5 py-2.5 rounded bg-burgundy-500 hover:bg-burgundy-800 text-ivory-100 text-xs font-semibold shadow-quiet transition-colors"
+                    >
+                      <Send className="w-3.5 h-3.5" />
+                      <span>Post Question</span>
+                    </button>
+                  </div>
+                </form>
+
+                {/* Posts Feed for Student */}
+                <div className="space-y-6">
+                  {posts.map((post) => (
+                    <div
+                      key={post.id}
+                      className="border border-hairline rounded bg-ivory-100 p-6 space-y-4 shadow-quiet"
+                    >
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex items-center gap-3">
+                          <img
+                            src={post.authorAvatar}
+                            alt={post.authorName}
+                            className="w-10 h-10 rounded-full object-cover border border-hairline"
+                          />
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="font-bold text-sm text-charcoal-900">
+                                {post.authorName}
+                              </span>
+                              {post.authorRole === 'INSTRUCTOR' ? (
+                                <span className="font-formula text-[10px] font-bold text-burgundy-500 bg-burgundy-50 px-2 py-0.2 rounded border border-burgundy-200">
+                                  INSTRUCTOR
+                                </span>
+                              ) : (
+                                <span className="font-formula text-[10px] font-semibold text-charcoal-100 bg-ivory-300 px-2 py-0.2 rounded">
+                                  SCHOLAR
+                                </span>
+                              )}
+                            </div>
+                            <span className="text-xs font-formula text-charcoal-50 block mt-0.5">
+                              {post.createdAt} {post.trackBadge && `• ${post.trackBadge}`}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <p className="text-xs sm:text-sm text-charcoal-900 leading-relaxed font-sans">
+                        {post.content}
+                      </p>
+
+                      {post.molecularFormula && (
+                        <div className="font-formula text-xs text-charcoal-900 bg-ivory-200 px-3 py-1.5 rounded border border-hairline inline-block">
+                          {post.molecularFormula}
+                        </div>
+                      )}
+
+                      {/* Reaction Buttons */}
+                      <div className="pt-3 border-t border-hairline flex items-center gap-4 text-xs font-formula">
+                        <button
+                          onClick={() => handleToggleReaction(post.id, 'flask')}
+                          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded transition-colors ${
+                            post.myReactions?.flask
+                              ? 'bg-burgundy-50 text-burgundy-600 font-bold border border-burgundy-200'
+                              : 'hover:bg-ivory-200 text-charcoal-100'
+                          }`}
+                        >
+                          <FlaskConical className="w-3.5 h-3.5 text-burgundy-500" />
+                          <span>{post.reactions.flask} Mastery</span>
+                        </button>
+
+                        <button
+                          onClick={() => handleToggleReaction(post.id, 'bulb')}
+                          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded transition-colors ${
+                            post.myReactions?.bulb
+                              ? 'bg-amber-50 text-amber-800 font-bold border border-amber-200'
+                              : 'hover:bg-ivory-200 text-charcoal-100'
+                          }`}
+                        >
+                          <Lightbulb className="w-3.5 h-3.5 text-amber-600" />
+                          <span>{post.reactions.bulb} Insight</span>
+                        </button>
+
+                        <button
+                          onClick={() => handleToggleReaction(post.id, 'heart')}
+                          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded transition-colors ${
+                            post.myReactions?.heart
+                              ? 'bg-rose-50 text-rose-700 font-bold border border-rose-200'
+                              : 'hover:bg-ivory-200 text-charcoal-100'
+                          }`}
+                        >
+                          <Heart className="w-3.5 h-3.5 text-rose-600" />
+                          <span>{post.reactions.heart} Resonance</span>
+                        </button>
+                      </div>
+
+                      {/* Comments Thread */}
+                      <div className="space-y-3 pt-2">
+                        {post.comments.length > 0 && (
+                          <div className="space-y-2.5 bg-ivory-50 p-4 rounded border border-hairline">
+                            {post.comments.map((comm) => (
+                              <div key={comm.id} className="space-y-1 text-xs">
+                                <div className="flex items-center gap-2">
+                                  <span className="font-bold text-charcoal-900">
+                                    {comm.authorName}
+                                  </span>
+                                  {comm.authorRole === 'INSTRUCTOR' && (
+                                    <span className="font-formula text-[9px] font-bold text-burgundy-500 bg-burgundy-50 px-1.5 py-0.1 rounded border border-burgundy-200">
+                                      Dr. Omar Magdi
+                                    </span>
+                                  )}
+                                  <span className="font-formula text-[10px] text-charcoal-50">
+                                    {comm.createdAt}
+                                  </span>
+                                </div>
+                                <p className="text-charcoal-100 font-sans leading-relaxed">
+                                  {comm.content}
+                                </p>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* Add Comment Box */}
+                        <form
+                          onSubmit={(e) => handleAddComment(post.id, e)}
+                          className="flex items-center gap-2 pt-1"
+                        >
+                          <input
+                            type="text"
+                            value={commentInputs[post.id] || ''}
+                            onChange={(e) =>
+                              setCommentInputs((prev) => ({ ...prev, [post.id]: e.target.value }))
+                            }
+                            placeholder="Write a comment..."
+                            className="flex-1 px-3 py-2 text-xs bg-ivory-50 border border-hairline rounded text-charcoal-900 placeholder:text-charcoal-50/50 focus:outline-none focus:border-burgundy-500"
+                          />
+                          <button
+                            type="submit"
+                            className="px-4 py-2 rounded bg-burgundy-500 hover:bg-burgundy-800 text-ivory-100 text-xs font-semibold shadow-quiet transition-colors"
+                          >
+                            Reply
+                          </button>
+                        </form>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* STUDENT TAB 3: TASKS */}
             {studentTab === 'tasks' && (
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
@@ -1351,12 +2215,12 @@ export default function DashboardPage() {
               </div>
             )}
 
-            {/* STUDENT TAB 3: BOOKLETS */}
+            {/* STUDENT TAB 4: BOOKLETS */}
             {studentTab === 'booklets' && (
               <BookletsView booklets={BOOKLETS} />
             )}
 
-            {/* STUDENT TAB 4: QUIZZES */}
+            {/* STUDENT TAB 5: QUIZZES */}
             {studentTab === 'quizzes' && (
               <div className="space-y-6">
                 {!activeQuiz ? (
@@ -1503,7 +2367,158 @@ export default function DashboardPage() {
       </main>
 
       {/* ========================================================= */}
-      {/* MODAL 1: CREATE NEW COURSE (Dr. Omar Course Builder)       */}
+      {/* MODAL: PROFILE & CUSTOMIZATION                            */}
+      {/* ========================================================= */}
+      {isProfileModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-charcoal-900/60 backdrop-blur-sm">
+          <div className="bg-ivory-100 border border-hairline rounded-lg shadow-editorial max-w-lg w-full overflow-hidden">
+            <div className="p-5 border-b border-hairline bg-ivory-200 flex items-center justify-between">
+              <div>
+                <span className="font-formula text-xs text-burgundy-500 font-bold uppercase tracking-wider block">
+                  PROFILE SETTINGS
+                </span>
+                <h3 className="font-bold text-charcoal-900 font-display text-sm">
+                  Edit Personal & Academic Profile
+                </h3>
+              </div>
+              <button
+                onClick={() => setIsProfileModalOpen(false)}
+                className="text-charcoal-50 hover:text-charcoal-900 p-1"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveProfile} className="p-6 space-y-4">
+              <div className="flex items-center gap-4 border-b border-hairline pb-4">
+                <img
+                  src={profileAvatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80'}
+                  alt="Profile Preview"
+                  className="w-16 h-16 rounded-full object-cover border-2 border-burgundy-500/30"
+                />
+                <div className="flex-1 space-y-1">
+                  <label className="block text-xs font-semibold text-charcoal-900 font-sans">
+                    Avatar Image URL (رابط الصورة الشخصية)
+                  </label>
+                  <input
+                    type="url"
+                    value={profileAvatar}
+                    onChange={(e) => setProfileAvatar(e.target.value)}
+                    placeholder="https://images.unsplash.com/..."
+                    className="w-full px-3 py-1.5 text-xs bg-ivory-50 border border-hairline rounded text-charcoal-900 focus:outline-none focus:border-burgundy-500"
+                  />
+                  <div className="flex items-center gap-2 pt-1 text-[11px] text-charcoal-50">
+                    <span>Quick presets:</span>
+                    <button
+                      type="button"
+                      onClick={() => setProfileAvatar('https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80')}
+                      className="text-burgundy-500 hover:underline"
+                    >
+                      Default Fellow
+                    </button>
+                    <span>•</span>
+                    <button
+                      type="button"
+                      onClick={() => setProfileAvatar('https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300&auto=format&fit=crop&q=80')}
+                      className="text-burgundy-500 hover:underline"
+                    >
+                      Professor
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-charcoal-900 font-sans mb-1">
+                    Display Name (الاسم الكامل)
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={profileName}
+                    onChange={(e) => setProfileName(e.target.value)}
+                    className="w-full px-3 py-2 text-xs bg-ivory-50 border border-hairline rounded font-bold text-charcoal-900 focus:outline-none focus:border-burgundy-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-charcoal-900 font-sans mb-1">
+                    Academic Title (اللقب الأكاديمي)
+                  </label>
+                  <input
+                    type="text"
+                    value={profileTitle}
+                    onChange={(e) => setProfileTitle(e.target.value)}
+                    placeholder="Academic Director & Senior Fellow"
+                    className="w-full px-3 py-2 text-xs bg-ivory-50 border border-hairline rounded text-charcoal-900 focus:outline-none focus:border-burgundy-500"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-charcoal-900 font-sans mb-1">
+                    Specialization (التخصص العلمي)
+                  </label>
+                  <input
+                    type="text"
+                    value={profileSpecialization}
+                    onChange={(e) => setProfileSpecialization(e.target.value)}
+                    placeholder="Organic Reaction Mechanisms"
+                    className="w-full px-3 py-2 text-xs bg-ivory-50 border border-hairline rounded text-charcoal-900 focus:outline-none focus:border-burgundy-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-charcoal-900 font-sans mb-1">
+                    Phone / WhatsApp
+                  </label>
+                  <input
+                    type="tel"
+                    value={profilePhone}
+                    onChange={(e) => setProfilePhone(e.target.value)}
+                    placeholder="+20 10xxxxxxxx"
+                    className="w-full px-3 py-2 text-xs bg-ivory-50 border border-hairline rounded text-charcoal-900 focus:outline-none focus:border-burgundy-500"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-charcoal-900 font-sans mb-1">
+                  Bio / Academic Manifesto (النبذة التعريفية)
+                </label>
+                <textarea
+                  rows={3}
+                  value={profileBio}
+                  onChange={(e) => setProfileBio(e.target.value)}
+                  placeholder="Specialist in organic mechanisms and advanced physical chemistry..."
+                  className="w-full px-3 py-2 text-xs bg-ivory-50 border border-hairline rounded text-charcoal-900 font-sans focus:outline-none focus:border-burgundy-500 leading-relaxed"
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsProfileModalOpen(false)}
+                  className="px-4 py-2 rounded border border-hairline text-charcoal-50 text-xs font-semibold"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 rounded bg-burgundy-500 hover:bg-burgundy-800 text-ivory-100 text-xs font-semibold shadow-quiet"
+                >
+                  Save Profile Changes
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================= */}
+      {/* MODAL: CREATE NEW COURSE                                  */}
       {/* ========================================================= */}
       {isCreateCourseOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-charcoal-900/60 backdrop-blur-sm">
@@ -1560,7 +2575,7 @@ export default function DashboardPage() {
 
                 <div>
                   <label className="block text-xs font-semibold text-charcoal-900 font-sans mb-1">
-                    Academic Level (الصف / المستوى)
+                    Academic Level (المستوى الدراسي)
                   </label>
                   <input
                     type="text"
@@ -1662,7 +2677,159 @@ export default function DashboardPage() {
       )}
 
       {/* ========================================================= */}
-      {/* MODAL 2: ADD LECTURE MODULE                               */}
+      {/* MODAL: EDIT EXISTING COURSE                               */}
+      {/* ========================================================= */}
+      {isEditCourseOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-charcoal-900/60 backdrop-blur-sm">
+          <div className="bg-ivory-100 border border-hairline rounded-lg shadow-editorial max-w-lg w-full overflow-hidden">
+            <div className="p-5 border-b border-hairline bg-ivory-200 flex items-center justify-between">
+              <div>
+                <span className="font-formula text-xs text-burgundy-500 font-bold uppercase tracking-wider block">
+                  EDIT COURSE
+                </span>
+                <h3 className="font-bold text-charcoal-900 font-display text-sm">
+                  Modify Syllabus & Course Parameters
+                </h3>
+              </div>
+              <button
+                onClick={() => setIsEditCourseOpen(false)}
+                className="text-charcoal-50 hover:text-charcoal-900 p-1"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleUpdateCourse} className="p-6 space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-charcoal-900 font-sans mb-1">
+                  Academic Track
+                </label>
+                <select
+                  value={editCourseCategory}
+                  onChange={(e) => setEditCourseCategory(e.target.value as AcademicCategory)}
+                  className="w-full px-3 py-2 text-xs bg-ivory-50 border border-hairline rounded text-charcoal-900 font-sans focus:outline-none focus:border-burgundy-500"
+                >
+                  {ACADEMIC_TRACKS.map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.name} — {t.nameAr}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-charcoal-900 font-sans mb-1">
+                    Course Code
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={editCourseCode}
+                    onChange={(e) => setEditCourseCode(e.target.value)}
+                    className="w-full px-3 py-2 text-xs bg-ivory-50 border border-hairline rounded font-formula text-charcoal-900 focus:outline-none focus:border-burgundy-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-charcoal-900 font-sans mb-1">
+                    Academic Level
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={editCourseLevel}
+                    onChange={(e) => setEditCourseLevel(e.target.value)}
+                    className="w-full px-3 py-2 text-xs bg-ivory-50 border border-hairline rounded text-charcoal-900 focus:outline-none focus:border-burgundy-500"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-charcoal-900 font-sans mb-1">
+                  Course Title
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={editCourseTitle}
+                  onChange={(e) => setEditCourseTitle(e.target.value)}
+                  className="w-full px-3 py-2 text-xs bg-ivory-50 border border-hairline rounded text-charcoal-900 focus:outline-none focus:border-burgundy-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-charcoal-900 font-sans mb-1">
+                  Subtitle
+                </label>
+                <input
+                  type="text"
+                  value={editCourseSubtitle}
+                  onChange={(e) => setEditCourseSubtitle(e.target.value)}
+                  className="w-full px-3 py-2 text-xs bg-ivory-50 border border-hairline rounded text-charcoal-900 focus:outline-none focus:border-burgundy-500"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-charcoal-900 font-sans mb-1">
+                    Molecular Formula / Badge
+                  </label>
+                  <input
+                    type="text"
+                    value={editCourseFormula}
+                    onChange={(e) => setEditCourseFormula(e.target.value)}
+                    className="w-full px-3 py-2 text-xs bg-ivory-50 border border-hairline rounded font-formula text-charcoal-900 focus:outline-none focus:border-burgundy-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-charcoal-900 font-sans mb-1">
+                    Duration Hours
+                  </label>
+                  <input
+                    type="text"
+                    value={editCourseHours}
+                    onChange={(e) => setEditCourseHours(e.target.value)}
+                    className="w-full px-3 py-2 text-xs bg-ivory-50 border border-hairline rounded text-charcoal-900 focus:outline-none focus:border-burgundy-500"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-charcoal-900 font-sans mb-1">
+                  Description
+                </label>
+                <textarea
+                  rows={3}
+                  value={editCourseDesc}
+                  onChange={(e) => setEditCourseDesc(e.target.value)}
+                  className="w-full px-3 py-2 text-xs bg-ivory-50 border border-hairline rounded text-charcoal-900 font-sans focus:outline-none focus:border-burgundy-500"
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsEditCourseOpen(false)}
+                  className="px-4 py-2 rounded border border-hairline text-charcoal-50 text-xs font-semibold"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 rounded bg-burgundy-500 hover:bg-burgundy-800 text-ivory-100 text-xs font-semibold shadow-quiet"
+                >
+                  Update Course
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================= */}
+      {/* MODAL: ADD LECTURE MODULE                                 */}
       {/* ========================================================= */}
       {isAddLectureOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-charcoal-900/60 backdrop-blur-sm">
@@ -1779,7 +2946,103 @@ export default function DashboardPage() {
       )}
 
       {/* ========================================================= */}
-      {/* MODAL 3: REGISTER WALK-IN APPLICANT                       */}
+      {/* MODAL: EDIT LECTURE MODULE                                */}
+      {/* ========================================================= */}
+      {isEditLessonOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-charcoal-900/60 backdrop-blur-sm">
+          <div className="bg-ivory-100 border border-hairline rounded-lg shadow-editorial max-w-md w-full overflow-hidden">
+            <div className="p-5 border-b border-hairline bg-ivory-200 flex items-center justify-between">
+              <div>
+                <span className="font-formula text-xs text-burgundy-500 font-bold uppercase tracking-wider block">
+                  EDIT MODULE
+                </span>
+                <h3 className="font-bold text-charcoal-900 font-display text-sm">
+                  Update Lecture Information
+                </h3>
+              </div>
+              <button
+                onClick={() => setIsEditLessonOpen(false)}
+                className="text-charcoal-50 hover:text-charcoal-900 p-1"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleUpdateLesson} className="p-6 space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-charcoal-900 font-sans mb-1">
+                  Lecture Title
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={editLessonTitle}
+                  onChange={(e) => setEditLessonTitle(e.target.value)}
+                  className="w-full px-3 py-2 text-xs bg-ivory-50 border border-hairline rounded text-charcoal-900 font-sans focus:outline-none focus:border-burgundy-500"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-charcoal-900 font-sans mb-1">
+                    Duration
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={editLessonDuration}
+                    onChange={(e) => setEditLessonDuration(e.target.value)}
+                    className="w-full px-3 py-2 text-xs bg-ivory-50 border border-hairline rounded text-charcoal-900 font-sans focus:outline-none focus:border-burgundy-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-charcoal-900 font-sans mb-1">
+                    Key Formula (optional)
+                  </label>
+                  <input
+                    type="text"
+                    value={editLessonFormula}
+                    onChange={(e) => setEditLessonFormula(e.target.value)}
+                    className="w-full px-3 py-2 text-xs bg-ivory-50 border border-hairline rounded font-formula text-charcoal-900 focus:outline-none focus:border-burgundy-500"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-charcoal-900 font-sans mb-1">
+                  Module Summary
+                </label>
+                <textarea
+                  rows={3}
+                  value={editLessonSummary}
+                  onChange={(e) => setEditLessonSummary(e.target.value)}
+                  className="w-full px-3 py-2 text-xs bg-ivory-50 border border-hairline rounded text-charcoal-900 font-sans focus:outline-none focus:border-burgundy-500"
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsEditLessonOpen(false)}
+                  className="px-4 py-2 rounded border border-hairline text-charcoal-50 text-xs font-semibold"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 rounded bg-burgundy-500 hover:bg-burgundy-800 text-ivory-100 text-xs font-semibold shadow-quiet"
+                >
+                  Save Module Changes
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================= */}
+      {/* MODAL: REGISTER WALK-IN APPLICANT                         */}
       {/* ========================================================= */}
       {isAddApplicantOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-charcoal-900/60 backdrop-blur-sm">
@@ -1882,7 +3145,7 @@ export default function DashboardPage() {
       )}
 
       {/* ========================================================= */}
-      {/* MODAL 4: INSTRUCTOR GRADING DESK MODAL                    */}
+      {/* MODAL: INSTRUCTOR GRADING DESK MODAL                      */}
       {/* ========================================================= */}
       {gradingSubmission && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-charcoal-900/60 backdrop-blur-sm">
@@ -1973,7 +3236,7 @@ export default function DashboardPage() {
       )}
 
       {/* ========================================================= */}
-      {/* MODAL 5: STUDENT SUBMIT PROBLEM SET                       */}
+      {/* MODAL: STUDENT SUBMIT PROBLEM SET                         */}
       {/* ========================================================= */}
       {isSubmitModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-charcoal-900/60 backdrop-blur-sm">

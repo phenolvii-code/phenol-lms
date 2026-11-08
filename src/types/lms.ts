@@ -119,3 +119,36 @@ export interface EnrolledStudent {
   averageGrade: number;
   status: 'active' | 'probation' | 'completed';
 }
+
+export interface TimelineComment {
+  id: string;
+  authorName: string;
+  authorEmail: string;
+  authorRole: 'INSTRUCTOR' | 'STUDENT';
+  authorAvatar: string;
+  content: string;
+  createdAt: string;
+}
+
+export interface TimelinePost {
+  id: string;
+  authorName: string;
+  authorEmail: string;
+  authorRole: 'INSTRUCTOR' | 'STUDENT';
+  authorAvatar: string;
+  trackBadge?: string;
+  content: string;
+  molecularFormula?: string;
+  createdAt: string;
+  reactions: {
+    flask: number; // 🧪 Reaction
+    bulb: number;  // 💡 Insight
+    heart: number; // ❤️ Resonance
+  };
+  myReactions?: {
+    flask?: boolean;
+    bulb?: boolean;
+    heart?: boolean;
+  };
+  comments: TimelineComment[];
+}

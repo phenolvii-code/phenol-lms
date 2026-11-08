@@ -8,6 +8,7 @@ import {
   StudentSubmission,
   WaitlistApplication,
   EnrolledStudent,
+  TimelinePost,
 } from '@/types/lms';
 
 export const ACADEMIC_TRACKS: AcademicTrackCategory[] = [
@@ -440,3 +441,61 @@ export const SUBMISSIONS: StudentSubmission[] = [];
 export const WAITLIST_APPLICANTS: WaitlistApplication[] = [];
 
 export const ENROLLED_STUDENTS: EnrolledStudent[] = [];
+
+export const INITIAL_TIMELINE_POSTS: TimelinePost[] = [
+  {
+    id: 'post-1',
+    authorName: 'Dr. Omar Magdi',
+    authorEmail: 'phenolvii@gmail.com',
+    authorRole: 'INSTRUCTOR',
+    authorAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80',
+    trackBadge: 'Academic Announcement',
+    content: 'Welcome to the PHENOL Academic Community. Here, we deconstruct chemical phenomena from first principles rather than memorizing surface equations. Feel free to raise questions on organic reaction mechanisms, arenium ion resonance canonicals, or Le Chatelier perturbations below.',
+    molecularFormula: 'C₆H₅OH ↔ C₆H₅O⁻ + H⁺ (pKa = 9.95)',
+    createdAt: 'Today, 10:30 AM',
+    reactions: { flask: 14, bulb: 9, heart: 21 },
+    comments: [
+      {
+        id: 'c-1',
+        authorName: 'Ahmed Hossam El-Din',
+        authorEmail: 'ahmed.hossam@student.edu',
+        authorRole: 'STUDENT',
+        authorAvatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=80',
+        content: 'دكتور عمر، هل استقرار أيون الفينوكسيد بالرنين يؤثر على توجيه تفاعلات الاستبدال الإلكتروفيلي القادمة؟',
+        createdAt: 'Today, 11:15 AM',
+      },
+      {
+        id: 'c-2',
+        authorName: 'Dr. Omar Magdi',
+        authorEmail: 'phenolvii@gmail.com',
+        authorRole: 'INSTRUCTOR',
+        authorAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80',
+        content: 'نعم تماماً يا أحمد. زوج الإلكترونات غير الرابط على ذرة الأكسجين يزيد الكثافة الإلكترونية عند الموضعين أورثو وبارا (Ortho & Para)، مما يجعلهما الأكثر نشاطاً واستقطاباً للهجوم الإلكتروفيلي، وهو ما ندرسه تفصيلياً في ميكانزم النيترة والتبريم.',
+        createdAt: 'Today, 11:45 AM',
+      },
+    ],
+  },
+  {
+    id: 'post-2',
+    authorName: 'Salma Khaled El-Nemr',
+    authorEmail: 'salma.k@phenol.academy',
+    authorRole: 'STUDENT',
+    authorAvatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&auto=format&fit=crop&q=80',
+    trackBadge: 'Physical Equilibrium',
+    content: 'Why does increasing pressure shift the Haber-Bosch equilibrium to the right without changing the numerical equilibrium constant Kp?',
+    molecularFormula: 'N₂(g) + 3 H₂(g) ⇌ 2 NH₃(g) (Δn = -2)',
+    createdAt: 'Yesterday, 04:20 PM',
+    reactions: { flask: 8, bulb: 15, heart: 6 },
+    comments: [
+      {
+        id: 'c-3',
+        authorName: 'Dr. Omar Magdi',
+        authorEmail: 'phenolvii@gmail.com',
+        authorRole: 'INSTRUCTOR',
+        authorAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80',
+        content: 'Excellent conceptual inquiry, Salma! Increasing pressure forces the system to reduce its molar volume (4 moles gas → 2 moles gas). Kp depends strictly on temperature (van \'t Hoff relation); the partial pressures adjust dynamically to maintain the exact ratio Kp constant.',
+        createdAt: 'Yesterday, 05:10 PM',
+      },
+    ],
+  },
+];

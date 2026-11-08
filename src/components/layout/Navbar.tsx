@@ -122,15 +122,6 @@ export const Navbar: React.FC<NavbarProps> = ({
                   >
                     Enroll Now
                   </button>
-
-                  <button
-                    onClick={() => (onOpenAuthModal ? onOpenAuthModal('INSTRUCTOR_LOGIN') : null)}
-                    title="Instructor Administration Portal"
-                    aria-label="Instructor Administration Portal"
-                    className="p-2 text-charcoal-50 hover:text-burgundy-500 rounded transition-colors"
-                  >
-                    <Lock className="w-4 h-4" />
-                  </button>
                 </div>
 
                 {/* Mobile Single CTA */}
