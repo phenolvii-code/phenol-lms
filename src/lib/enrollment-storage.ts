@@ -7,6 +7,7 @@
 import { AuthUser, ADMIN_EMAILS } from '@/types/auth';
 import { ChemistryCourse } from '@/types/lms';
 import { getStudentAcademicCode } from '@/lib/student-code';
+import { supabase } from '@/lib/supabase';
 
 export type EnrollmentStatus = 'PENDING' | 'ACTIVE' | 'REJECTED';
 
@@ -137,6 +138,36 @@ export const saveStoredEnrollments = (enrollments: CourseEnrollment[]): void => 
     localStorage.setItem(ENROLLMENTS_KEY, JSON.stringify(clean));
     window.dispatchEvent(new Event('phenol_enrollments_updated'));
 
+    // Sync to Supabase cloud database
+    supabase
+      .from('course_enrollments')
+      .upsert(
+        clean.map((e) => ({
+          id: e.id,
+          student_id: e.studentId,
+          student_email: e.studentEmail.toLowerCase(),
+          student_name: e.studentName,
+          student_phone: e.studentPhone,
+          student_code: e.studentCode,
+          student_track: e.studentTrack,
+          student_avatar: e.studentAvatar || '',
+          course_id: e.courseId,
+          course_title: e.courseTitle,
+          course_code: e.courseCode,
+          status: e.status,
+          requested_at: e.requestedAt,
+          approved_at: e.approvedAt || null,
+          progress_percent: e.progressPercent,
+          completed_lessons_count: e.completedLessonsCount,
+          total_lessons_count: e.totalLessonsCount,
+          average_quiz_grade: e.averageQuizGrade,
+          last_active_date: e.lastActiveDate,
+          last_lesson_title: e.lastLessonTitle || null,
+        })),
+        { onConflict: 'id' }
+      )
+      .then(() => {}, () => {});
+
     // Sync to server API in background
     fetch('/api/students', {
       method: 'POST',
@@ -178,6 +209,25 @@ export const saveRegisteredStudents = (students: RegisteredStudent[]): void => {
     const clean = students.filter((s) => !isDummy(s.email, s.id) && !isAdminEmail(s.email));
     localStorage.setItem(REGISTERED_STUDENTS_KEY, JSON.stringify(clean));
     window.dispatchEvent(new Event('phenol_students_updated'));
+
+    // Sync to Supabase cloud database
+    supabase
+      .from('registered_students')
+      .upsert(
+        clean.map((s) => ({
+          id: s.id,
+          email: s.email.toLowerCase(),
+          name: s.name,
+          phone: s.phone,
+          academic_code: s.academicCode,
+          academic_track: s.academicTrack,
+          avatar: s.avatar || '',
+          role: s.role,
+          registered_at: s.registeredAt || new Date().toISOString(),
+        })),
+        { onConflict: 'email' }
+      )
+      .then(() => {}, () => {});
 
     // Sync to server API in background
     fetch('/api/students', {
@@ -556,6 +606,73 @@ export const getAggregatedStudentsDirectory = (): StudentOverview[] => {
 export const syncWithServerStudents = async (): Promise<void> => {
   if (typeof window === 'undefined') return;
   try {
+    // 1. Direct Supabase Cloud Sync
+    try {
+      const { data: supaStudents } = await supabase.from('registered_students').select('*');
+      if (Array.isArray(supaStudents) && supaStudents.length > 0) {
+        const local = getRegisteredStudents();
+        const mergedMap = new Map<string, RegisteredStudent>();
+        local.forEach((s) => mergedMap.set(s.email.toLowerCase(), s));
+        supaStudents.forEach((st: any) => {
+          if (!isDummy(st.email, st.id) && !isAdminEmail(st.email)) {
+            mergedMap.set(st.email.toLowerCase(), {
+              id: st.id,
+              email: st.email.toLowerCase(),
+              name: st.name,
+              phone: st.phone,
+              academicCode: st.academic_code,
+              academicTrack: st.academic_track,
+              avatar: st.avatar,
+              role: 'STUDENT',
+              registeredAt: st.registered_at ? st.registered_at.split('T')[0] : '2026-11-01',
+            });
+          }
+        });
+        const finalStudents = Array.from(mergedMap.values());
+        localStorage.setItem(REGISTERED_STUDENTS_KEY, JSON.stringify(finalStudents));
+        window.dispatchEvent(new Event('phenol_students_updated'));
+      }
+    } catch (e) {}
+
+    try {
+      const { data: supaEnr } = await supabase.from('course_enrollments').select('*');
+      if (Array.isArray(supaEnr) && supaEnr.length > 0) {
+        const localEnr = getStoredEnrollments();
+        const enrMap = new Map<string, CourseEnrollment>();
+        localEnr.forEach((e) => enrMap.set(e.id, e));
+        supaEnr.forEach((e: any) => {
+          if (!isDummy(e.student_email, e.id)) {
+            enrMap.set(e.id, {
+              id: e.id,
+              studentId: e.student_id,
+              studentEmail: e.student_email.toLowerCase(),
+              studentName: e.student_name,
+              studentPhone: e.student_phone,
+              studentCode: e.student_code,
+              studentTrack: e.student_track,
+              studentAvatar: e.student_avatar,
+              courseId: e.course_id,
+              courseTitle: e.course_title,
+              courseCode: e.course_code,
+              status: e.status,
+              requestedAt: e.requested_at,
+              approvedAt: e.approved_at,
+              progressPercent: e.progress_percent,
+              completedLessonsCount: e.completed_lessons_count,
+              totalLessonsCount: e.total_lessons_count,
+              averageQuizGrade: e.average_quiz_grade,
+              lastActiveDate: e.last_active_date,
+              lastLessonTitle: e.last_lesson_title,
+            });
+          }
+        });
+        const finalEnr = Array.from(enrMap.values());
+        localStorage.setItem(ENROLLMENTS_KEY, JSON.stringify(finalEnr));
+        window.dispatchEvent(new Event('phenol_enrollments_updated'));
+      }
+    } catch (e) {}
+
+    // 2. Background API fallback
     const res = await fetch('/api/students');
     if (!res.ok) return;
     const data = await res.json();

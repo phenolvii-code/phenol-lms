@@ -1,10 +1,58 @@
 -- ============================================================================
--- PHENOL Academic Platform — Supabase Production Schema
+-- PHENOL ACADEMY — Supabase Production Database Schema
 -- Designed for Dr. Omar Magdi
--- 4 Core Tracks: Thanaweya Arabic, Thanaweya Languages, IGCSE & STEM, University
+-- 100% Clean Architecture (Zero Dummy Data / Real-time Sync / RLS Enabled)
 -- ============================================================================
 
--- 1. WAITLIST & ADMISSION APPLICATIONS
+-- 1. REGISTERED STUDENTS DIRECTORY (All registered scholars)
+CREATE TABLE IF NOT EXISTS public.registered_students (
+    id TEXT PRIMARY KEY,
+    email TEXT UNIQUE NOT NULL,
+    name TEXT NOT NULL,
+    phone TEXT NOT NULL DEFAULT 'Pending WhatsApp Verification',
+    academic_code TEXT NOT NULL,
+    academic_track TEXT NOT NULL DEFAULT 'Public Secondary AR',
+    avatar TEXT,
+    role TEXT NOT NULL DEFAULT 'STUDENT',
+    registered_at TIMESTAMPTZ DEFAULT NOW(),
+    last_active TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE public.registered_students ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Public full access registered_students" ON public.registered_students;
+CREATE POLICY "Public full access registered_students" ON public.registered_students FOR ALL USING (true) WITH CHECK (true);
+
+
+-- 2. COURSE ACTIVATION REQUESTS & ENROLLMENT ROSTER
+CREATE TABLE IF NOT EXISTS public.course_enrollments (
+    id TEXT PRIMARY KEY,
+    student_id TEXT NOT NULL,
+    student_email TEXT NOT NULL,
+    student_name TEXT NOT NULL,
+    student_phone TEXT NOT NULL,
+    student_code TEXT NOT NULL,
+    student_track TEXT NOT NULL,
+    student_avatar TEXT,
+    course_id TEXT NOT NULL,
+    course_title TEXT NOT NULL,
+    course_code TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'PENDING' CHECK (status IN ('PENDING', 'ACTIVE', 'REJECTED')),
+    requested_at TIMESTAMPTZ DEFAULT NOW(),
+    approved_at TIMESTAMPTZ,
+    progress_percent INT DEFAULT 0,
+    completed_lessons_count INT DEFAULT 0,
+    total_lessons_count INT DEFAULT 0,
+    average_quiz_grade NUMERIC DEFAULT 0,
+    last_active_date TEXT DEFAULT 'Active today',
+    last_lesson_title TEXT
+);
+
+ALTER TABLE public.course_enrollments ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Public full access course_enrollments" ON public.course_enrollments;
+CREATE POLICY "Public full access course_enrollments" ON public.course_enrollments FOR ALL USING (true) WITH CHECK (true);
+
+
+-- 3. ADMISSION & WAITLIST APPLICATIONS
 CREATE TABLE IF NOT EXISTS public.waitlist_applications (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     created_at TIMESTAMPTZ DEFAULT NOW(),
@@ -17,29 +65,12 @@ CREATE TABLE IF NOT EXISTS public.waitlist_applications (
     notes TEXT
 );
 
--- Enable Row Level Security (RLS)
 ALTER TABLE public.waitlist_applications ENABLE ROW LEVEL SECURITY;
-
--- Allow public admission form submissions
-CREATE POLICY "Allow public insert to waitlist_applications"
-ON public.waitlist_applications
-FOR INSERT
-WITH CHECK (true);
-
--- Allow authenticated reads / admin reads
-CREATE POLICY "Allow authenticated read waitlist_applications"
-ON public.waitlist_applications
-FOR SELECT
-USING (true);
-
--- Allow authenticated updates
-CREATE POLICY "Allow authenticated update waitlist_applications"
-ON public.waitlist_applications
-FOR UPDATE
-USING (true);
+DROP POLICY IF EXISTS "Public full access waitlist_applications" ON public.waitlist_applications;
+CREATE POLICY "Public full access waitlist_applications" ON public.waitlist_applications FOR ALL USING (true) WITH CHECK (true);
 
 
--- 2. ACADEMIC COURSES TABLE
+-- 4. REAL ACADEMIC COURSES
 CREATE TABLE IF NOT EXISTS public.courses (
     id TEXT PRIMARY KEY,
     code TEXT NOT NULL,
@@ -58,11 +89,11 @@ CREATE TABLE IF NOT EXISTS public.courses (
 );
 
 ALTER TABLE public.courses ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Allow public read courses" ON public.courses FOR SELECT USING (true);
-CREATE POLICY "Allow authenticated write courses" ON public.courses FOR ALL USING (true);
+DROP POLICY IF EXISTS "Public full access courses" ON public.courses;
+CREATE POLICY "Public full access courses" ON public.courses FOR ALL USING (true) WITH CHECK (true);
 
 
--- 3. LESSON MODULES TABLE
+-- 5. LECTURE MODULES
 CREATE TABLE IF NOT EXISTS public.lessons (
     id TEXT PRIMARY KEY,
     course_id TEXT NOT NULL REFERENCES public.courses(id) ON DELETE CASCADE,
@@ -78,11 +109,11 @@ CREATE TABLE IF NOT EXISTS public.lessons (
 );
 
 ALTER TABLE public.lessons ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Allow public read lessons" ON public.lessons FOR SELECT USING (true);
-CREATE POLICY "Allow authenticated write lessons" ON public.lessons FOR ALL USING (true);
+DROP POLICY IF EXISTS "Public full access lessons" ON public.lessons;
+CREATE POLICY "Public full access lessons" ON public.lessons FOR ALL USING (true) WITH CHECK (true);
 
 
--- 4. STUDENT PROBLEM SET SUBMISSIONS
+-- 6. STUDENT PROBLEM SET SUBMISSIONS
 CREATE TABLE IF NOT EXISTS public.student_submissions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     student_name TEXT NOT NULL,
@@ -97,57 +128,107 @@ CREATE TABLE IF NOT EXISTS public.student_submissions (
 );
 
 ALTER TABLE public.student_submissions ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Allow public insert student_submissions" ON public.student_submissions FOR INSERT WITH CHECK (true);
-CREATE POLICY "Allow public read student_submissions" ON public.student_submissions FOR SELECT USING (true);
-CREATE POLICY "Allow public update student_submissions" ON public.student_submissions FOR UPDATE USING (true);
+DROP POLICY IF EXISTS "Public full access student_submissions" ON public.student_submissions;
+CREATE POLICY "Public full access student_submissions" ON public.student_submissions FOR ALL USING (true) WITH CHECK (true);
 
 
--- 5. ENROLLED STUDENTS COHORT ROSTER
-CREATE TABLE IF NOT EXISTS public.enrolled_students (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    code TEXT NOT NULL UNIQUE,
-    full_name TEXT NOT NULL,
-    email TEXT NOT NULL,
-    phone TEXT NOT NULL,
-    track_code TEXT NOT NULL,
-    progress_percent NUMERIC DEFAULT 0,
-    average_grade NUMERIC DEFAULT 100,
-    status TEXT DEFAULT 'active' CHECK (status IN ('active', 'probation', 'completed')),
+-- 7. TIMELINE POSTS & DISCUSSIONS
+CREATE TABLE IF NOT EXISTS public.timeline_posts (
+    id TEXT PRIMARY KEY,
+    author_name TEXT NOT NULL,
+    author_email TEXT NOT NULL,
+    author_role TEXT NOT NULL DEFAULT 'STUDENT',
+    author_avatar TEXT,
+    track_badge TEXT,
+    content TEXT NOT NULL,
+    molecular_formula TEXT,
+    reactions JSONB DEFAULT '{"flask":0,"bulb":0,"heart":0}'::jsonb,
+    comments JSONB DEFAULT '[]'::jsonb,
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-ALTER TABLE public.enrolled_students ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Allow authenticated read enrolled_students" ON public.enrolled_students FOR SELECT USING (true);
-CREATE POLICY "Allow authenticated write enrolled_students" ON public.enrolled_students FOR ALL USING (true);
+ALTER TABLE public.timeline_posts ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Public full access timeline_posts" ON public.timeline_posts;
+CREATE POLICY "Public full access timeline_posts" ON public.timeline_posts FOR ALL USING (true) WITH CHECK (true);
 
 
 -- ============================================================================
--- SEED INITIAL COURSES (The 4 Real Tracks)
+-- 8. AUTOMATIC AUTH TRIGGER: SYNC EVERY REGISTERED USER TO DATABASE
+-- Whenever a student signs up via Email or Google OAuth, they immediately
+-- appear in Dr. Omar's Student Directory!
 -- ============================================================================
 
-INSERT INTO public.courses (id, code, title, sub_title, description, category, category_name, level, molecular_formula, thumbnail, total_hours)
-VALUES
--- Track 1: Thanaweya Amma (Arabic)
-('chem-ar-301', 'CHEM-AR 301', 'الكيمياء العضوية الشاملة للثانوية العامة', 'الهيدروكربونات، مشتقات الهيدروكربونات، واستقرار أيون الفينوكسيد بالرنين', 'منهج الكيمياء العضوية للصف الثالث الثانوي مبني على الفهم الفيزيائي لحركة الإلكترونات وقواعد التسمية بنظام الأيوباك وميكانزمات التفاعل خطوة بخطوة.', 'thanaweya-arabic', 'ثانوية عامة عربي', 'الصف الثالث الثانوي', 'C₆H₅OH / IUPAC', 'https://images.unsplash.com/photo-1532187863486-abf9dbad1b69?w=800&auto=format&fit=crop&q=80', '36 ساعة تدريسية'),
-('chem-ar-201', 'CHEM-AR 201', 'الاتزان الكيميائي والكيمياء الكهربية', 'قاعدة لوشاتيليه، ثابت الاتزان Kc و Kp، وحسابات القوة الدافعة الكهربية emf', 'تأصيل رياضي ومفاهيمي دقيق لقوانين الاتزان الكيميائي والأيوني، مع دراسة تفصيلية للخلايا الجلفانية والإلكتروليتية وتطبيقات قوانين فاراداي.', 'thanaweya-arabic', 'ثانوية عامة عربي', 'الصف الثالث الثانوي', 'Kc = [Products] / [Reactants]', 'https://images.unsplash.com/photo-1603555501671-8f96b3fce8b4?w=800&auto=format&fit=crop&q=80', '28 ساعة تدريسية'),
+CREATE OR REPLACE FUNCTION public.handle_new_auth_user()
+RETURNS trigger AS $$
+BEGIN
+  -- Ignore instructor email from student directory
+  IF NEW.email = 'phenolvii@gmail.com' THEN
+    RETURN NEW;
+  END IF;
 
--- Track 2: Thanaweya Amma (Languages)
-('chem-lang-301', 'CHEM-LANG 301', 'Organic Chemistry & Reaction Mechanisms (Languages)', 'Hydrocarbons, Functional Derivatives & Phenol Resonance Pathways', 'The official Egyptian National Languages curriculum delivered in English with rigorous focus on electron pushing, IUPAC naming conventions, and phenolic acidity stabilization.', 'thanaweya-languages', 'Thanaweya Amma (Languages)', 'Secondary 3 (Languages)', 'C₆H₅OH', 'https://images.unsplash.com/photo-1532187863486-abf9dbad1b69?w=800&auto=format&fit=crop&q=80', '36 Academic Hours'),
-('chem-lang-201', 'CHEM-LANG 201', 'Equilibrium, Reaction Kinetics & Electrochemistry (Languages)', 'Le Chatelier Principle, Ionic Equilibria & Galvanic / Electrolytic Cells', 'Mathematical and conceptual mastery of dynamic equilibria, buffer systems, pH derivations, and electrochemical cell potentials.', 'thanaweya-languages', 'Thanaweya Amma (Languages)', 'Secondary 3 (Languages)', 'ΔG° = -nFE°', 'https://images.unsplash.com/photo-1576086213369-97a306d36557?w=800&auto=format&fit=crop&q=80', '28 Academic Hours'),
+  INSERT INTO public.registered_students (
+    id,
+    email,
+    name,
+    phone,
+    academic_code,
+    academic_track,
+    role,
+    registered_at,
+    last_active
+  )
+  VALUES (
+    NEW.id::text,
+    LOWER(TRIM(NEW.email)),
+    COALESCE(NULLIF(NEW.raw_user_meta_data->>'full_name', ''), split_part(NEW.email, '@', 1)),
+    COALESCE(NULLIF(NEW.raw_user_meta_data->>'phone', ''), 'Pending WhatsApp Verification'),
+    COALESCE(NULLIF(NEW.raw_user_meta_data->>'academic_code', ''), 'PH-' || UPPER(SUBSTRING(MD5(NEW.email) FROM 1 FOR 4))),
+    COALESCE(NULLIF(NEW.raw_user_meta_data->>'academic_level', ''), 'Public Secondary AR'),
+    'STUDENT',
+    NOW(),
+    NOW()
+  )
+  ON CONFLICT (email) DO UPDATE SET
+    name = CASE WHEN EXCLUDED.name <> '' THEN EXCLUDED.name ELSE public.registered_students.name END,
+    phone = CASE WHEN EXCLUDED.phone <> 'Pending WhatsApp Verification' THEN EXCLUDED.phone ELSE public.registered_students.phone END,
+    last_active = NOW();
 
--- Track 3: IGCSE & A-Level / STEM
-('chem-ig-301', 'CHEM-IG 301', 'Cambridge & Edexcel IGCSE / A-Level Organic Chemistry', 'AS & A2 Syllabus: Reaction Mechanisms, Optical Isomerism & Arenes', 'Targeted preparation for Cambridge (9701) and Edexcel International A-Level Chemistry syllabi, focusing on curved-arrow mechanisms and synthesis pathways.', 'igcse-stem', 'IGCSE & A-Level / STEM', 'Cambridge / Edexcel (AS & A2)', 'C₆H₅OH / R-OH', 'https://images.unsplash.com/photo-1530497610245-94d3c16cda28?w=800&auto=format&fit=crop&q=80', '40 Academic Hours'),
-('chem-stem-201', 'CHEM-STEM 201', 'STEM Physical Chemistry, Thermodynamics & Kinetics', 'Rate Laws, Arrhenius Activation Energy & Chemical Energetics', 'Advanced course tailored for STEM school scholars and competitive Olympiad candidates seeking first-principles derivations and non-routine problem sets.', 'igcse-stem', 'IGCSE & A-Level / STEM', 'STEM & Advanced A-Level', 'k = A e^(-Ea/RT)', 'https://images.unsplash.com/photo-1603555501671-8f96b3fce8b4?w=800&auto=format&fit=crop&q=80', '30 Academic Hours'),
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- Track 4: University Chemistry
-('chem-uni-401', 'CHEM-UNI 401', 'Advanced Organic Mechanisms & Spectroscopy', 'Faculties of Pharmacy & Science: Retrosynthesis, NMR, IR & Reaction Pathways', 'Undergraduate-level analysis of organic synthesis, aromatic substitution mechanisms, pericyclic reactions, and structural elucidation using NMR and IR.', 'university', 'University Chemistry', 'Undergraduate (Pharmacy / Science)', '¹H-NMR / ¹³C-NMR', 'https://images.unsplash.com/photo-1532187863486-abf9dbad1b69?w=800&auto=format&fit=crop&q=80', '32 Lecture Hours'),
-('chem-uni-402', 'CHEM-UNI 402', 'Biochemistry, Metabolic Pathways & Enzyme Kinetics', 'Faculties of Medicine & Pharmacy: Bioenergetics & Michaelis-Menten Kinetics', 'Molecular analysis of amino acid stereochemistry, peptide conformation, enzyme active-site catalysis, and competitive versus non-competitive inhibition models.', 'university', 'University Chemistry', 'Undergraduate (Medicine / Pharmacy)', 'V₀ = (Vmax [S]) / (Km + [S])', 'https://images.unsplash.com/photo-1530497610245-94d3c16cda28?w=800&auto=format&fit=crop&q=80', '30 Lecture Hours')
-ON CONFLICT (id) DO UPDATE SET
-    title = EXCLUDED.title,
-    sub_title = EXCLUDED.sub_title,
-    description = EXCLUDED.description,
-    category = EXCLUDED.category,
-    category_name = EXCLUDED.category_name,
-    level = EXCLUDED.level,
-    molecular_formula = EXCLUDED.molecular_formula,
-    total_hours = EXCLUDED.total_hours;
+-- Bind Trigger to auth.users
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE FUNCTION public.handle_new_auth_user();
+
+
+-- ============================================================================
+-- 9. BACKFILL EXISTING USERS (Import any account that already registered)
+-- ============================================================================
+
+INSERT INTO public.registered_students (
+  id,
+  email,
+  name,
+  phone,
+  academic_code,
+  academic_track,
+  role,
+  registered_at,
+  last_active
+)
+SELECT 
+  u.id::text,
+  LOWER(TRIM(u.email)),
+  COALESCE(NULLIF(u.raw_user_meta_data->>'full_name', ''), split_part(u.email, '@', 1)),
+  COALESCE(NULLIF(u.raw_user_meta_data->>'phone', ''), 'Pending WhatsApp Verification'),
+  COALESCE(NULLIF(u.raw_user_meta_data->>'academic_code', ''), 'PH-' || UPPER(SUBSTRING(MD5(u.email) FROM 1 FOR 4))),
+  COALESCE(NULLIF(u.raw_user_meta_data->>'academic_level', ''), 'Public Secondary AR'),
+  'STUDENT',
+  u.created_at,
+  NOW()
+FROM auth.users u
+WHERE LOWER(TRIM(u.email)) NOT IN ('phenolvii@gmail.com')
+ON CONFLICT (email) DO NOTHING;
