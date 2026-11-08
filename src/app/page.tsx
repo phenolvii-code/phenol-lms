@@ -139,8 +139,16 @@ export default function Home() {
               </span>
             </div>
 
-            <div className="font-sans text-charcoal-50 text-xs">
-              All Rights Reserved © {new Date().getFullYear()} • PHENOL
+            <div className="flex items-center gap-4 font-sans text-charcoal-50 text-xs">
+              <Link href="/privacy" className="hover:text-burgundy-600 transition-colors underline-offset-4 hover:underline">
+                Privacy Policy
+              </Link>
+              <span>•</span>
+              <Link href="/terms" className="hover:text-burgundy-600 transition-colors underline-offset-4 hover:underline">
+                Terms of Service
+              </Link>
+              <span>•</span>
+              <span>All Rights Reserved © {new Date().getFullYear()} • PHENOL</span>
             </div>
           </div>
         </div>
