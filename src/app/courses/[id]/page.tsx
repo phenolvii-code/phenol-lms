@@ -5,7 +5,9 @@ import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { CHEMISTRY_COURSES } from '@/data/mock-data';
 import { getStoredCourses } from '@/lib/courses-storage';
+import { checkUserCourseAccess, requestCourseEnrollment } from '@/lib/enrollment-storage';
 import { ChemistryCourse } from '@/types/lms';
+import { AuthUser } from '@/types/auth';
 import { PhenolLogo } from '@/components/brand/PhenolLogo';
 import {
   ArrowRight,
@@ -13,6 +15,9 @@ import {
   Play,
   FlaskConical,
   ChevronRight,
+  Lock,
+  CheckCircle2,
+  Sparkles,
 } from 'lucide-react';
 
 export default function CourseDetailsPage() {
@@ -20,12 +25,33 @@ export default function CourseDetailsPage() {
   const courseId = params?.id as string;
 
   const [coursesList, setCoursesList] = useState<ChemistryCourse[]>(CHEMISTRY_COURSES);
+  const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
+  const [enrollmentStatus, setEnrollmentStatus] = useState<'ACTIVE' | 'PENDING' | 'NOT_ENROLLED'>('NOT_ENROLLED');
+  const [requestToast, setRequestToast] = useState(false);
 
   useEffect(() => {
-    setCoursesList(getStoredCourses());
-  }, []);
+    const list = getStoredCourses();
+    setCoursesList(list);
+
+    try {
+      const saved = localStorage.getItem('phenol_auth_user');
+      if (saved) {
+        const u: AuthUser = JSON.parse(saved);
+        setCurrentUser(u);
+        const access = checkUserCourseAccess(u, courseId);
+        setEnrollmentStatus(access.status === 'ACTIVE' ? 'ACTIVE' : access.status === 'PENDING' ? 'PENDING' : 'NOT_ENROLLED');
+      }
+    } catch (e) {}
+  }, [courseId]);
 
   const course = coursesList.find((c) => c.id === courseId) || coursesList[0] || CHEMISTRY_COURSES[0];
+
+  const handleRequestActivation = () => {
+    if (!currentUser) return;
+    requestCourseEnrollment(currentUser, course);
+    setEnrollmentStatus('PENDING');
+    setRequestToast(true);
+  };
 
   return (
     <div className="min-h-screen bg-ivory-200 text-charcoal-900 flex flex-col font-sans selection:bg-burgundy-500 selection:text-ivory-100">
@@ -100,6 +126,22 @@ export default function CourseDetailsPage() {
             {course.description}
           </p>
 
+          {/* Enrollment Request Toast */}
+          {requestToast && (
+            <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs sm:text-sm flex items-center justify-between gap-3 shadow-sm animate-fade-in">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+                <span>تم إرسال طلب تفعيل الكورس إلى د. عمر مجدي بنجاح. سيتم مراجعة طلبك وتفعيل المحاضرات والتواصل معك عبر الواتساب.</span>
+              </div>
+              <button
+                onClick={() => setRequestToast(false)}
+                className="text-emerald-800 hover:text-emerald-950 font-bold"
+              >
+                ✕
+              </button>
+            </div>
+          )}
+
           <div className="pt-4 border-t border-hairline flex flex-wrap items-center justify-between gap-4 text-xs sm:text-sm text-charcoal-100 font-sans">
             <div className="flex flex-wrap items-center gap-4 sm:gap-6">
               <span>Supervision: <strong className="text-charcoal-900 font-sans">Dr. Omar Magdi</strong></span>
@@ -107,25 +149,48 @@ export default function CourseDetailsPage() {
               <span>Duration: <strong className="text-charcoal-900 font-sans">{course.totalHours}</strong></span>
             </div>
 
-            <Link
-              href={`/courses/${course.id}/lessons/${course.lessons[0].id}`}
-              className="inline-flex items-center gap-2 px-6 py-3 rounded bg-burgundy-500 hover:bg-burgundy-800 text-ivory-100 font-semibold text-xs sm:text-sm transition-colors shadow-quiet"
-            >
-              <Play className="w-4 h-4" />
-              <span>Begin Syllabus</span>
-            </Link>
+            {enrollmentStatus === 'ACTIVE' ? (
+              <Link
+                href={`/courses/${course.id}/lessons/${course.lessons[0].id}`}
+                className="inline-flex items-center gap-2 px-6 py-3 rounded bg-burgundy-900 hover:bg-black text-ivory-100 font-semibold text-xs sm:text-sm transition-colors shadow-quiet"
+              >
+                <Play className="w-4 h-4" />
+                <span>Begin Syllabus (المشاهدة المباشرة)</span>
+              </Link>
+            ) : enrollmentStatus === 'PENDING' ? (
+              <span className="inline-flex items-center gap-2 px-6 py-3 rounded bg-amber-100 text-amber-900 font-semibold text-xs sm:text-sm border border-amber-200">
+                <Clock className="w-4 h-4 text-amber-600" />
+                <span>طلب التفعيل قيد الاعتماد من د. عمر مجدي</span>
+              </span>
+            ) : (
+              <button
+                type="button"
+                onClick={handleRequestActivation}
+                className="inline-flex items-center gap-2 px-6 py-3 rounded bg-burgundy-900 hover:bg-black text-ivory-100 font-semibold text-xs sm:text-sm transition-colors shadow-quiet"
+              >
+                <Sparkles className="w-4 h-4" />
+                <span>طلب تفعيل هذا الكورس الآن</span>
+              </button>
+            )}
           </div>
         </div>
 
         {/* Syllabus / Lessons Table */}
         <div className="space-y-4">
-          <div>
-            <h2 className="text-lg sm:text-xl font-bold text-charcoal-900 font-display">
-              Curriculum Modules ({course.lessons.length} Lectures)
-            </h2>
-            <p className="text-xs sm:text-sm text-charcoal-100 font-sans">
-              Deductive progression dissecting chemical principles without cognitive leaps.
-            </p>
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-lg sm:text-xl font-bold text-charcoal-900 font-display">
+                Curriculum Modules ({course.lessons.length} Lectures)
+              </h2>
+              <p className="text-xs sm:text-sm text-charcoal-100 font-sans">
+                Deductive progression dissecting chemical principles without cognitive leaps.
+              </p>
+            </div>
+            {enrollmentStatus !== 'ACTIVE' && (
+              <span className="text-xs font-mono text-amber-800 bg-amber-50 border border-amber-200 px-3 py-1 rounded">
+                يتطلب تفعيل الاشتراك للمشاهدة
+              </span>
+            )}
           </div>
 
           <div className="border border-hairline rounded bg-ivory-100 divide-y divide-hairline shadow-quiet">
@@ -174,13 +239,24 @@ export default function CourseDetailsPage() {
                     {lesson.duration}
                   </span>
 
-                  <Link
-                    href={`/courses/${course.id}/lessons/${lesson.id}`}
-                    className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded border border-hairline hover:border-burgundy-500 hover:text-burgundy-500 bg-ivory-100 text-xs sm:text-sm font-semibold font-sans transition-colors"
-                  >
-                    <span>Enter Lecture</span>
-                    <ArrowRight className="w-4 h-4" />
-                  </Link>
+                  {enrollmentStatus === 'ACTIVE' ? (
+                    <Link
+                      href={`/courses/${course.id}/lessons/${lesson.id}`}
+                      className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded border border-hairline hover:border-burgundy-500 hover:text-burgundy-500 bg-ivory-100 text-xs sm:text-sm font-semibold font-sans transition-colors"
+                    >
+                      <span>Enter Lecture</span>
+                      <ArrowRight className="w-4 h-4" />
+                    </Link>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={handleRequestActivation}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded bg-ivory-200 text-charcoal-50 text-xs font-semibold font-sans cursor-pointer hover:bg-ivory-300 transition-colors"
+                    >
+                      <Lock className="w-3.5 h-3.5" />
+                      <span>يتطلب تفعيل الكورس</span>
+                    </button>
+                  )}
                 </div>
               </div>
             ))}

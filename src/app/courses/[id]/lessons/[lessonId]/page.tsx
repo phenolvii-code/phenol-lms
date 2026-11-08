@@ -6,6 +6,11 @@ import { useParams } from 'next/navigation';
 import { CHEMISTRY_COURSES } from '@/data/mock-data';
 import { getStoredCourses } from '@/lib/courses-storage';
 import { getStudentAcademicCode } from '@/lib/student-code';
+import {
+  checkUserCourseAccess,
+  requestCourseEnrollment,
+  recordStudentLessonProgress,
+} from '@/lib/enrollment-storage';
 import { ChemistryCourse, ChemistryLesson, LectureTimestamp } from '@/types/lms';
 import { AuthUser } from '@/types/auth';
 import { PhenolLogo } from '@/components/brand/PhenolLogo';
@@ -28,6 +33,7 @@ import {
   HelpCircle,
   Menu,
   X,
+  Lock,
 } from 'lucide-react';
 
 interface LessonComment {
@@ -114,7 +120,7 @@ export default function LessonExperiencePage() {
   const isCompleted = completedLessons.includes(currentLesson.id);
   const studentCode = getStudentAcademicCode(currentUser);
 
-  // Toggle Completion
+  // Toggle Completion & Record Progress in Persistent Roster
   const toggleCompleted = () => {
     let updated: string[];
     if (isCompleted) {
@@ -125,6 +131,15 @@ export default function LessonExperiencePage() {
     setCompletedLessons(updated);
     try {
       localStorage.setItem('phenol_completed_lessons', JSON.stringify(updated));
+      if (currentUser?.email) {
+        recordStudentLessonProgress(
+          currentUser.email,
+          courseId,
+          updated.length,
+          course.lessons.length,
+          currentLesson.title
+        );
+      }
     } catch (e) {}
   };
 
@@ -214,81 +229,134 @@ export default function LessonExperiencePage() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
           {/* Main Stage: Player + Meta + Tabs (Span 8 or 12 depending on sidebar) */}
           <main className="lg:col-span-8 space-y-6">
-            {/* The Custom White-Label Video Player with Blended Forensic Watermark */}
-            <div className="space-y-3">
-              <PhenolVideoPlayer
-                videoUrl={currentLesson.videoUrl || 'https://www.youtube.com/watch?v=k3rRrl9J2F4'}
-                title={currentLesson.title}
-                duration={currentLesson.duration}
-                studentCode={studentCode}
-                timestamps={timestamps}
-                onCompleted={() => {
-                  if (!completedLessons.includes(currentLesson.id)) {
-                    toggleCompleted();
-                  }
-                }}
-                seekTime={seekTime}
-              />
+            {/* Access Gate: Check if user is enrolled & active */}
+            {(() => {
+              const access = checkUserCourseAccess(currentUser, courseId);
+              if (!access.isEnrolled) {
+                return (
+                  <div className="relative aspect-video rounded-2xl bg-[#0f1012] border border-hairline/40 flex flex-col items-center justify-center p-8 text-center space-y-4 shadow-editorial text-ivory-100">
+                    <div className="w-14 h-14 rounded-full bg-burgundy-950/80 border border-burgundy-700/50 flex items-center justify-center text-ivory-100 shadow-inner">
+                      <Lock className="w-6 h-6 text-burgundy-400" />
+                    </div>
+                    <div className="max-w-md space-y-1.5">
+                      <h3 className="text-lg font-bold text-ivory-100 font-display">
+                        المحتوى الأكاديمي محمي ويتطلب التفعيل
+                      </h3>
+                      <p className="text-xs text-ivory-200/70 font-sans leading-relaxed">
+                        هذه المحاضرة تتبع مادة ({course.title}) وتتطلب تفعيل الاشتراك بواسطة د. عمر مجدي.
+                      </p>
+                    </div>
 
-              {/* Action Ribbon below player */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 bg-ivory-100 border border-hairline rounded shadow-quiet">
-                <div className="flex items-center gap-3">
-                  <button
-                    onClick={toggleCompleted}
-                    className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded text-xs font-semibold transition-colors border font-sans ${
-                      isCompleted
-                        ? 'bg-emerald-50 border-emerald-300 text-emerald-800'
-                        : 'bg-ivory-200 border-hairline text-charcoal-100 hover:text-charcoal-900'
-                    }`}
-                  >
-                    <CheckCircle2 className={`w-3.5 h-3.5 ${isCompleted ? 'text-emerald-600' : 'text-charcoal-50'}`} />
-                    <span>{isCompleted ? 'Completed' : 'Mark as Completed'}</span>
-                  </button>
+                    <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+                      {access.status === 'PENDING' ? (
+                        <span className="px-5 py-2.5 rounded bg-amber-500/20 text-amber-300 text-xs font-semibold border border-amber-500/30 flex items-center gap-1.5">
+                          <Clock className="w-4 h-4" />
+                          <span>طلب تفعيل الكورس قيد المراجعة والاعتماد</span>
+                        </span>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (currentUser) {
+                              requestCourseEnrollment(currentUser, course);
+                              window.location.reload();
+                            }
+                          }}
+                          className="px-6 py-2.5 rounded bg-burgundy-900 hover:bg-black text-ivory-100 text-xs font-semibold transition-colors shadow-sm flex items-center gap-2"
+                        >
+                          <Sparkles className="w-4 h-4" />
+                          <span>طلب تفعيل هذا الكورس الآن</span>
+                        </button>
+                      )}
 
-                  <div className="flex items-center gap-1.5 text-xs text-charcoal-100 font-formula">
-                    <Clock className="w-3.5 h-3.5 text-charcoal-50" />
-                    <span>{currentLesson.duration}</span>
+                      <Link
+                        href="/dashboard"
+                        className="px-5 py-2.5 rounded bg-white/10 hover:bg-white/15 text-ivory-100 text-xs font-semibold transition-colors"
+                      >
+                        العودة للوحة التحكم
+                      </Link>
+                    </div>
                   </div>
+                );
+              }
 
-                  <span className="text-hairline">|</span>
+              return (
+                <div className="space-y-3">
+                  <PhenolVideoPlayer
+                    videoUrl={currentLesson.videoUrl || 'https://www.youtube.com/watch?v=k3rRrl9J2F4'}
+                    title={currentLesson.title}
+                    duration={currentLesson.duration}
+                    studentCode={studentCode}
+                    timestamps={timestamps}
+                    onCompleted={() => {
+                      if (!completedLessons.includes(currentLesson.id)) {
+                        toggleCompleted();
+                      }
+                    }}
+                    seekTime={seekTime}
+                  />
 
-                  <span className="text-[11px] font-mono text-charcoal-50">
-                    Security Token: <code className="text-burgundy-500 font-bold">{studentCode}</code>
-                  </span>
+                  {/* Action Ribbon below player */}
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 bg-ivory-100 border border-hairline rounded shadow-quiet">
+                    <div className="flex items-center gap-3">
+                      <button
+                        onClick={toggleCompleted}
+                        className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded text-xs font-semibold transition-colors border font-sans ${
+                          isCompleted
+                            ? 'bg-emerald-50 border-emerald-300 text-emerald-800'
+                            : 'bg-ivory-200 border-hairline text-charcoal-100 hover:text-charcoal-900'
+                        }`}
+                      >
+                        <CheckCircle2 className={`w-3.5 h-3.5 ${isCompleted ? 'text-emerald-600' : 'text-charcoal-50'}`} />
+                        <span>{isCompleted ? 'Completed' : 'Mark as Completed'}</span>
+                      </button>
+
+                      <div className="flex items-center gap-1.5 text-xs text-charcoal-100 font-formula">
+                        <Clock className="w-3.5 h-3.5 text-charcoal-50" />
+                        <span>{currentLesson.duration}</span>
+                      </div>
+
+                      <span className="text-hairline">|</span>
+
+                      <span className="text-[11px] font-mono text-charcoal-50">
+                        Security Token: <code className="text-burgundy-500 font-bold">{studentCode}</code>
+                      </span>
+                    </div>
+
+                    {/* Previous / Next Lecture Navigation */}
+                    <div className="flex items-center gap-2">
+                      {prevLesson && (
+                        <Link
+                          href={`/courses/${course.id}/lessons/${prevLesson.id}`}
+                          className="inline-flex items-center gap-1 px-3 py-1.5 rounded border border-hairline hover:bg-ivory-300 text-xs font-semibold text-charcoal-900 transition-colors"
+                        >
+                          <ChevronLeft className="w-3.5 h-3.5" />
+                          <span>Previous</span>
+                        </Link>
+                      )}
+
+                      {nextLesson ? (
+                        <Link
+                          href={`/courses/${course.id}/lessons/${nextLesson.id}`}
+                          className="inline-flex items-center gap-1 px-3.5 py-1.5 rounded bg-burgundy-500 hover:bg-burgundy-800 text-ivory-100 text-xs font-semibold transition-colors shadow-quiet"
+                        >
+                          <span>Next Lecture</span>
+                          <ChevronRight className="w-3.5 h-3.5" />
+                        </Link>
+                      ) : (
+                        <Link
+                          href="/dashboard"
+                          className="inline-flex items-center gap-1 px-3.5 py-1.5 rounded bg-emerald-700 hover:bg-emerald-800 text-ivory-100 text-xs font-semibold transition-colors shadow-quiet"
+                        >
+                          <span>Complete Course</span>
+                          <Check className="w-3.5 h-3.5" />
+                        </Link>
+                      )}
+                    </div>
+                  </div>
                 </div>
-
-                {/* Previous / Next Lecture Navigation */}
-                <div className="flex items-center gap-2">
-                  {prevLesson && (
-                    <Link
-                      href={`/courses/${course.id}/lessons/${prevLesson.id}`}
-                      className="inline-flex items-center gap-1 px-3 py-1.5 rounded border border-hairline hover:bg-ivory-300 text-xs font-semibold text-charcoal-900 transition-colors"
-                    >
-                      <ChevronLeft className="w-3.5 h-3.5" />
-                      <span>Previous</span>
-                    </Link>
-                  )}
-
-                  {nextLesson ? (
-                    <Link
-                      href={`/courses/${course.id}/lessons/${nextLesson.id}`}
-                      className="inline-flex items-center gap-1 px-3.5 py-1.5 rounded bg-burgundy-500 hover:bg-burgundy-800 text-ivory-100 text-xs font-semibold transition-colors shadow-quiet"
-                    >
-                      <span>Next Lecture</span>
-                      <ChevronRight className="w-3.5 h-3.5" />
-                    </Link>
-                  ) : (
-                    <Link
-                      href="/dashboard"
-                      className="inline-flex items-center gap-1 px-3.5 py-1.5 rounded bg-emerald-700 hover:bg-emerald-800 text-ivory-100 text-xs font-semibold transition-colors shadow-quiet"
-                    >
-                      <span>Complete Course</span>
-                      <Check className="w-3.5 h-3.5" />
-                    </Link>
-                  )}
-                </div>
-              </div>
-            </div>
+              );
+            })()}
 
             {/* Lecture Heading */}
             <div className="space-y-1">

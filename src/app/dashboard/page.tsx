@@ -31,6 +31,17 @@ import { BookletsView } from '@/components/booklets/BookletsView';
 import { supabase } from '@/lib/supabase';
 import { getUserPassword, setUserPassword, verifyUserPassword } from '@/lib/auth-passwords';
 import { getStoredCourses, saveStoredCourses } from '@/lib/courses-storage';
+import { StudentProfileModal } from '@/components/profile/StudentProfileModal';
+import { CourseStudentsModal } from '@/components/courses/CourseStudentsModal';
+import {
+  CourseEnrollment,
+  getStoredEnrollments,
+  checkUserCourseAccess,
+  requestCourseEnrollment,
+  approveCourseEnrollment,
+  toggleCourseEnrollmentStatus,
+  getAggregatedStudentsDirectory,
+} from '@/lib/enrollment-storage';
 import {
   BookOpen,
   FileCheck2,
@@ -92,7 +103,7 @@ export default function DashboardPage() {
   const [posts, setPosts] = useState<TimelinePost[]>(INITIAL_TIMELINE_POSTS);
   const [rosterSearchQuery, setRosterSearchQuery] = useState('');
 
-  // Profile Modal State
+  // Profile Modal State (Instructor)
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [profileModalTab, setProfileModalTab] = useState<'info' | 'security'>('info');
   const [profileName, setProfileName] = useState('');
@@ -101,6 +112,17 @@ export default function DashboardPage() {
   const [profileBio, setProfileBio] = useState('');
   const [profileAvatar, setProfileAvatar] = useState('');
   const [profilePhone, setProfilePhone] = useState('');
+
+  // Student Profile Modal State
+  const [isStudentProfileOpen, setIsStudentProfileOpen] = useState(false);
+
+  // Per-Course Students & Analytics Modal State
+  const [isCourseStudentsOpen, setIsCourseStudentsOpen] = useState(false);
+  const [selectedCourseForStudents, setSelectedCourseForStudents] = useState<ChemistryCourse | null>(null);
+
+  // Course Enrollments & Activation Requests State
+  const [enrollments, setEnrollments] = useState<CourseEnrollment[]>([]);
+  const [enrollmentToast, setEnrollmentToast] = useState<string | null>(null);
 
   // Password Change State
   const [currentPasswordInput, setCurrentPasswordInput] = useState('');
@@ -382,6 +404,13 @@ export default function DashboardPage() {
       } else {
         localStorage.setItem('phenol_students', JSON.stringify(ENROLLED_STUDENTS));
       }
+
+      // 7. Course Enrollments & Performance Telemetry
+      setEnrollments(getStoredEnrollments());
+      const handleEnrollmentsUpdate = () => {
+        setEnrollments(getStoredEnrollments());
+      };
+      window.addEventListener('phenol_enrollments_updated', handleEnrollmentsUpdate);
     } catch (e) {
       console.error(e);
     }
@@ -392,6 +421,46 @@ export default function DashboardPage() {
       localStorage.removeItem('phenol_auth_user');
     } catch (e) {}
     router.push('/');
+  };
+
+  // Open appropriate profile modal based on user role (Student vs Instructor)
+  const handleOpenProfileModal = () => {
+    if (!currentUser) return;
+    if (currentUser.role === 'STUDENT') {
+      setIsStudentProfileOpen(true);
+    } else {
+      setProfileName(currentUser.name || 'Dr. Omar Magdi');
+      setProfileTitle(currentUser.title || 'Academic Director & Senior Fellow');
+      setProfileSpecialization(currentUser.specialization || 'Organic Reaction Mechanisms & Physical Chemistry');
+      setProfileBio(currentUser.bio || 'Specialist in organic mechanisms, reaction kinetics, and first-principles pedagogy across 4 Core Tracks.');
+      setProfileAvatar(currentUser.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80');
+      setProfilePhone(currentUser.phone || '');
+      setIsProfileModalOpen(true);
+    }
+  };
+
+  const handleSaveStudentProfile = (updatedUser: AuthUser) => {
+    setCurrentUser(updatedUser);
+    try {
+      localStorage.setItem('phenol_auth_user', JSON.stringify(updatedUser));
+    } catch (e) {}
+  };
+
+  // Student requests course activation
+  const handleRequestCourse = (course: ChemistryCourse) => {
+    if (!currentUser) return;
+    requestCourseEnrollment(currentUser, course);
+    setEnrollments(getStoredEnrollments());
+    setEnrollmentToast(
+      `تم إرسال طلب تفعيل مادة (${course.title}) إلى د. عمر مجدي بنجاح. سيتم مراجعة طلبك وتفعيل الكورس والتواصل معك عبر الواتساب.`
+    );
+    setTimeout(() => setEnrollmentToast(null), 6000);
+  };
+
+  // Instructor approves course activation
+  const handleApproveEnrollment = (enrId: string) => {
+    const updated = approveCourseEnrollment(enrId);
+    setEnrollments(updated);
   };
 
   const isInstructor = currentUser?.role === 'INSTRUCTOR';
@@ -995,9 +1064,9 @@ export default function DashboardPage() {
               {/* Profile Card & Settings Trigger */}
               <div className="flex items-center gap-3">
                 <button
-                  onClick={() => setIsProfileModalOpen(true)}
+                  onClick={handleOpenProfileModal}
                   className="flex items-center gap-2.5 text-right p-1 rounded hover:bg-ivory-300/40 transition-colors group"
-                  title="Edit Profile"
+                  title="View & Edit Profile"
                 >
                   <div className="hidden sm:block">
                     <span className="text-xs sm:text-sm font-bold text-charcoal-900 block leading-tight group-hover:text-burgundy-500 transition-colors">
@@ -1296,8 +1365,37 @@ export default function DashboardPage() {
                           </p>
                         </div>
 
-                        {/* Course Controls: Edit & Delete */}
-                        <div className="flex items-center gap-2 shrink-0 pt-1">
+                        {/* Course Controls: Students Roster, Edit & Delete */}
+                        <div className="flex flex-wrap items-center gap-2 shrink-0 pt-1">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSelectedCourseForStudents(course);
+                              setIsCourseStudentsOpen(true);
+                            }}
+                            title="عرض قائمة الطلاب المشتركين وتتبع الأداء"
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded bg-burgundy-900 hover:bg-black text-ivory-100 text-xs font-semibold shadow-sm transition-colors"
+                          >
+                            <Users className="w-3.5 h-3.5" />
+                            <span>الطلاب وتتبع الأداء</span>
+                            {(() => {
+                              const pending = enrollments.filter((e) => e.courseId === course.id && e.status === 'PENDING').length;
+                              if (pending > 0) {
+                                return (
+                                  <span className="bg-amber-500 text-charcoal-900 text-[10px] font-bold px-1.5 py-0.2 rounded-full">
+                                    {pending} جديد
+                                  </span>
+                                );
+                              }
+                              const count = enrollments.filter((e) => e.courseId === course.id && e.status === 'ACTIVE').length;
+                              return (
+                                <span className="bg-burgundy-800 text-ivory-200 text-[10px] font-mono px-1.5 py-0.2 rounded">
+                                  {count}
+                                </span>
+                              );
+                            })()}
+                          </button>
+
                           <button
                             onClick={() => handleOpenEditCourse(course)}
                             title="Edit Course Details"
@@ -1935,16 +2033,16 @@ export default function DashboardPage() {
               </div>
             )}
 
-            {/* TAB 5: COHORT STUDENT ROSTER */}
+            {/* TAB 5: COHORT STUDENT ROSTER & COURSE ACTIVATIONS */}
             {adminTab === 'roster' && (
               <div className="space-y-6">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div>
                     <h2 className="text-xl font-bold text-charcoal-900 font-display">
-                      Enrolled Student Cohort Roster (2026/2027)
+                      Enrolled Student Cohort Roster & Performance (2026/2027)
                     </h2>
                     <p className="text-xs text-charcoal-100 font-sans mt-0.5">
-                      Official directory of active scholars enrolled across the 4 chemistry tracks under Dr. Omar Magdi.
+                      Official directory of scholars, course activation requests, and academic performance telemetry under Dr. Omar Magdi.
                     </p>
                   </div>
 
@@ -1961,6 +2059,97 @@ export default function DashboardPage() {
                   </div>
                 </div>
 
+                {/* Section 1: PENDING COURSE ACTIVATION REQUESTS DESK */}
+                {(() => {
+                  const pendingRequests = enrollments.filter((e) => e.status === 'PENDING');
+                  return (
+                    <div className="p-5 bg-white rounded-xl border border-hairline shadow-quiet space-y-4">
+                      <div className="flex items-center justify-between border-b border-hairline pb-3">
+                        <div className="flex items-center gap-2">
+                          <span className="w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse" />
+                          <h3 className="text-sm font-bold text-charcoal-900 font-display">
+                            طلبات تفعيل الكورسات الجديدة (Course Activation Requests)
+                          </h3>
+                        </div>
+                        <span className="text-xs font-mono font-bold px-2 py-0.5 rounded bg-amber-50 text-amber-800 border border-amber-200">
+                          {pendingRequests.length} طلبات بانتظار الاعتماد
+                        </span>
+                      </div>
+
+                      {pendingRequests.length === 0 ? (
+                        <div className="p-4 text-center text-xs text-charcoal-100 bg-ivory-50 rounded-lg border border-hairline">
+                          لا توجد طلبات تفعيل معلقة حالياً. جميع طلبات اشتراك الطلاب مفعلة ومكتملة.
+                        </div>
+                      ) : (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                          {pendingRequests.map((req) => {
+                            const cleanPhone = req.studentPhone.replace(/[^0-9]/g, '');
+                            const waLink = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(
+                              `أهلاً بك يا ${req.studentName} في أكاديمية PHENOL. تم استلام طلب تفعيل مادة (${req.courseTitle}):`
+                            )}`;
+
+                            return (
+                              <div
+                                key={req.id}
+                                className="p-3.5 rounded-xl border border-amber-200 bg-amber-50/40 space-y-3"
+                              >
+                                <div className="flex items-start justify-between gap-2">
+                                  <div>
+                                    <div className="flex items-center gap-2">
+                                      <h4 className="text-xs font-bold text-charcoal-900 font-sans">
+                                        {req.studentName}
+                                      </h4>
+                                      <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-burgundy-50 text-burgundy-900 border border-burgundy-200">
+                                        {req.studentCode}
+                                      </span>
+                                    </div>
+                                    <p className="text-[11px] text-charcoal-100 font-mono mt-0.5">
+                                      {req.studentPhone} • {req.studentTrack}
+                                    </p>
+                                  </div>
+                                  <span className="text-[10px] font-mono text-charcoal-50">
+                                    {req.requestedAt}
+                                  </span>
+                                </div>
+
+                                <div className="p-2 rounded bg-white border border-hairline text-xs font-sans">
+                                  <span className="text-[10px] font-mono text-burgundy-900 font-bold block">
+                                    المادة المطلوبة: {req.courseCode}
+                                  </span>
+                                  <span className="font-semibold text-charcoal-900 text-xs truncate block">
+                                    {req.courseTitle}
+                                  </span>
+                                </div>
+
+                                <div className="flex items-center justify-between gap-2 pt-1">
+                                  <a
+                                    href={waLink}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-xs font-semibold transition-colors"
+                                  >
+                                    <WhatsAppIcon className="w-3.5 h-3.5" />
+                                    <span>محادثة واتساب</span>
+                                  </a>
+
+                                  <button
+                                    type="button"
+                                    onClick={() => handleApproveEnrollment(req.id)}
+                                    className="px-4 py-1.5 rounded bg-burgundy-900 hover:bg-black text-ivory-100 text-xs font-semibold shadow-sm transition-colors flex items-center gap-1"
+                                  >
+                                    <CheckCircle2 className="w-3.5 h-3.5" />
+                                    <span>تفعيل الكورس فوراً</span>
+                                  </button>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
+
                 {/* Forensic Watermark Identification Guide */}
                 <div className="p-3.5 bg-ivory-300/60 border border-hairline rounded text-xs space-y-1">
                   <span className="font-semibold text-charcoal-900 flex items-center gap-1.5 font-formula">
@@ -1972,12 +2161,14 @@ export default function DashboardPage() {
                   </p>
                 </div>
 
+                {/* Section 2: COMPREHENSIVE STUDENT PERFORMANCE DIRECTORY */}
                 {(() => {
-                  const filteredStudents = students.filter((st) => {
+                  const studentDirectory = getAggregatedStudentsDirectory();
+                  const filteredStudents = studentDirectory.filter((st) => {
                     if (!rosterSearchQuery.trim()) return true;
                     const q = rosterSearchQuery.trim().toLowerCase();
                     return (
-                      st.fullName.toLowerCase().includes(q) ||
+                      st.name.toLowerCase().includes(q) ||
                       st.code.toLowerCase().includes(q) ||
                       st.email.toLowerCase().includes(q) ||
                       st.phone.includes(q)
@@ -1991,42 +2182,89 @@ export default function DashboardPage() {
                           <thead>
                             <tr className="border-b border-hairline bg-ivory-200/80 text-[11px] font-formula uppercase tracking-wider text-charcoal-50">
                               <th className="py-3 px-4">Forensic Code</th>
-                              <th className="py-3 px-4">Full Name</th>
+                              <th className="py-3 px-4">Scholar Name</th>
                               <th className="py-3 px-4">WhatsApp Contact</th>
-                              <th className="py-3 px-4">Enrolled Track</th>
-                              <th className="py-3 px-4">Enrolled Date</th>
-                              <th className="py-3 px-4 text-right">Status</th>
+                              <th className="py-3 px-4">Track</th>
+                              <th className="py-3 px-4">Active Courses</th>
+                              <th className="py-3 px-4">Syllabus Progress</th>
+                              <th className="py-3 px-4">Quiz Avg</th>
+                              <th className="py-3 px-4 text-right">Actions</th>
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-hairline text-xs font-sans">
-                            {filteredStudents.map((st) => (
-                              <tr key={st.id} className="hover:bg-ivory-300/30 transition-colors">
-                                <td className="py-3.5 px-4 font-mono font-bold text-burgundy-600">
-                                  <span className="bg-burgundy-50 border border-burgundy-200 px-2 py-0.5 rounded">
-                                    {st.code}
-                                  </span>
-                                </td>
-                                <td className="py-3.5 px-4 font-bold text-charcoal-900">
-                                  {st.fullName}
-                                </td>
-                                <td className="py-3.5 px-4 text-charcoal-100 font-mono text-[11px]">
-                                  {st.phone}
-                                </td>
-                                <td className="py-3.5 px-4">
-                                  <span className="font-formula font-bold text-burgundy-500">
-                                    {st.trackCode}
-                                  </span>
-                                </td>
-                                <td className="py-3.5 px-4 font-formula text-charcoal-50">
-                                  {st.enrolledAt}
-                                </td>
-                                <td className="py-3.5 px-4 text-right">
-                                  <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
-                                    Active Scholar
-                                  </span>
-                                </td>
-                              </tr>
-                            ))}
+                            {filteredStudents.map((st) => {
+                              const cleanPhone = st.phone.replace(/[^0-9]/g, '');
+                              const waLink = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(
+                                `أهلاً بك يا ${st.name} في أكاديمية PHENOL مع د. عمر مجدي. بخصوص متابعة أدائك الأكاديمي:`
+                              )}`;
+
+                              return (
+                                <tr key={st.email} className="hover:bg-ivory-300/30 transition-colors">
+                                  <td className="py-3.5 px-4 font-mono font-bold text-burgundy-600">
+                                    <span className="bg-burgundy-50 border border-burgundy-200 px-2 py-0.5 rounded">
+                                      {st.code}
+                                    </span>
+                                  </td>
+                                  <td className="py-3.5 px-4 font-bold text-charcoal-900">
+                                    <div className="flex items-center gap-2">
+                                      <span>{st.name}</span>
+                                    </div>
+                                    <span className="text-[11px] text-charcoal-50 font-mono block font-normal">
+                                      {st.email}
+                                    </span>
+                                  </td>
+                                  <td className="py-3.5 px-4 text-charcoal-100 font-mono text-[11px]">
+                                    <a
+                                      href={waLink}
+                                      target="_blank"
+                                      rel="noreferrer"
+                                      className="inline-flex items-center gap-1 text-emerald-800 hover:text-emerald-950 font-semibold"
+                                      title="Open WhatsApp Chat"
+                                    >
+                                      <WhatsAppIcon className="w-3.5 h-3.5" />
+                                      <span>{st.phone}</span>
+                                    </a>
+                                  </td>
+                                  <td className="py-3.5 px-4">
+                                    <span className="font-formula font-bold text-burgundy-500">
+                                      {st.track}
+                                    </span>
+                                  </td>
+                                  <td className="py-3.5 px-4">
+                                    <span className="px-2 py-0.5 rounded bg-ivory-300 font-mono font-semibold text-xs text-charcoal-900 border border-hairline">
+                                      {st.activeCoursesCount} مواد
+                                    </span>
+                                  </td>
+                                  <td className="py-3.5 px-4">
+                                    <div className="w-28 space-y-1">
+                                      <div className="flex items-center justify-between text-[10px] font-mono">
+                                        <span>{st.overallProgressPercent}%</span>
+                                      </div>
+                                      <div className="h-1.5 w-full bg-ivory-300 rounded-full overflow-hidden">
+                                        <div
+                                          className="h-full bg-burgundy-900 rounded-full"
+                                          style={{ width: `${st.overallProgressPercent}%` }}
+                                        />
+                                      </div>
+                                    </div>
+                                  </td>
+                                  <td className="py-3.5 px-4 font-mono font-bold text-emerald-800 text-xs">
+                                    {st.averageQuizGrade > 0 ? `${st.averageQuizGrade} / 20` : '—'}
+                                  </td>
+                                  <td className="py-3.5 px-4 text-right">
+                                    <a
+                                      href={waLink}
+                                      target="_blank"
+                                      rel="noreferrer"
+                                      className="inline-flex items-center gap-1 text-xs text-emerald-800 hover:underline font-semibold"
+                                    >
+                                      <span>تواصل</span>
+                                      <ExternalLink className="w-3 h-3" />
+                                    </a>
+                                  </td>
+                                </tr>
+                              );
+                            })}
                           </tbody>
                         </table>
                       </div>
@@ -2040,7 +2278,7 @@ export default function DashboardPage() {
                       <p className="text-xs text-charcoal-100 font-sans max-w-md mx-auto">
                         {rosterSearchQuery
                           ? 'Try searching with partial numbers or student name.'
-                          : 'Once waitlist applications are approved on the Admissions desk, candidates will automatically be added to this active cohort roster.'}
+                          : 'Students requesting courses or enrolled in cohorts will automatically appear in this telemetry directory.'}
                       </p>
                     </div>
                   );
@@ -2172,45 +2410,94 @@ export default function DashboardPage() {
                   ))}
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {displayedCourses.map((course) => (
-                    <div
-                      key={course.id}
-                      className="border border-hairline rounded bg-ivory-100 p-6 space-y-4 hover:border-charcoal-100/50 transition-colors flex flex-col justify-between shadow-quiet"
+                {/* Course Activation Toast Banner */}
+                {enrollmentToast && (
+                  <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs sm:text-sm flex items-center justify-between gap-3 shadow-sm animate-fade-in">
+                    <div className="flex items-center gap-2">
+                      <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+                      <span>{enrollmentToast}</span>
+                    </div>
+                    <button
+                      onClick={() => setEnrollmentToast(null)}
+                      className="text-emerald-800 hover:text-emerald-950 font-bold"
                     >
-                      <div className="space-y-3">
-                        <div className="flex items-center justify-between">
-                          <span className="font-formula text-xs font-bold text-burgundy-500 bg-burgundy-50 px-2 py-0.5 rounded border border-burgundy-200">
-                            {course.code}
-                          </span>
-                          <span className="text-xs text-charcoal-50 font-sans">
-                            {course.categoryName}
-                          </span>
+                      ✕
+                    </button>
+                  </div>
+                )}
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {displayedCourses.map((course) => {
+                    const access = checkUserCourseAccess(currentUser, course.id);
+                    return (
+                      <div
+                        key={course.id}
+                        className="border border-hairline rounded bg-ivory-100 p-6 space-y-4 hover:border-charcoal-100/50 transition-colors flex flex-col justify-between shadow-quiet"
+                      >
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between">
+                            <span className="font-formula text-xs font-bold text-burgundy-500 bg-burgundy-50 px-2 py-0.5 rounded border border-burgundy-200">
+                              {course.code}
+                            </span>
+                            {access.status === 'ACTIVE' ? (
+                              <span className="text-[10px] font-mono font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded flex items-center gap-1">
+                                <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                                <span>مفعل (Active Access)</span>
+                              </span>
+                            ) : access.status === 'PENDING' ? (
+                              <span className="text-[10px] font-mono font-bold text-amber-800 bg-amber-50 border border-amber-200 px-2.5 py-0.5 rounded flex items-center gap-1">
+                                <Clock className="w-3 h-3 text-amber-600" />
+                                <span>قيد المراجعة والاعتماد</span>
+                              </span>
+                            ) : (
+                              <span className="text-[10px] font-mono font-bold text-charcoal-100 bg-ivory-200 border border-hairline px-2.5 py-0.5 rounded flex items-center gap-1">
+                                <Lock className="w-3 h-3 text-charcoal-50" />
+                                <span>يتطلب التفعيل</span>
+                              </span>
+                            )}
+                          </div>
+
+                          <h3 className="text-lg font-bold text-charcoal-900 font-display">
+                            {course.title}
+                          </h3>
+
+                          <p className="text-xs text-charcoal-100 leading-relaxed font-sans">
+                            {course.subTitle}
+                          </p>
                         </div>
 
-                        <h3 className="text-lg font-bold text-charcoal-900 font-display">
-                          {course.title}
-                        </h3>
+                        <div className="pt-4 border-t border-hairline flex items-center justify-between gap-2">
+                          <span className="font-formula text-xs text-charcoal-50">
+                            {course.lessons.length} Modules • {course.totalHours}
+                          </span>
 
-                        <p className="text-xs text-charcoal-100 leading-relaxed font-sans">
-                          {course.subTitle}
-                        </p>
+                          {access.status === 'ACTIVE' ? (
+                            <Link
+                              href={`/courses/${course.id}`}
+                              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded bg-burgundy-900 hover:bg-black text-ivory-100 text-xs font-semibold shadow-sm transition-colors"
+                            >
+                              <span>Enter Course</span>
+                              <ArrowRight className="w-3.5 h-3.5" />
+                            </Link>
+                          ) : access.status === 'PENDING' ? (
+                            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded bg-amber-100 text-amber-900 text-xs font-semibold">
+                              <Clock className="w-3.5 h-3.5" />
+                              <span>طلب التفعيل قيد الانتظار</span>
+                            </span>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => handleRequestCourse(course)}
+                              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded bg-burgundy-900 hover:bg-black text-ivory-100 text-xs font-semibold shadow-sm transition-colors"
+                            >
+                              <Sparkles className="w-3.5 h-3.5" />
+                              <span>طلب تفعيل الكورس</span>
+                            </button>
+                          )}
+                        </div>
                       </div>
-
-                      <div className="pt-4 border-t border-hairline flex items-center justify-between">
-                        <span className="font-formula text-xs text-charcoal-50">
-                          {course.lessons.length} Modules • {course.totalHours}
-                        </span>
-                        <Link
-                          href={`/courses/${course.id}`}
-                          className="inline-flex items-center gap-1.5 text-xs font-semibold text-burgundy-500 hover:text-burgundy-800"
-                        >
-                          <span>Enter Course</span>
-                          <ArrowRight className="w-3.5 h-3.5" />
-                        </Link>
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             )}
@@ -2908,6 +3195,33 @@ export default function DashboardPage() {
             )}
           </div>
         </div>
+      )}
+
+      {/* ========================================================= */}
+      {/* MODAL: STUDENT PERSONAL PROFILE                           */}
+      {/* ========================================================= */}
+      {currentUser && (
+        <StudentProfileModal
+          isOpen={isStudentProfileOpen}
+          user={currentUser}
+          onClose={() => setIsStudentProfileOpen(false)}
+          onSave={handleSaveStudentProfile}
+        />
+      )}
+
+      {/* ========================================================= */}
+      {/* MODAL: PER-COURSE STUDENTS & TELEMETRY ROSTER             */}
+      {/* ========================================================= */}
+      {selectedCourseForStudents && (
+        <CourseStudentsModal
+          isOpen={isCourseStudentsOpen}
+          course={selectedCourseForStudents}
+          onClose={() => {
+            setIsCourseStudentsOpen(false);
+            setSelectedCourseForStudents(null);
+          }}
+          onEnrollmentsUpdated={() => setEnrollments(getStoredEnrollments())}
+        />
       )}
 
       {/* ========================================================= */}
