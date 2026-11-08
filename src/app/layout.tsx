@@ -9,7 +9,7 @@ export const metadata: Metadata = {
     icon: "/icon.png",
   },
   verification: {
-    google: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION || undefined,
+    google: "DrcWnU6B0QUeJ5YHToKSV8X-jg9MBBzOlFPhsE9Umvo",
   },
 };
 
@@ -20,6 +20,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" dir="ltr">
+      <head>
+        <meta name="google-site-verification" content="DrcWnU6B0QUeJ5YHToKSV8X-jg9MBBzOlFPhsE9Umvo" />
+      </head>
       <body className="bg-ivory-200 text-charcoal-900 antialiased selection:bg-burgundy-500 selection:text-ivory-100 min-h-screen">
         {children}
         <Script
