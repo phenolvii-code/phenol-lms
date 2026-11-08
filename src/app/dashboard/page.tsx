@@ -3,8 +3,10 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { AuthUser } from '@/types/auth';
+import { AuthUser, ADMIN_EMAILS } from '@/types/auth';
 import { PhenolLogo } from '@/components/brand/PhenolLogo';
+import { WhatsAppPromptModal } from '@/components/auth/WhatsAppPromptModal';
+import { WhatsAppIcon } from '@/components/auth/AuthIcons';
 import {
   CHEMISTRY_COURSES,
   CHEMISTRY_QUIZZES,
@@ -68,6 +70,7 @@ import {
 export default function DashboardPage() {
   const router = useRouter();
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
+  const [isWhatsAppRequiredModalOpen, setIsWhatsAppRequiredModalOpen] = useState(false);
 
   // Instructor View Toggle (Admin mode vs Student preview mode)
   const [adminViewMode, setAdminViewMode] = useState<'ADMIN' | 'STUDENT_PREVIEW'>('ADMIN');
@@ -187,7 +190,40 @@ export default function DashboardPage() {
   // Initialize and load saved state from localStorage & Supabase
   useEffect(() => {
     try {
-      // 1. Auth check
+      // 1. Auth check & Google OAuth callback verification
+      const checkActiveSession = async () => {
+        try {
+          const { data: { session } } = await supabase.auth.getSession();
+          if (session?.user) {
+            const cleanEmail = session.user.email?.toLowerCase() || '';
+            const isAdmin =
+              cleanEmail === 'phenolvii@gmail.com' ||
+              cleanEmail.includes('phenolvii') ||
+              ADMIN_EMAILS.includes(cleanEmail);
+            const userPhone = session.user.user_metadata?.phone || session.user.user_metadata?.whatsapp;
+            const googleUser: AuthUser = {
+              id: session.user.id,
+              name: isAdmin ? 'Dr. Omar Magdi' : (session.user.user_metadata?.full_name || session.user.user_metadata?.name || cleanEmail.split('@')[0]),
+              email: cleanEmail,
+              phone: userPhone,
+              role: isAdmin ? 'INSTRUCTOR' : 'STUDENT',
+              avatar: isAdmin
+                ? 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80'
+                : (session.user.user_metadata?.avatar_url || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=80'),
+              registeredAt: session.user.created_at,
+              title: isAdmin ? 'Academic Director & Senior Fellow' : undefined,
+              specialization: isAdmin ? 'Organic Reaction Mechanisms & Physical Chemistry' : undefined,
+            };
+            localStorage.setItem('phenol_auth_user', JSON.stringify(googleUser));
+            setCurrentUser(googleUser);
+            if (!isAdmin && (!userPhone || userPhone.trim().length < 6)) {
+              setIsWhatsAppRequiredModalOpen(true);
+            }
+          }
+        } catch (err) {}
+      };
+      checkActiveSession();
+
       const savedUser = localStorage.getItem('phenol_auth_user');
       if (savedUser) {
         const u: AuthUser = JSON.parse(savedUser);
@@ -197,7 +233,12 @@ export default function DashboardPage() {
         setProfileSpecialization(u.specialization || (u.role === 'INSTRUCTOR' ? 'Organic Reaction Mechanisms & Physical Chemistry' : 'Chemistry Major'));
         setProfileBio(u.bio || (u.role === 'INSTRUCTOR' ? 'Specialist in organic mechanisms, reaction kinetics, and first-principles pedagogy across 4 Core Tracks.' : 'Dedicated to learning chemistry through foundational logic.'));
         setProfileAvatar(u.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80');
-        setProfilePhone(u.phone || '+201012345678');
+        setProfilePhone(u.phone || '');
+
+        // Prompt student for WhatsApp if missing
+        if (u.role === 'STUDENT' && (!u.phone || u.phone.trim().length < 6)) {
+          setIsWhatsAppRequiredModalOpen(true);
+        }
       } else {
         const defaultInstructor: AuthUser = {
           id: 'dr-omar-magdi',
@@ -3681,6 +3722,18 @@ export default function DashboardPage() {
             </form>
           </div>
         </div>
+      )}
+      {/* Required WhatsApp Modal for Enrolled Scholars */}
+      {isWhatsAppRequiredModalOpen && currentUser && (
+        <WhatsAppPromptModal
+          isOpen={isWhatsAppRequiredModalOpen}
+          user={currentUser}
+          onSuccess={(updatedUser) => {
+            setCurrentUser(updatedUser);
+            setProfilePhone(updatedUser.phone || '');
+            setIsWhatsAppRequiredModalOpen(false);
+          }}
+        />
       )}
     </div>
   );

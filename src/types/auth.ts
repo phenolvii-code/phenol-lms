@@ -13,6 +13,8 @@ export interface AuthUser {
   bio?: string;
   specialization?: string;
   academicCode?: string;
+  whatsapp?: string;
+  academicTrack?: string;
 }
 
 export const ADMIN_EMAILS = [
@@ -21,4 +23,4 @@ export const ADMIN_EMAILS = [
   'dromar@phenol.academy',
 ];
 
-export type AuthModalMode = 'LOGIN' | 'REGISTER' | 'INSTRUCTOR_LOGIN';
+export type AuthModalMode = 'LOGIN' | 'REGISTER' | 'INSTRUCTOR_LOGIN' | 'WHATSAPP_REQUIRED';
