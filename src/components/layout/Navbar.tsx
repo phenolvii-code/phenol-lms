@@ -39,11 +39,11 @@ export const Navbar: React.FC<NavbarProps> = ({
   }, []);
 
   const navLinks = [
-    { label: 'Philosophy', href: '/#philosophy' },
-    { label: 'Feynman Method', href: '/#method' },
-    { label: 'Analytical Matrix', href: '/#comparison' },
+    { label: 'Philosophy', href: '/philosophy' },
+    { label: 'Feynman Method', href: '/method' },
+    { label: 'Analytical Matrix', href: '/matrix' },
     { label: 'Courses', href: '/#programs' },
-    { label: 'About Dr. Omar', href: '/#about' },
+    { label: 'About Dr. Omar', href: '/about' },
   ];
 
   const handleNavClick = (href: string) => {

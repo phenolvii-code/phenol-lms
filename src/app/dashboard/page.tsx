@@ -80,6 +80,7 @@ import {
   Sparkles,
   Lock,
   KeyRound,
+  Upload,
 } from 'lucide-react';
 
 export default function DashboardPage() {
@@ -3114,33 +3115,33 @@ export default function DashboardPage() {
       {/* MODAL: PROFILE & CUSTOMIZATION                            */}
       {/* ========================================================= */}
       {isProfileModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-charcoal-900/60 backdrop-blur-sm">
-          <div className="bg-ivory-100 border border-hairline rounded-lg shadow-editorial max-w-lg w-full overflow-hidden">
-            <div className="p-5 border-b border-hairline bg-ivory-200 flex items-center justify-between">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-charcoal-900/60 backdrop-blur-sm animate-fade-in font-sans">
+          <div className="bg-ivory-100 border border-hairline rounded-2xl shadow-editorial max-w-3xl w-full overflow-hidden flex flex-col max-h-[92vh]">
+            <div className="p-5 border-b border-hairline bg-ivory-200 flex items-center justify-between shrink-0">
               <div>
                 <span className="font-formula text-xs text-burgundy-500 font-bold uppercase tracking-wider block">
                   PROFILE SETTINGS
                 </span>
-                <h3 className="font-bold text-charcoal-900 font-display text-sm">
+                <h3 className="font-bold text-charcoal-900 font-display text-sm sm:text-base">
                   Edit Personal & Academic Profile
                 </h3>
               </div>
               <button
                 onClick={() => setIsProfileModalOpen(false)}
-                className="text-charcoal-50 hover:text-charcoal-900 p-1"
+                className="text-charcoal-50 hover:text-charcoal-900 p-1.5 rounded-full hover:bg-ivory-300 transition-colors"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             {/* Profile Modal Tabs */}
-            <div className="flex border-b border-hairline bg-ivory-300 px-6 pt-2 gap-4 text-xs font-semibold">
+            <div className="flex border-b border-hairline bg-ivory-300 px-6 pt-2 gap-4 text-xs font-semibold shrink-0">
               <button
                 type="button"
                 onClick={() => setProfileModalTab('info')}
                 className={`pb-2.5 border-b-2 transition-colors ${
                   profileModalTab === 'info'
-                    ? 'border-burgundy-500 text-burgundy-500'
+                    ? 'border-burgundy-500 text-burgundy-500 font-bold'
                     : 'border-transparent text-charcoal-100 hover:text-charcoal-900'
                 }`}
               >
@@ -3154,7 +3155,7 @@ export default function DashboardPage() {
                 }}
                 className={`pb-2.5 border-b-2 transition-colors flex items-center gap-1.5 ${
                   profileModalTab === 'security'
-                    ? 'border-burgundy-500 text-burgundy-500'
+                    ? 'border-burgundy-500 text-burgundy-500 font-bold'
                     : 'border-transparent text-charcoal-100 hover:text-charcoal-900'
                 }`}
               >
@@ -3164,46 +3165,61 @@ export default function DashboardPage() {
             </div>
 
             {profileModalTab === 'info' ? (
-              <form onSubmit={handleSaveProfile} className="p-6 space-y-4">
-                <div className="flex items-center gap-4 border-b border-hairline pb-4">
+              <form onSubmit={handleSaveProfile} className="p-6 overflow-y-auto space-y-4 flex-1">
+                <div className="p-4 rounded-xl bg-ivory-200/70 border border-hairline flex flex-col sm:flex-row items-center gap-4">
                   <img
                     src={profileAvatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80'}
                     alt="Profile Preview"
-                    className="w-16 h-16 rounded-full object-cover border-2 border-burgundy-500/30"
+                    className="w-16 h-16 rounded-full object-cover border-2 border-burgundy-900 shadow-sm shrink-0"
                   />
-                  <div className="flex-1 space-y-1">
-                    <label className="block text-xs font-semibold text-charcoal-900 font-sans">
-                      Avatar Image URL
-                    </label>
-                    <input
-                      type="url"
-                      value={profileAvatar}
-                      onChange={(e) => setProfileAvatar(e.target.value)}
-                      placeholder="https://images.unsplash.com/..."
-                      className="w-full px-3 py-1.5 text-xs bg-ivory-50 border border-hairline rounded text-charcoal-900 focus:outline-none focus:border-burgundy-500"
-                    />
-                    <div className="flex items-center gap-2 pt-1 text-[11px] text-charcoal-50">
-                      <span>Quick presets:</span>
-                      <button
-                        type="button"
-                        onClick={() => setProfileAvatar('https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80')}
-                        className="text-burgundy-500 hover:underline"
-                      >
-                        Default Fellow
-                      </button>
-                      <span>•</span>
+                  <div className="flex-1 space-y-2 text-center sm:text-left">
+                    <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
+                      <label className="cursor-pointer inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-burgundy-900 hover:bg-black text-ivory-100 rounded text-xs font-semibold transition-colors shadow-sm">
+                        <Upload className="w-3.5 h-3.5" />
+                        <span>Upload Photo from Device</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              if (file.size > 2 * 1024 * 1024) {
+                                alert('Please select an image smaller than 2MB');
+                                return;
+                              }
+                              const reader = new FileReader();
+                              reader.onload = () => {
+                                if (typeof reader.result === 'string') {
+                                  setProfileAvatar(reader.result);
+                                }
+                              };
+                              reader.readAsDataURL(file);
+                            }
+                          }}
+                        />
+                      </label>
                       <button
                         type="button"
                         onClick={() => setProfileAvatar('https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300&auto=format&fit=crop&q=80')}
-                        className="text-burgundy-500 hover:underline"
+                        className="text-xs text-charcoal-50 hover:text-charcoal-900 underline"
                       >
-                        Professor
+                        Default Fellow
                       </button>
+                    </div>
+                    <div>
+                      <input
+                        type="url"
+                        value={profileAvatar}
+                        onChange={(e) => setProfileAvatar(e.target.value)}
+                        placeholder="Or enter image URL: https://images.unsplash.com/..."
+                        className="w-full px-3 py-1.5 text-xs bg-white border border-hairline rounded text-charcoal-900 focus:outline-none focus:border-burgundy-500 font-sans"
+                      />
                     </div>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs font-semibold text-charcoal-900 font-sans mb-1">
                       Display Name
@@ -3213,7 +3229,7 @@ export default function DashboardPage() {
                       required
                       value={profileName}
                       onChange={(e) => setProfileName(e.target.value)}
-                      className="w-full px-3 py-2 text-xs bg-ivory-50 border border-hairline rounded font-bold text-charcoal-900 focus:outline-none focus:border-burgundy-500"
+                      className="w-full px-3 py-2 text-xs bg-white border border-hairline rounded font-bold text-charcoal-900 focus:outline-none focus:border-burgundy-500"
                     />
                   </div>
 
@@ -3226,12 +3242,12 @@ export default function DashboardPage() {
                       value={profileTitle}
                       onChange={(e) => setProfileTitle(e.target.value)}
                       placeholder="Academic Director & Senior Fellow"
-                      className="w-full px-3 py-2 text-xs bg-ivory-50 border border-hairline rounded text-charcoal-900 focus:outline-none focus:border-burgundy-500"
+                      className="w-full px-3 py-2 text-xs bg-white border border-hairline rounded text-charcoal-900 focus:outline-none focus:border-burgundy-500"
                     />
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs font-semibold text-charcoal-900 font-sans mb-1">
                       Specialization
@@ -3241,7 +3257,7 @@ export default function DashboardPage() {
                       value={profileSpecialization}
                       onChange={(e) => setProfileSpecialization(e.target.value)}
                       placeholder="Organic Reaction Mechanisms"
-                      className="w-full px-3 py-2 text-xs bg-ivory-50 border border-hairline rounded text-charcoal-900 focus:outline-none focus:border-burgundy-500"
+                      className="w-full px-3 py-2 text-xs bg-white border border-hairline rounded text-charcoal-900 focus:outline-none focus:border-burgundy-500"
                     />
                   </div>
 
@@ -3254,7 +3270,7 @@ export default function DashboardPage() {
                       value={profilePhone}
                       onChange={(e) => setProfilePhone(e.target.value)}
                       placeholder="+20 10xxxxxxxx"
-                      className="w-full px-3 py-2 text-xs bg-ivory-50 border border-hairline rounded text-charcoal-900 focus:outline-none focus:border-burgundy-500"
+                      className="w-full px-3 py-2 text-xs bg-white border border-hairline rounded text-charcoal-900 focus:outline-none focus:border-burgundy-500 font-mono"
                     />
                   </div>
                 </div>
@@ -3268,28 +3284,28 @@ export default function DashboardPage() {
                     value={profileBio}
                     onChange={(e) => setProfileBio(e.target.value)}
                     placeholder="Specialist in organic mechanisms and advanced physical chemistry..."
-                    className="w-full px-3 py-2 text-xs bg-ivory-50 border border-hairline rounded text-charcoal-900 font-sans focus:outline-none focus:border-burgundy-500 leading-relaxed"
+                    className="w-full px-3 py-2 text-xs bg-white border border-hairline rounded text-charcoal-900 font-sans focus:outline-none focus:border-burgundy-500 leading-relaxed"
                   />
                 </div>
 
-                <div className="flex justify-end gap-2 pt-2">
+                <div className="flex justify-end gap-2 pt-4 border-t border-hairline shrink-0">
                   <button
                     type="button"
                     onClick={() => setIsProfileModalOpen(false)}
-                    className="px-4 py-2 rounded border border-hairline text-charcoal-50 text-xs font-semibold"
+                    className="px-4 py-2 rounded border border-hairline text-charcoal-50 hover:text-charcoal-900 text-xs font-semibold transition-colors"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    className="px-5 py-2 rounded bg-burgundy-500 hover:bg-burgundy-800 text-ivory-100 text-xs font-semibold shadow-quiet"
+                    className="px-5 py-2 rounded bg-burgundy-900 hover:bg-black text-ivory-100 text-xs font-semibold shadow-quiet transition-colors"
                   >
                     Save Profile Changes
                   </button>
                 </div>
               </form>
             ) : (
-              <form onSubmit={handleChangePassword} className="p-6 space-y-4">
+              <form onSubmit={handleChangePassword} className="p-6 space-y-4 overflow-y-auto flex-1">
                 <div className="p-3.5 bg-ivory-200 border border-hairline rounded text-xs space-y-1">
                   <span className="font-semibold text-charcoal-900 flex items-center gap-1.5 font-formula">
                     <KeyRound className="w-3.5 h-3.5 text-burgundy-500" />
@@ -3309,7 +3325,7 @@ export default function DashboardPage() {
 
                 {passwordChangeStatus.type === 'success' && (
                   <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs rounded flex items-start gap-2">
-                    <Check className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
                     <span>{passwordChangeStatus.message}</span>
                   </div>
                 )}
@@ -3318,73 +3334,59 @@ export default function DashboardPage() {
                   <label className="block text-xs font-semibold text-charcoal-900 font-sans mb-1">
                     Current Password
                   </label>
-                  <div className="relative">
-                    <Lock className="w-4 h-4 text-charcoal-50 absolute left-3 top-2.5 pointer-events-none" />
-                    <input
-                      type="password"
-                      required
-                      value={currentPasswordInput}
-                      onChange={(e) => setCurrentPasswordInput(e.target.value)}
-                      placeholder="••••••••"
-                      className="w-full pl-9 pr-3 py-2 text-xs bg-ivory-50 border border-hairline rounded text-charcoal-900 focus:outline-none focus:border-burgundy-500"
-                    />
-                  </div>
+                  <input
+                    type="password"
+                    required
+                    value={currentPasswordInput}
+                    onChange={(e) => setCurrentPasswordInput(e.target.value)}
+                    placeholder="Enter current password"
+                    className="w-full px-3 py-2 text-xs bg-white border border-hairline rounded text-charcoal-900 focus:outline-none focus:border-burgundy-500 font-mono"
+                  />
                 </div>
 
-                <div>
-                  <label className="block text-xs font-semibold text-charcoal-900 font-sans mb-1">
-                    New Password
-                  </label>
-                  <div className="relative">
-                    <Lock className="w-4 h-4 text-charcoal-50 absolute left-3 top-2.5 pointer-events-none" />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-semibold text-charcoal-900 font-sans mb-1">
+                      New Password
+                    </label>
                     <input
                       type="password"
                       required
-                      minLength={6}
                       value={newPasswordInput}
                       onChange={(e) => setNewPasswordInput(e.target.value)}
-                      placeholder="Minimum 6 characters"
-                      className="w-full pl-9 pr-3 py-2 text-xs bg-ivory-50 border border-hairline rounded text-charcoal-900 focus:outline-none focus:border-burgundy-500"
+                      placeholder="At least 6 characters"
+                      className="w-full px-3 py-2 text-xs bg-white border border-hairline rounded text-charcoal-900 focus:outline-none focus:border-burgundy-500 font-mono"
                     />
                   </div>
-                </div>
 
-                <div>
-                  <label className="block text-xs font-semibold text-charcoal-900 font-sans mb-1">
-                    Confirm New Password
-                  </label>
-                  <div className="relative">
-                    <Lock className="w-4 h-4 text-charcoal-50 absolute left-3 top-2.5 pointer-events-none" />
+                  <div>
+                    <label className="block text-xs font-semibold text-charcoal-900 font-sans mb-1">
+                      Confirm New Password
+                    </label>
                     <input
                       type="password"
                       required
-                      minLength={6}
                       value={confirmPasswordInput}
                       onChange={(e) => setConfirmPasswordInput(e.target.value)}
-                      placeholder="Re-enter new password"
-                      className="w-full pl-9 pr-3 py-2 text-xs bg-ivory-50 border border-hairline rounded text-charcoal-900 focus:outline-none focus:border-burgundy-500"
+                      placeholder="Repeat new password"
+                      className="w-full px-3 py-2 text-xs bg-white border border-hairline rounded text-charcoal-900 focus:outline-none focus:border-burgundy-500 font-mono"
                     />
                   </div>
                 </div>
 
-                <div className="flex justify-end gap-2 pt-2">
+                <div className="flex justify-end gap-2 pt-4 border-t border-hairline shrink-0">
                   <button
                     type="button"
-                    onClick={() => {
-                      setIsProfileModalOpen(false);
-                      setPasswordChangeStatus({ type: 'idle', message: '' });
-                    }}
-                    className="px-4 py-2 rounded border border-hairline text-charcoal-50 text-xs font-semibold"
+                    onClick={() => setIsProfileModalOpen(false)}
+                    className="px-4 py-2 rounded border border-hairline text-charcoal-50 hover:text-charcoal-900 text-xs font-semibold transition-colors"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    disabled={passwordLoading}
-                    className="px-5 py-2 rounded bg-burgundy-500 hover:bg-burgundy-800 disabled:opacity-50 text-ivory-100 text-xs font-semibold shadow-quiet flex items-center gap-1.5"
+                    className="px-5 py-2 rounded bg-burgundy-900 hover:bg-black text-ivory-100 text-xs font-semibold shadow-quiet transition-colors"
                   >
-                    <KeyRound className="w-3.5 h-3.5" />
-                    <span>{passwordLoading ? 'Updating...' : 'Update Password'}</span>
+                    Update Password
                   </button>
                 </div>
               </form>
@@ -3424,152 +3426,160 @@ export default function DashboardPage() {
       {/* MODAL: CREATE NEW COURSE                                  */}
       {/* ========================================================= */}
       {isCreateCourseOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-charcoal-900/60 backdrop-blur-sm">
-          <div className="bg-ivory-100 border border-hairline rounded-lg shadow-editorial max-w-lg w-full overflow-hidden">
-            <div className="p-5 border-b border-hairline bg-ivory-200 flex items-center justify-between">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-charcoal-900/60 backdrop-blur-sm animate-fade-in font-sans">
+          <div className="bg-ivory-100 border border-hairline rounded-2xl shadow-editorial max-w-4xl w-full overflow-hidden flex flex-col max-h-[92vh]">
+            <div className="p-5 border-b border-hairline bg-ivory-200 flex items-center justify-between shrink-0">
               <div>
                 <span className="font-formula text-xs text-burgundy-500 font-bold uppercase tracking-wider block">
-                  COURSE BUILDER
+                  COURSE BUILDER STUDIO
                 </span>
-                <h3 className="font-bold text-charcoal-900 font-display text-sm">
+                <h3 className="font-bold text-charcoal-900 font-display text-sm sm:text-base">
                   Create New Course under Academic Program
                 </h3>
               </div>
               <button
                 onClick={() => setIsCreateCourseOpen(false)}
-                className="text-charcoal-50 hover:text-charcoal-900 p-1"
+                className="text-charcoal-50 hover:text-charcoal-900 p-1.5 rounded-full hover:bg-ivory-300 transition-colors"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <form onSubmit={handleCreateCourse} className="p-6 space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-charcoal-900 font-sans mb-1">
-                  Target Academic Program
-                </label>
-                <select
-                  value={newCourseCategory}
-                  onChange={(e) => setNewCourseCategory(e.target.value as AcademicCategory)}
-                  className="w-full px-3 py-2 text-xs bg-ivory-50 border border-hairline rounded text-charcoal-900 font-sans focus:outline-none focus:border-burgundy-500"
-                >
-                  {ACADEMIC_TRACKS.map((t) => (
-                    <option key={t.id} value={t.id}>
-                      {t.name} — {t.nameAr}
-                    </option>
-                  ))}
-                </select>
-              </div>
+            <form onSubmit={handleCreateCourse} className="p-6 overflow-y-auto space-y-4 flex-1">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                
+                {/* Column 1 */}
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-xs font-semibold text-charcoal-900 font-sans mb-1">
+                      Target Academic Program
+                    </label>
+                    <select
+                      value={newCourseCategory}
+                      onChange={(e) => setNewCourseCategory(e.target.value as AcademicCategory)}
+                      className="w-full px-3 py-2 text-xs bg-ivory-50 border border-hairline rounded text-charcoal-900 font-sans focus:outline-none focus:border-burgundy-500"
+                    >
+                      {ACADEMIC_TRACKS.map((t) => (
+                        <option key={t.id} value={t.id}>
+                          {t.name} — {t.nameAr}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold text-charcoal-900 font-sans mb-1">
-                    Course Code (e.g. CHEM-AR 302)
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={newCourseCode}
-                    onChange={(e) => setNewCourseCode(e.target.value)}
-                    placeholder="CHEM-AR 302"
-                    className="w-full px-3 py-2 text-xs bg-ivory-50 border border-hairline rounded font-formula text-charcoal-900 focus:outline-none focus:border-burgundy-500"
-                  />
+                  <div>
+                    <label className="block text-xs font-semibold text-charcoal-900 font-sans mb-1">
+                      Course Code (e.g. CHEM-AR 302)
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={newCourseCode}
+                      onChange={(e) => setNewCourseCode(e.target.value)}
+                      placeholder="CHEM-AR 302"
+                      className="w-full px-3 py-2 text-xs bg-ivory-50 border border-hairline rounded font-formula text-charcoal-900 focus:outline-none focus:border-burgundy-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-charcoal-900 font-sans mb-1">
+                      Course Title
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={newCourseTitle}
+                      onChange={(e) => setNewCourseTitle(e.target.value)}
+                      placeholder="e.g. Advanced Electrochemistry & Galvanic Thermodynamics"
+                      className="w-full px-3 py-2 text-xs bg-ivory-50 border border-hairline rounded text-charcoal-900 focus:outline-none focus:border-burgundy-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-charcoal-900 font-sans mb-1">
+                      Subtitle / Scope
+                    </label>
+                    <input
+                      type="text"
+                      value={newCourseSubtitle}
+                      onChange={(e) => setNewCourseSubtitle(e.target.value)}
+                      placeholder="e.g. Faraday's Laws, Nernst Equation, and Cell Potentials"
+                      className="w-full px-3 py-2 text-xs bg-ivory-50 border border-hairline rounded text-charcoal-900 focus:outline-none focus:border-burgundy-500"
+                    />
+                  </div>
                 </div>
 
-                <div>
-                  <label className="block text-xs font-semibold text-charcoal-900 font-sans mb-1">
-                    Academic Level
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={newCourseLevel}
-                    onChange={(e) => setNewCourseLevel(e.target.value)}
-                    placeholder="e.g. Year 3 Secondary / Senior"
-                    className="w-full px-3 py-2 text-xs bg-ivory-50 border border-hairline rounded text-charcoal-900 focus:outline-none focus:border-burgundy-500"
-                  />
+                {/* Column 2 */}
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-semibold text-charcoal-900 font-sans mb-1">
+                        Academic Level
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={newCourseLevel}
+                        onChange={(e) => setNewCourseLevel(e.target.value)}
+                        placeholder="e.g. Year 3 Secondary"
+                        className="w-full px-3 py-2 text-xs bg-ivory-50 border border-hairline rounded text-charcoal-900 focus:outline-none focus:border-burgundy-500"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-charcoal-900 font-sans mb-1">
+                        Key Formula / Symbol
+                      </label>
+                      <input
+                        type="text"
+                        value={newCourseFormula}
+                        onChange={(e) => setNewCourseFormula(e.target.value)}
+                        placeholder="e.g. ΔG° = -nFE°"
+                        className="w-full px-3 py-2 text-xs bg-ivory-50 border border-hairline rounded font-formula text-charcoal-900 focus:outline-none focus:border-burgundy-500"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-charcoal-900 font-sans mb-1">
+                      Academic Hours
+                    </label>
+                    <input
+                      type="text"
+                      value={newCourseHours}
+                      onChange={(e) => setNewCourseHours(e.target.value)}
+                      placeholder="e.g. 32 Academic Hours"
+                      className="w-full px-3 py-2 text-xs bg-ivory-50 border border-hairline rounded text-charcoal-900 focus:outline-none focus:border-burgundy-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-charcoal-900 font-sans mb-1">
+                      Course Description & Goals
+                    </label>
+                    <textarea
+                      rows={3}
+                      value={newCourseDesc}
+                      onChange={(e) => setNewCourseDesc(e.target.value)}
+                      placeholder="Explain the first-principles methodology and core problem sets covered in this curriculum..."
+                      className="w-full px-3 py-2 text-xs bg-ivory-50 border border-hairline rounded text-charcoal-900 font-sans focus:outline-none focus:border-burgundy-500"
+                    />
+                  </div>
                 </div>
+
               </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-charcoal-900 font-sans mb-1">
-                  Course Title
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={newCourseTitle}
-                  onChange={(e) => setNewCourseTitle(e.target.value)}
-                  placeholder="e.g. Advanced Electrochemistry & Galvanic Thermodynamics"
-                  className="w-full px-3 py-2 text-xs bg-ivory-50 border border-hairline rounded text-charcoal-900 focus:outline-none focus:border-burgundy-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-charcoal-900 font-sans mb-1">
-                  Subtitle / Scope
-                </label>
-                <input
-                  type="text"
-                  value={newCourseSubtitle}
-                  onChange={(e) => setNewCourseSubtitle(e.target.value)}
-                  placeholder="e.g. Faraday's Laws, Nernst Equation, and Cell Potentials"
-                  className="w-full px-3 py-2 text-xs bg-ivory-50 border border-hairline rounded text-charcoal-900 focus:outline-none focus:border-burgundy-500"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold text-charcoal-900 font-sans mb-1">
-                    Key Formula / Symbol
-                  </label>
-                  <input
-                    type="text"
-                    value={newCourseFormula}
-                    onChange={(e) => setNewCourseFormula(e.target.value)}
-                    placeholder="e.g. ΔG° = -nFE°"
-                    className="w-full px-3 py-2 text-xs bg-ivory-50 border border-hairline rounded font-formula text-charcoal-900 focus:outline-none focus:border-burgundy-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-charcoal-900 font-sans mb-1">
-                    Academic Hours
-                  </label>
-                  <input
-                    type="text"
-                    value={newCourseHours}
-                    onChange={(e) => setNewCourseHours(e.target.value)}
-                    placeholder="e.g. 32 Academic Hours"
-                    className="w-full px-3 py-2 text-xs bg-ivory-50 border border-hairline rounded text-charcoal-900 focus:outline-none focus:border-burgundy-500"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-charcoal-900 font-sans mb-1">
-                  Course Description & Pedagogical Goals
-                </label>
-                <textarea
-                  rows={3}
-                  value={newCourseDesc}
-                  onChange={(e) => setNewCourseDesc(e.target.value)}
-                  placeholder="Explain the first-principles methodology and core problem sets covered in this curriculum..."
-                  className="w-full px-3 py-2 text-xs bg-ivory-50 border border-hairline rounded text-charcoal-900 font-sans focus:outline-none focus:border-burgundy-500"
-                />
-              </div>
-
-              <div className="flex justify-end gap-2 pt-2">
+              <div className="flex justify-end gap-2 pt-4 border-t border-hairline shrink-0">
                 <button
                   type="button"
                   onClick={() => setIsCreateCourseOpen(false)}
-                  className="px-4 py-2 rounded border border-hairline text-charcoal-50 text-xs font-semibold"
+                  className="px-4 py-2 rounded border border-hairline text-charcoal-50 hover:text-charcoal-900 text-xs font-semibold transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 rounded bg-burgundy-500 hover:bg-burgundy-800 text-ivory-100 text-xs font-semibold shadow-quiet"
+                  className="px-5 py-2 rounded bg-burgundy-900 hover:bg-black text-ivory-100 text-xs font-semibold shadow-quiet transition-colors"
                 >
                   Create & Publish Course
                 </button>
@@ -3583,145 +3593,153 @@ export default function DashboardPage() {
       {/* MODAL: EDIT EXISTING COURSE                               */}
       {/* ========================================================= */}
       {isEditCourseOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-charcoal-900/60 backdrop-blur-sm">
-          <div className="bg-ivory-100 border border-hairline rounded-lg shadow-editorial max-w-lg w-full overflow-hidden">
-            <div className="p-5 border-b border-hairline bg-ivory-200 flex items-center justify-between">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-charcoal-900/60 backdrop-blur-sm animate-fade-in font-sans">
+          <div className="bg-ivory-100 border border-hairline rounded-2xl shadow-editorial max-w-4xl w-full overflow-hidden flex flex-col max-h-[92vh]">
+            <div className="p-5 border-b border-hairline bg-ivory-200 flex items-center justify-between shrink-0">
               <div>
                 <span className="font-formula text-xs text-burgundy-500 font-bold uppercase tracking-wider block">
                   EDIT COURSE
                 </span>
-                <h3 className="font-bold text-charcoal-900 font-display text-sm">
+                <h3 className="font-bold text-charcoal-900 font-display text-sm sm:text-base">
                   Modify Syllabus & Course Parameters
                 </h3>
               </div>
               <button
                 onClick={() => setIsEditCourseOpen(false)}
-                className="text-charcoal-50 hover:text-charcoal-900 p-1"
+                className="text-charcoal-50 hover:text-charcoal-900 p-1.5 rounded-full hover:bg-ivory-300 transition-colors"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <form onSubmit={handleUpdateCourse} className="p-6 space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-charcoal-900 font-sans mb-1">
-                  Academic Program
-                </label>
-                <select
-                  value={editCourseCategory}
-                  onChange={(e) => setEditCourseCategory(e.target.value as AcademicCategory)}
-                  className="w-full px-3 py-2 text-xs bg-ivory-50 border border-hairline rounded text-charcoal-900 font-sans focus:outline-none focus:border-burgundy-500"
-                >
-                  {ACADEMIC_TRACKS.map((t) => (
-                    <option key={t.id} value={t.id}>
-                      {t.name} — {t.nameAr}
-                    </option>
-                  ))}
-                </select>
-              </div>
+            <form onSubmit={handleUpdateCourse} className="p-6 overflow-y-auto space-y-4 flex-1">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                
+                {/* Column 1 */}
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-xs font-semibold text-charcoal-900 font-sans mb-1">
+                      Academic Program
+                    </label>
+                    <select
+                      value={editCourseCategory}
+                      onChange={(e) => setEditCourseCategory(e.target.value as AcademicCategory)}
+                      className="w-full px-3 py-2 text-xs bg-ivory-50 border border-hairline rounded text-charcoal-900 font-sans focus:outline-none focus:border-burgundy-500"
+                    >
+                      {ACADEMIC_TRACKS.map((t) => (
+                        <option key={t.id} value={t.id}>
+                          {t.name} — {t.nameAr}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold text-charcoal-900 font-sans mb-1">
-                    Course Code
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={editCourseCode}
-                    onChange={(e) => setEditCourseCode(e.target.value)}
-                    className="w-full px-3 py-2 text-xs bg-ivory-50 border border-hairline rounded font-formula text-charcoal-900 focus:outline-none focus:border-burgundy-500"
-                  />
+                  <div>
+                    <label className="block text-xs font-semibold text-charcoal-900 font-sans mb-1">
+                      Course Code
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={editCourseCode}
+                      onChange={(e) => setEditCourseCode(e.target.value)}
+                      className="w-full px-3 py-2 text-xs bg-ivory-50 border border-hairline rounded font-formula text-charcoal-900 focus:outline-none focus:border-burgundy-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-charcoal-900 font-sans mb-1">
+                      Course Title
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={editCourseTitle}
+                      onChange={(e) => setEditCourseTitle(e.target.value)}
+                      className="w-full px-3 py-2 text-xs bg-ivory-50 border border-hairline rounded text-charcoal-900 focus:outline-none focus:border-burgundy-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-charcoal-900 font-sans mb-1">
+                      Subtitle
+                    </label>
+                    <input
+                      type="text"
+                      value={editCourseSubtitle}
+                      onChange={(e) => setEditCourseSubtitle(e.target.value)}
+                      className="w-full px-3 py-2 text-xs bg-ivory-50 border border-hairline rounded text-charcoal-900 focus:outline-none focus:border-burgundy-500"
+                    />
+                  </div>
                 </div>
 
-                <div>
-                  <label className="block text-xs font-semibold text-charcoal-900 font-sans mb-1">
-                    Academic Level
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={editCourseLevel}
-                    onChange={(e) => setEditCourseLevel(e.target.value)}
-                    className="w-full px-3 py-2 text-xs bg-ivory-50 border border-hairline rounded text-charcoal-900 focus:outline-none focus:border-burgundy-500"
-                  />
+                {/* Column 2 */}
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-semibold text-charcoal-900 font-sans mb-1">
+                        Academic Level
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={editCourseLevel}
+                        onChange={(e) => setEditCourseLevel(e.target.value)}
+                        className="w-full px-3 py-2 text-xs bg-ivory-50 border border-hairline rounded text-charcoal-900 focus:outline-none focus:border-burgundy-500"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-charcoal-900 font-sans mb-1">
+                        Molecular Formula / Badge
+                      </label>
+                      <input
+                        type="text"
+                        value={editCourseFormula}
+                        onChange={(e) => setEditCourseFormula(e.target.value)}
+                        className="w-full px-3 py-2 text-xs bg-ivory-50 border border-hairline rounded font-formula text-charcoal-900 focus:outline-none focus:border-burgundy-500"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-charcoal-900 font-sans mb-1">
+                      Duration Hours
+                    </label>
+                    <input
+                      type="text"
+                      value={editCourseHours}
+                      onChange={(e) => setEditCourseHours(e.target.value)}
+                      className="w-full px-3 py-2 text-xs bg-ivory-50 border border-hairline rounded text-charcoal-900 focus:outline-none focus:border-burgundy-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-charcoal-900 font-sans mb-1">
+                      Description
+                    </label>
+                    <textarea
+                      rows={3}
+                      value={editCourseDesc}
+                      onChange={(e) => setEditCourseDesc(e.target.value)}
+                      className="w-full px-3 py-2 text-xs bg-ivory-50 border border-hairline rounded text-charcoal-900 font-sans focus:outline-none focus:border-burgundy-500"
+                    />
+                  </div>
                 </div>
+
               </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-charcoal-900 font-sans mb-1">
-                  Course Title
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={editCourseTitle}
-                  onChange={(e) => setEditCourseTitle(e.target.value)}
-                  className="w-full px-3 py-2 text-xs bg-ivory-50 border border-hairline rounded text-charcoal-900 focus:outline-none focus:border-burgundy-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-charcoal-900 font-sans mb-1">
-                  Subtitle
-                </label>
-                <input
-                  type="text"
-                  value={editCourseSubtitle}
-                  onChange={(e) => setEditCourseSubtitle(e.target.value)}
-                  className="w-full px-3 py-2 text-xs bg-ivory-50 border border-hairline rounded text-charcoal-900 focus:outline-none focus:border-burgundy-500"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold text-charcoal-900 font-sans mb-1">
-                    Molecular Formula / Badge
-                  </label>
-                  <input
-                    type="text"
-                    value={editCourseFormula}
-                    onChange={(e) => setEditCourseFormula(e.target.value)}
-                    className="w-full px-3 py-2 text-xs bg-ivory-50 border border-hairline rounded font-formula text-charcoal-900 focus:outline-none focus:border-burgundy-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-charcoal-900 font-sans mb-1">
-                    Duration Hours
-                  </label>
-                  <input
-                    type="text"
-                    value={editCourseHours}
-                    onChange={(e) => setEditCourseHours(e.target.value)}
-                    className="w-full px-3 py-2 text-xs bg-ivory-50 border border-hairline rounded text-charcoal-900 focus:outline-none focus:border-burgundy-500"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-charcoal-900 font-sans mb-1">
-                  Description
-                </label>
-                <textarea
-                  rows={3}
-                  value={editCourseDesc}
-                  onChange={(e) => setEditCourseDesc(e.target.value)}
-                  className="w-full px-3 py-2 text-xs bg-ivory-50 border border-hairline rounded text-charcoal-900 font-sans focus:outline-none focus:border-burgundy-500"
-                />
-              </div>
-
-              <div className="flex justify-end gap-2 pt-2">
+              <div className="flex justify-end gap-2 pt-4 border-t border-hairline shrink-0">
                 <button
                   type="button"
                   onClick={() => setIsEditCourseOpen(false)}
-                  className="px-4 py-2 rounded border border-hairline text-charcoal-50 text-xs font-semibold"
+                  className="px-4 py-2 rounded border border-hairline text-charcoal-50 hover:text-charcoal-900 text-xs font-semibold transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 rounded bg-burgundy-500 hover:bg-burgundy-800 text-ivory-100 text-xs font-semibold shadow-quiet"
+                  className="px-5 py-2 rounded bg-burgundy-900 hover:bg-black text-ivory-100 text-xs font-semibold shadow-quiet transition-colors"
                 >
                   Update Course
                 </button>
@@ -3735,139 +3753,149 @@ export default function DashboardPage() {
       {/* MODAL: ADD LECTURE MODULE                                 */}
       {/* ========================================================= */}
       {isAddLectureOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-charcoal-900/60 backdrop-blur-sm">
-          <div className="bg-ivory-100 border border-hairline rounded-lg shadow-editorial max-w-md w-full overflow-hidden">
-            <div className="p-5 border-b border-hairline bg-ivory-200 flex items-center justify-between">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-charcoal-900/60 backdrop-blur-sm animate-fade-in font-sans">
+          <div className="bg-ivory-100 border border-hairline rounded-2xl shadow-editorial max-w-3xl w-full overflow-hidden flex flex-col max-h-[92vh]">
+            <div className="p-5 border-b border-hairline bg-ivory-200 flex items-center justify-between shrink-0">
               <div>
                 <span className="font-formula text-xs text-burgundy-500 font-bold uppercase tracking-wider block">
                   CURRICULUM ARCHITECT
                 </span>
-                <h3 className="font-bold text-charcoal-900 font-display text-sm">
+                <h3 className="font-bold text-charcoal-900 font-display text-sm sm:text-base">
                   Add New Chemistry Lecture Module
                 </h3>
               </div>
               <button
                 onClick={() => setIsAddLectureOpen(false)}
-                className="text-charcoal-50 hover:text-charcoal-900 p-1"
+                className="text-charcoal-50 hover:text-charcoal-900 p-1.5 rounded-full hover:bg-ivory-300 transition-colors"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <form onSubmit={handleAddLecture} className="p-6 space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-charcoal-900 font-sans mb-1">
-                  Target Course
-                </label>
-                <select
-                  value={newLectureCourse || (courses.length > 0 ? courses[0].id : '')}
-                  onChange={(e) => setNewLectureCourse(e.target.value)}
-                  className="w-full px-3 py-2 text-xs bg-ivory-50 border border-hairline rounded text-charcoal-900 font-sans focus:outline-none focus:border-burgundy-500"
-                >
-                  {courses.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      [{c.categoryName}] {c.code} — {c.title}
-                    </option>
-                  ))}
-                </select>
-              </div>
+            <form onSubmit={handleAddLecture} className="p-6 overflow-y-auto space-y-4 flex-1">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                
+                {/* Column 1 */}
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-xs font-semibold text-charcoal-900 font-sans mb-1">
+                      Target Course
+                    </label>
+                    <select
+                      value={newLectureCourse || (courses.length > 0 ? courses[0].id : '')}
+                      onChange={(e) => setNewLectureCourse(e.target.value)}
+                      className="w-full px-3 py-2 text-xs bg-ivory-50 border border-hairline rounded text-charcoal-900 font-sans focus:outline-none focus:border-burgundy-500"
+                    >
+                      {courses.map((c) => (
+                        <option key={c.id} value={c.id}>
+                          [{c.categoryName}] {c.code} — {c.title}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-charcoal-900 font-sans mb-1">
-                  Lecture Title
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={newLectureTitle}
-                  onChange={(e) => setNewLectureTitle(e.target.value)}
-                  placeholder="e.g. Thermodynamic Derivation of Equilibrium Constant"
-                  className="w-full px-3 py-2 text-xs bg-ivory-50 border border-hairline rounded text-charcoal-900 font-sans focus:outline-none focus:border-burgundy-500"
-                />
-              </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-charcoal-900 font-sans mb-1">
+                      Lecture Title
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={newLectureTitle}
+                      onChange={(e) => setNewLectureTitle(e.target.value)}
+                      placeholder="e.g. Thermodynamic Derivation of Equilibrium Constant"
+                      className="w-full px-3 py-2 text-xs bg-ivory-50 border border-hairline rounded text-charcoal-900 font-sans focus:outline-none focus:border-burgundy-500"
+                    />
+                  </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-charcoal-900 font-sans mb-1">
-                  Video URL (Unlisted YouTube link or direct video file)
-                </label>
-                <input
-                  type="url"
-                  value={newLectureVideoUrl}
-                  onChange={(e) => setNewLectureVideoUrl(e.target.value)}
-                  placeholder="https://www.youtube.com/watch?v=... or direct MP4/Vimeo"
-                  className="w-full px-3 py-2 text-xs bg-ivory-50 border border-hairline rounded font-mono text-charcoal-900 focus:outline-none focus:border-burgundy-500"
-                />
-                <span className="text-[10px] text-charcoal-50 block mt-1">
-                  Protected automatically by PHENOL custom player skin & blended student forensic watermark.
-                </span>
-              </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-semibold text-charcoal-900 font-sans mb-1">
+                        Duration
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={newLectureDuration}
+                        onChange={(e) => setNewLectureDuration(e.target.value)}
+                        placeholder="e.g. 52 min"
+                        className="w-full px-3 py-2 text-xs bg-ivory-50 border border-hairline rounded text-charcoal-900 font-sans focus:outline-none focus:border-burgundy-500"
+                      />
+                    </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-charcoal-900 font-sans mb-1">
-                  Companion PDF Handout URL (Optional lecture notes link)
-                </label>
-                <input
-                  type="url"
-                  value={newLecturePdfUrl}
-                  onChange={(e) => setNewLecturePdfUrl(e.target.value)}
-                  placeholder="https://.../lecture-notes.pdf"
-                  className="w-full px-3 py-2 text-xs bg-ivory-50 border border-hairline rounded text-charcoal-900 font-sans focus:outline-none focus:border-burgundy-500"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold text-charcoal-900 font-sans mb-1">
-                    Duration
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={newLectureDuration}
-                    onChange={(e) => setNewLectureDuration(e.target.value)}
-                    placeholder="e.g. 52 min"
-                    className="w-full px-3 py-2 text-xs bg-ivory-50 border border-hairline rounded text-charcoal-900 font-sans focus:outline-none focus:border-burgundy-500"
-                  />
+                    <div>
+                      <label className="block text-xs font-semibold text-charcoal-900 font-sans mb-1">
+                        Key Formula (optional)
+                      </label>
+                      <input
+                        type="text"
+                        value={newLectureFormula}
+                        onChange={(e) => setNewLectureFormula(e.target.value)}
+                        placeholder="e.g. ΔG° = -RT ln K"
+                        className="w-full px-3 py-2 text-xs bg-ivory-50 border border-hairline rounded font-formula text-charcoal-900 focus:outline-none focus:border-burgundy-500"
+                      />
+                    </div>
+                  </div>
                 </div>
 
-                <div>
-                  <label className="block text-xs font-semibold text-charcoal-900 font-sans mb-1">
-                    Key Formula (optional)
-                  </label>
-                  <input
-                    type="text"
-                    value={newLectureFormula}
-                    onChange={(e) => setNewLectureFormula(e.target.value)}
-                    placeholder="e.g. ΔG° = -RT ln K"
-                    className="w-full px-3 py-2 text-xs bg-ivory-50 border border-hairline rounded font-formula text-charcoal-900 focus:outline-none focus:border-burgundy-500"
-                  />
+                {/* Column 2 */}
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-xs font-semibold text-charcoal-900 font-sans mb-1">
+                      Video URL (Unlisted YouTube / Vimeo / MP4)
+                    </label>
+                    <input
+                      type="url"
+                      value={newLectureVideoUrl}
+                      onChange={(e) => setNewLectureVideoUrl(e.target.value)}
+                      placeholder="https://www.youtube.com/watch?v=... or direct MP4/Vimeo"
+                      className="w-full px-3 py-2 text-xs bg-ivory-50 border border-hairline rounded font-mono text-charcoal-900 focus:outline-none focus:border-burgundy-500"
+                    />
+                    <span className="text-[10px] text-charcoal-50 block mt-1">
+                      Protected automatically by PHENOL custom player skin & blended student watermark.
+                    </span>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-charcoal-900 font-sans mb-1">
+                      Companion PDF Handout URL (Optional)
+                    </label>
+                    <input
+                      type="url"
+                      value={newLecturePdfUrl}
+                      onChange={(e) => setNewLecturePdfUrl(e.target.value)}
+                      placeholder="https://.../lecture-notes.pdf"
+                      className="w-full px-3 py-2 text-xs bg-ivory-50 border border-hairline rounded text-charcoal-900 font-sans focus:outline-none focus:border-burgundy-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-charcoal-900 font-sans mb-1">
+                      Module Summary
+                    </label>
+                    <textarea
+                      rows={2}
+                      value={newLectureSummary}
+                      onChange={(e) => setNewLectureSummary(e.target.value)}
+                      placeholder="Core concepts, mechanism breakdown, and diagnostic points covered in this lecture..."
+                      className="w-full px-3 py-2 text-xs bg-ivory-50 border border-hairline rounded text-charcoal-900 font-sans focus:outline-none focus:border-burgundy-500"
+                    />
+                  </div>
                 </div>
+
               </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-charcoal-900 font-sans mb-1">
-                  Module Summary
-                </label>
-                <textarea
-                  rows={3}
-                  value={newLectureSummary}
-                  onChange={(e) => setNewLectureSummary(e.target.value)}
-                  placeholder="Core concepts, mechanism breakdown, and diagnostic points covered in this lecture..."
-                  className="w-full px-3 py-2 text-xs bg-ivory-50 border border-hairline rounded text-charcoal-900 font-sans focus:outline-none focus:border-burgundy-500"
-                />
-              </div>
-
-              <div className="flex justify-end gap-2 pt-2">
+              <div className="flex justify-end gap-2 pt-4 border-t border-hairline shrink-0">
                 <button
                   type="button"
                   onClick={() => setIsAddLectureOpen(false)}
-                  className="px-4 py-2 rounded border border-hairline text-charcoal-50 text-xs font-semibold"
+                  className="px-4 py-2 rounded border border-hairline text-charcoal-50 hover:text-charcoal-900 text-xs font-semibold transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 rounded bg-burgundy-500 hover:bg-burgundy-800 text-ivory-100 text-xs font-semibold shadow-quiet"
+                  className="px-5 py-2 rounded bg-burgundy-900 hover:bg-black text-ivory-100 text-xs font-semibold shadow-quiet transition-colors"
                 >
                   Publish Module
                 </button>
@@ -3881,117 +3909,127 @@ export default function DashboardPage() {
       {/* MODAL: EDIT LECTURE MODULE                                */}
       {/* ========================================================= */}
       {isEditLessonOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-charcoal-900/60 backdrop-blur-sm">
-          <div className="bg-ivory-100 border border-hairline rounded-lg shadow-editorial max-w-md w-full overflow-hidden">
-            <div className="p-5 border-b border-hairline bg-ivory-200 flex items-center justify-between">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-charcoal-900/60 backdrop-blur-sm animate-fade-in font-sans">
+          <div className="bg-ivory-100 border border-hairline rounded-2xl shadow-editorial max-w-3xl w-full overflow-hidden flex flex-col max-h-[92vh]">
+            <div className="p-5 border-b border-hairline bg-ivory-200 flex items-center justify-between shrink-0">
               <div>
                 <span className="font-formula text-xs text-burgundy-500 font-bold uppercase tracking-wider block">
                   EDIT MODULE
                 </span>
-                <h3 className="font-bold text-charcoal-900 font-display text-sm">
+                <h3 className="font-bold text-charcoal-900 font-display text-sm sm:text-base">
                   Update Lecture Information
                 </h3>
               </div>
               <button
                 onClick={() => setIsEditLessonOpen(false)}
-                className="text-charcoal-50 hover:text-charcoal-900 p-1"
+                className="text-charcoal-50 hover:text-charcoal-900 p-1.5 rounded-full hover:bg-ivory-300 transition-colors"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <form onSubmit={handleUpdateLesson} className="p-6 space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-charcoal-900 font-sans mb-1">
-                  Lecture Title
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={editLessonTitle}
-                  onChange={(e) => setEditLessonTitle(e.target.value)}
-                  className="w-full px-3 py-2 text-xs bg-ivory-50 border border-hairline rounded text-charcoal-900 font-sans focus:outline-none focus:border-burgundy-500"
-                />
-              </div>
+            <form onSubmit={handleUpdateLesson} className="p-6 overflow-y-auto space-y-4 flex-1">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                
+                {/* Column 1 */}
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-xs font-semibold text-charcoal-900 font-sans mb-1">
+                      Lecture Title
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={editLessonTitle}
+                      onChange={(e) => setEditLessonTitle(e.target.value)}
+                      className="w-full px-3 py-2 text-xs bg-ivory-50 border border-hairline rounded text-charcoal-900 font-sans focus:outline-none focus:border-burgundy-500"
+                    />
+                  </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-charcoal-900 font-sans mb-1">
-                  Video URL (Unlisted YouTube link or direct video file)
-                </label>
-                <input
-                  type="url"
-                  value={editLessonVideoUrl}
-                  onChange={(e) => setEditLessonVideoUrl(e.target.value)}
-                  placeholder="https://www.youtube.com/watch?v=... or direct MP4/Vimeo"
-                  className="w-full px-3 py-2 text-xs bg-ivory-50 border border-hairline rounded font-mono text-charcoal-900 focus:outline-none focus:border-burgundy-500"
-                />
-              </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-semibold text-charcoal-900 font-sans mb-1">
+                        Duration
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={editLessonDuration}
+                        onChange={(e) => setEditLessonDuration(e.target.value)}
+                        className="w-full px-3 py-2 text-xs bg-ivory-50 border border-hairline rounded text-charcoal-900 font-sans focus:outline-none focus:border-burgundy-500"
+                      />
+                    </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-charcoal-900 font-sans mb-1">
-                  Companion PDF Handout URL (Optional lecture notes link)
-                </label>
-                <input
-                  type="url"
-                  value={editLessonPdfUrl}
-                  onChange={(e) => setEditLessonPdfUrl(e.target.value)}
-                  placeholder="https://.../lecture-notes.pdf"
-                  className="w-full px-3 py-2 text-xs bg-ivory-50 border border-hairline rounded text-charcoal-900 font-sans focus:outline-none focus:border-burgundy-500"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold text-charcoal-900 font-sans mb-1">
-                    Duration
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={editLessonDuration}
-                    onChange={(e) => setEditLessonDuration(e.target.value)}
-                    className="w-full px-3 py-2 text-xs bg-ivory-50 border border-hairline rounded text-charcoal-900 font-sans focus:outline-none focus:border-burgundy-500"
-                  />
+                    <div>
+                      <label className="block text-xs font-semibold text-charcoal-900 font-sans mb-1">
+                        Key Formula (optional)
+                      </label>
+                      <input
+                        type="text"
+                        value={editLessonFormula}
+                        onChange={(e) => setEditLessonFormula(e.target.value)}
+                        className="w-full px-3 py-2 text-xs bg-ivory-50 border border-hairline rounded font-formula text-charcoal-900 focus:outline-none focus:border-burgundy-500"
+                      />
+                    </div>
+                  </div>
                 </div>
 
-                <div>
-                  <label className="block text-xs font-semibold text-charcoal-900 font-sans mb-1">
-                    Key Formula (optional)
-                  </label>
-                  <input
-                    type="text"
-                    value={editLessonFormula}
-                    onChange={(e) => setEditLessonFormula(e.target.value)}
-                    className="w-full px-3 py-2 text-xs bg-ivory-50 border border-hairline rounded font-formula text-charcoal-900 focus:outline-none focus:border-burgundy-500"
-                  />
+                {/* Column 2 */}
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-xs font-semibold text-charcoal-900 font-sans mb-1">
+                      Video URL (Unlisted YouTube / Vimeo / MP4)
+                    </label>
+                    <input
+                      type="url"
+                      value={editLessonVideoUrl}
+                      onChange={(e) => setEditLessonVideoUrl(e.target.value)}
+                      placeholder="https://www.youtube.com/watch?v=... or direct MP4/Vimeo"
+                      className="w-full px-3 py-2 text-xs bg-ivory-50 border border-hairline rounded font-mono text-charcoal-900 focus:outline-none focus:border-burgundy-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-charcoal-900 font-sans mb-1">
+                      Companion PDF Handout URL (Optional)
+                    </label>
+                    <input
+                      type="url"
+                      value={editLessonPdfUrl}
+                      onChange={(e) => setEditLessonPdfUrl(e.target.value)}
+                      placeholder="https://.../lecture-notes.pdf"
+                      className="w-full px-3 py-2 text-xs bg-ivory-50 border border-hairline rounded text-charcoal-900 font-sans focus:outline-none focus:border-burgundy-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-charcoal-900 font-sans mb-1">
+                      Module Summary
+                    </label>
+                    <textarea
+                      rows={2}
+                      value={editLessonSummary}
+                      onChange={(e) => setEditLessonSummary(e.target.value)}
+                      className="w-full px-3 py-2 text-xs bg-ivory-50 border border-hairline rounded text-charcoal-900 font-sans focus:outline-none focus:border-burgundy-500"
+                    />
+                  </div>
                 </div>
+
               </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-charcoal-900 font-sans mb-1">
-                  Module Summary
-                </label>
-                <textarea
-                  rows={3}
-                  value={editLessonSummary}
-                  onChange={(e) => setEditLessonSummary(e.target.value)}
-                  className="w-full px-3 py-2 text-xs bg-ivory-50 border border-hairline rounded text-charcoal-900 font-sans focus:outline-none focus:border-burgundy-500"
-                />
-              </div>
-
-              <div className="flex justify-end gap-2 pt-2">
+              <div className="flex justify-end gap-2 pt-4 border-t border-hairline shrink-0">
                 <button
                   type="button"
                   onClick={() => setIsEditLessonOpen(false)}
-                  className="px-4 py-2 rounded border border-hairline text-charcoal-50 text-xs font-semibold"
+                  className="px-4 py-2 rounded border border-hairline text-charcoal-50 hover:text-charcoal-900 text-xs font-semibold transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 rounded bg-burgundy-500 hover:bg-burgundy-800 text-ivory-100 text-xs font-semibold shadow-quiet"
+                  className="px-5 py-2 rounded bg-burgundy-900 hover:bg-black text-ivory-100 text-xs font-semibold shadow-quiet transition-colors"
                 >
-                  Save Module Changes
+                  Update Lecture
                 </button>
               </div>
             </form>

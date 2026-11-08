@@ -290,7 +290,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
       {/* 3. MAIN AUTH MODAL (Sign In & Register) */}
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-charcoal-900/60 backdrop-blur-sm animate-fade-in font-sans">
-        <div className="relative w-full max-w-md bg-ivory-100 rounded-lg border border-hairline shadow-editorial overflow-hidden">
+        <div className={`relative w-full ${mode === 'REGISTER' ? 'max-w-2xl' : 'max-w-md'} bg-ivory-100 rounded-lg border border-hairline shadow-editorial max-h-[92vh] flex flex-col overflow-hidden transition-all duration-200`}>
           {/* Top Header */}
           <div className="flex items-center justify-between p-6 border-b border-hairline bg-ivory-200">
             <div className="flex items-center gap-3">
@@ -314,7 +314,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           </div>
 
           {/* Modal Body */}
-          <div className="p-6">
+          <div className="p-6 overflow-y-auto flex-1">
             {/* Error Message */}
             {errorMessage && (
               <div className="mb-5 p-3.5 bg-burgundy-50 border border-burgundy-200 text-burgundy-900 rounded text-xs flex items-center gap-2.5">

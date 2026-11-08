@@ -1,74 +1,68 @@
 'use client';
 
 import React from 'react';
+import Link from 'next/link';
+import { ArrowRight, Sparkles } from 'lucide-react';
 
 export const PhilosophySection: React.FC = () => {
   const pillars = [
     {
       num: '01',
-      en: 'Analytical Thinking',
-      sub: 'What actually happens—and why?',
-      desc: 'Approaching any reaction or problem by analyzing its governing components. What variables dictate the outcome? Why does this mechanism occur? Transforming raw data into logical, deductive conclusions.',
+      title: 'Analytical Deduction',
+      desc: 'Deconstructing complex chemical phenomena into elementary physical variables rather than relying on surface equations.',
     },
     {
       num: '02',
-      en: 'Causal Reasoning',
-      sub: 'The physical pathways connecting cause and effect',
-      desc: 'We never stop at observing that an agent causes an outcome. We examine effective collision geometry, electron densities, thermodynamic equilibria, and the energetic boundaries of every reaction.',
+      title: 'Causal Thermodynamics',
+      desc: 'Investigating orbital geometries, electron densities, and energetic equilibria to understand why reactions occur.',
     },
     {
       num: '03',
-      en: 'First Principles',
-      sub: 'Reconstructing laws from foundational origins',
-      desc: 'Rather than presenting formulas as dogmatic rules for rote memory, we begin with elementary physical laws to comprehend how the formula was derived, its exact scope, and its boundary conditions.',
+      title: 'First Principles',
+      desc: 'Reconstructing governing laws from their fundamental origins, making recall inevitable rather than forced.',
     },
   ];
 
   return (
-    <section id="philosophy" className="py-16 sm:py-20 lg:py-24 border-t border-hairline px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto scroll-mt-24">
-      <div className="space-y-12 sm:space-y-16">
-        {/* Section Heading */}
-        <div className="max-w-3xl space-y-3">
-          <div className="flex items-center gap-2">
-            <span className="font-formula text-xs text-burgundy-500 font-bold uppercase tracking-widest">
-              SECTION 01
-            </span>
-            <span className="text-hairline-strong">•</span>
-            <span className="text-xs sm:text-sm text-charcoal-100 font-sans font-medium">Core Philosophy</span>
+    <section id="philosophy" className="py-14 sm:py-18 border-t border-hairline px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto scroll-mt-24">
+      <div className="space-y-8">
+        {/* Section Heading with Action */}
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+          <div className="max-w-2xl space-y-2">
+            <div className="flex items-center gap-2">
+              <span className="font-formula text-xs text-burgundy-500 font-bold uppercase tracking-widest flex items-center gap-1.5">
+                <Sparkles className="w-3.5 h-3.5" />
+                SECTION 01 • PHILOSOPHY
+              </span>
+            </div>
+
+            <h2 className="text-2xl sm:text-3xl font-extrabold text-charcoal-900 font-display">
+              Understanding Precedes Memorization.
+            </h2>
+
+            <p className="text-xs sm:text-sm text-charcoal-100 leading-relaxed font-sans">
+              We do not present chemical equations as dogma to be memorized; we deconstruct phenomena down to the physical and thermodynamic realities upon which they rest.
+            </p>
           </div>
 
-          <h2 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-charcoal-900 font-display">
-            Understanding Precedes Memorization.
-          </h2>
-
-          <p className="text-sm sm:text-base text-charcoal-100 leading-relaxed font-sans">
-            We believe the most demanding scientific concepts become intuitive once deconstructed to the elementary physical principles upon which they rest. We do not present equations as dogma to be memorized; we begin by questioning, analyzing, and rebuilding knowledge with crystalline clarity.
-          </p>
+          <Link
+            href="/philosophy"
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded bg-burgundy-500 hover:bg-burgundy-800 text-ivory-100 text-xs font-semibold transition-colors shadow-quiet shrink-0"
+          >
+            <span>Explore Full Philosophy</span>
+            <ArrowRight className="w-4 h-4" />
+          </Link>
         </div>
 
-        {/* 3 Pillars Unboxed Layout */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 sm:gap-10 border-t border-hairline pt-8">
-          {pillars.map((item, idx) => (
-            <div key={idx} className="space-y-4">
-              <div className="flex items-baseline justify-between border-b border-hairline pb-3">
-                <span className="font-formula text-xs font-bold uppercase tracking-wider text-charcoal-50">
-                  {item.en}
-                </span>
-                <span className="font-formula text-2xl font-bold text-burgundy-500">
-                  {item.num}
-                </span>
+        {/* 3 Pillars Summary Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-4 border-t border-hairline">
+          {pillars.map((item) => (
+            <div key={item.num} className="p-5 rounded-lg bg-ivory-100 border border-hairline space-y-2.5">
+              <div className="flex items-baseline justify-between border-b border-hairline pb-2">
+                <h3 className="text-sm font-bold text-charcoal-900 font-display">{item.title}</h3>
+                <span className="font-formula text-sm font-bold text-burgundy-500">{item.num}</span>
               </div>
-
-              <div>
-                <h3 className="text-lg font-bold text-charcoal-900 font-display">
-                  {item.en}
-                </h3>
-                <span className="text-xs font-semibold text-burgundy-500 font-sans block mt-1">
-                  {item.sub}
-                </span>
-              </div>
-
-              <p className="text-xs sm:text-sm text-charcoal-100 leading-relaxed font-sans">
+              <p className="text-xs text-charcoal-100 leading-relaxed font-sans">
                 {item.desc}
               </p>
             </div>

@@ -9,6 +9,7 @@ import { PhenolLogo } from '@/components/brand/PhenolLogo';
 import { setUserPassword } from '@/lib/auth-passwords';
 import { getStudentAcademicCode } from '@/lib/student-code';
 import { recordRegisteredStudent } from '@/lib/enrollment-storage';
+import { awardReferralPoints } from '@/lib/referral-system';
 import { GoogleIcon, WhatsAppIcon } from '@/components/auth/AuthIcons';
 import { WhatsAppPromptModal } from '@/components/auth/WhatsAppPromptModal';
 import { GoogleAccountModal } from '@/components/auth/GoogleAccountModal';
@@ -82,6 +83,7 @@ export default function RegisterPage() {
 
       localStorage.setItem('phenol_auth_user', JSON.stringify(newStudent));
       recordRegisteredStudent(newStudent);
+      awardReferralPoints(cleanEmail);
       router.push('/dashboard');
     } catch (err: any) {
       setErrorMessage(err.message || 'Registration failed');

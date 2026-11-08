@@ -1,24 +1,30 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { AuthUser } from '@/types/auth';
 import { CourseEnrollment, getStoredEnrollments } from '@/lib/enrollment-storage';
 import { verifyUserPassword, setUserPassword } from '@/lib/auth-passwords';
 import { WhatsAppIcon } from '@/components/auth/AuthIcons';
 import {
+  getReferralStats,
+  generateCourseReferralLink,
+  REFERRAL_MILESTONES,
+  ReferralStats,
+} from '@/lib/referral-system';
+import {
   X,
   User,
-  Mail,
   Phone,
   Shield,
   KeyRound,
   GraduationCap,
   Copy,
   Check,
-  BookOpen,
+  Upload,
+  Sparkles,
+  Share2,
+  Gift,
   Award,
-  Clock,
-  ArrowRight,
 } from 'lucide-react';
 
 interface StudentProfileModalProps {
@@ -34,13 +40,18 @@ export const StudentProfileModal: React.FC<StudentProfileModalProps> = ({
   onClose,
   onSave,
 }) => {
-  const [activeTab, setActiveTab] = useState<'info' | 'academics' | 'security'>('info');
+  const [activeTab, setActiveTab] = useState<'info' | 'academics' | 'referrals' | 'security'>('info');
 
   // Personal Info Form State
   const [name, setName] = useState(user.name || '');
   const [phone, setPhone] = useState(user.phone || user.whatsapp || '');
-  const [track, setTrack] = useState(user.academicTrack || 'Thanaweya Amma (Arabic)');
+  const [track, setTrack] = useState(user.academicTrack || 'Public Secondary AR');
+  const [avatar, setAvatar] = useState(user.avatar || '');
   const [copiedCode, setCopiedCode] = useState(false);
+  const [copiedRefLink, setCopiedRefLink] = useState(false);
+
+  // Referral State
+  const [referralStats, setReferralStats] = useState<ReferralStats | null>(null);
 
   // Security Form State
   const [currentPassword, setCurrentPassword] = useState('');
@@ -53,12 +64,14 @@ export const StudentProfileModal: React.FC<StudentProfileModalProps> = ({
 
   // Enrolled Courses for this student
   const [studentEnrollments, setStudentEnrollments] = useState<CourseEnrollment[]>([]);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     if (isOpen) {
       setName(user.name || '');
       setPhone(user.phone || user.whatsapp || '');
-      setTrack(user.academicTrack || 'Thanaweya Amma (Arabic)');
+      setTrack(user.academicTrack || 'Public Secondary AR');
+      setAvatar(user.avatar || '');
       setPasswordStatus({ type: 'idle', message: '' });
 
       const all = getStoredEnrollments();
@@ -66,6 +79,9 @@ export const StudentProfileModal: React.FC<StudentProfileModalProps> = ({
         (e) => e.studentEmail.toLowerCase() === user.email.toLowerCase()
       );
       setStudentEnrollments(myEnrollments);
+
+      const code = user.academicCode || 'PH-SCHOLAR';
+      setReferralStats(getReferralStats(code));
     }
   }, [isOpen, user]);
 
@@ -79,6 +95,31 @@ export const StudentProfileModal: React.FC<StudentProfileModalProps> = ({
     }
   };
 
+  const handleCopyReferralLink = () => {
+    const code = user.academicCode || 'PH-SCHOLAR';
+    const link = generateCourseReferralLink('catalog', code);
+    navigator.clipboard.writeText(link);
+    setCopiedRefLink(true);
+    setTimeout(() => setCopiedRefLink(false), 2000);
+  };
+
+  const handleImageFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 2 * 1024 * 1024) {
+        alert('Please choose an image file under 2 MB.');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = () => {
+        if (typeof reader.result === 'string') {
+          setAvatar(reader.result);
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const handleSaveInfo = (e: React.FormEvent) => {
     e.preventDefault();
     const updated: AuthUser = {
@@ -87,6 +128,7 @@ export const StudentProfileModal: React.FC<StudentProfileModalProps> = ({
       phone: phone.trim(),
       whatsapp: phone.trim(),
       academicTrack: track,
+      avatar: avatar.trim() || user.avatar,
     };
     onSave(updated);
     onClose();
@@ -109,13 +151,11 @@ export const StudentProfileModal: React.FC<StudentProfileModalProps> = ({
       return;
     }
 
-    // Verify current
     if (!verifyUserPassword(user.email, currentPassword)) {
       setPasswordStatus({ type: 'error', message: 'Current password is incorrect.' });
       return;
     }
 
-    // Save
     setUserPassword(user.email, newPassword);
     setPasswordStatus({ type: 'success', message: 'Password updated successfully!' });
     setCurrentPassword('');
@@ -124,26 +164,41 @@ export const StudentProfileModal: React.FC<StudentProfileModalProps> = ({
   };
 
   const activeCourses = studentEnrollments.filter((e) => e.status === 'ACTIVE');
+  const userCode = user.academicCode || 'PH-SCHOLAR';
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-charcoal-900/75 backdrop-blur-md animate-fade-in font-sans">
-      <div className="relative w-full max-w-xl bg-ivory-100 rounded-2xl border border-hairline shadow-editorial overflow-hidden flex flex-col max-h-[90vh]">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-5 bg-charcoal-900/75 backdrop-blur-md animate-fade-in font-sans">
+      <div className="relative w-full max-w-3xl bg-ivory-100 rounded-2xl border border-hairline shadow-editorial overflow-hidden flex flex-col max-h-[92vh]">
+        
         {/* Top Masthead */}
-        <div className="p-6 pb-4 border-b border-hairline bg-ivory-200 flex items-center justify-between shrink-0">
-          <div className="flex items-center gap-3.5">
-            <div className="relative">
+        <div className="p-5 sm:p-6 pb-4 border-b border-hairline bg-ivory-200 flex items-center justify-between shrink-0">
+          <div className="flex items-center gap-4">
+            <div className="relative group">
               <img
-                src={user.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=80'}
+                src={avatar || user.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80'}
                 alt={user.name}
-                className="w-12 h-12 rounded-full object-cover border-2 border-burgundy-900 shadow-sm"
+                className="w-14 h-14 rounded-full object-cover border-2 border-burgundy-900 shadow-sm"
               />
-              <span className="absolute -bottom-1 -right-1 w-4 h-4 bg-emerald-600 rounded-full border-2 border-ivory-100 flex items-center justify-center text-[9px] text-white font-bold">
-                ✓
-              </span>
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                title="Upload photo from device"
+                className="absolute inset-0 bg-charcoal-900/60 rounded-full opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center text-white text-[10px] font-semibold transition-opacity"
+              >
+                <Upload className="w-4 h-4 mb-0.5" />
+                <span>Upload</span>
+              </button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleImageFileChange}
+                className="hidden"
+              />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="text-base font-bold text-charcoal-900 font-display">
+                <h2 className="text-base sm:text-lg font-bold text-charcoal-900 font-display">
                   {user.name}
                 </h2>
                 <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-50 text-emerald-800 border border-emerald-200">
@@ -160,17 +215,17 @@ export const StudentProfileModal: React.FC<StudentProfileModalProps> = ({
             onClick={onClose}
             className="p-1.5 rounded-full text-charcoal-50 hover:text-charcoal-900 hover:bg-ivory-300 transition-colors"
           >
-            <X className="w-4 h-4" />
+            <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Academic Code Strip */}
-        <div className="px-6 py-2.5 bg-burgundy-900 text-ivory-100 text-xs flex items-center justify-between font-mono shrink-0">
+        <div className="px-5 sm:px-6 py-2.5 bg-burgundy-900 text-ivory-100 text-xs flex items-center justify-between font-mono shrink-0">
           <div className="flex items-center gap-2">
             <Shield className="w-3.5 h-3.5 text-ivory-200" />
-            <span className="text-ivory-200/80">Academic Identification Code:</span>
+            <span className="text-ivory-200/80">Academic Code:</span>
             <span className="font-bold tracking-wider text-ivory-100">
-              {user.academicCode || 'PH-8421-T'}
+              {userCode}
             </span>
           </div>
           <button
@@ -179,16 +234,16 @@ export const StudentProfileModal: React.FC<StudentProfileModalProps> = ({
             className="flex items-center gap-1 text-[11px] hover:text-ivory-300 transition-colors bg-burgundy-800/80 px-2 py-0.5 rounded"
           >
             {copiedCode ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
-            <span>{copiedCode ? 'Copied' : 'Copy'}</span>
+            <span>{copiedCode ? 'Copied' : 'Copy Code'}</span>
           </button>
         </div>
 
         {/* Tab Navigation */}
-        <div className="flex border-b border-hairline bg-ivory-50 px-6 gap-6 text-xs font-semibold shrink-0">
+        <div className="flex border-b border-hairline bg-ivory-50 px-4 sm:px-6 gap-4 sm:gap-6 text-xs font-semibold shrink-0 overflow-x-auto">
           <button
             type="button"
             onClick={() => setActiveTab('info')}
-            className={`py-3 border-b-2 transition-colors flex items-center gap-1.5 ${
+            className={`py-3 border-b-2 transition-colors flex items-center gap-1.5 shrink-0 ${
               activeTab === 'info'
                 ? 'border-burgundy-900 text-burgundy-900 font-bold'
                 : 'border-transparent text-charcoal-100 hover:text-charcoal-900'
@@ -201,64 +256,114 @@ export const StudentProfileModal: React.FC<StudentProfileModalProps> = ({
           <button
             type="button"
             onClick={() => setActiveTab('academics')}
-            className={`py-3 border-b-2 transition-colors flex items-center gap-1.5 ${
+            className={`py-3 border-b-2 transition-colors flex items-center gap-1.5 shrink-0 ${
               activeTab === 'academics'
                 ? 'border-burgundy-900 text-burgundy-900 font-bold'
                 : 'border-transparent text-charcoal-100 hover:text-charcoal-900'
             }`}
           >
             <GraduationCap className="w-3.5 h-3.5" />
-            <span>My Courses & Progress</span>
+            <span>Courses & Progress</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('referrals')}
+            className={`py-3 border-b-2 transition-colors flex items-center gap-1.5 shrink-0 ${
+              activeTab === 'referrals'
+                ? 'border-burgundy-900 text-burgundy-900 font-bold'
+                : 'border-transparent text-charcoal-100 hover:text-charcoal-900'
+            }`}
+          >
+            <Share2 className="w-3.5 h-3.5" />
+            <span>Referrals & Points</span>
+            {referralStats && referralStats.points > 0 && (
+              <span className="text-[10px] bg-burgundy-100 text-burgundy-900 font-mono px-1.5 py-0.2 rounded-full font-bold">
+                {referralStats.points} pts
+              </span>
+            )}
           </button>
 
           <button
             type="button"
             onClick={() => setActiveTab('security')}
-            className={`py-3 border-b-2 transition-colors flex items-center gap-1.5 ${
+            className={`py-3 border-b-2 transition-colors flex items-center gap-1.5 shrink-0 ${
               activeTab === 'security'
                 ? 'border-burgundy-900 text-burgundy-900 font-bold'
                 : 'border-transparent text-charcoal-100 hover:text-charcoal-900'
             }`}
           >
             <KeyRound className="w-3.5 h-3.5" />
-            <span>Security & Credentials</span>
+            <span>Security & Password</span>
           </button>
         </div>
 
         {/* Tab Content Body */}
-        <div className="p-6 overflow-y-auto space-y-5 flex-1">
+        <div className="p-5 sm:p-6 overflow-y-auto space-y-5 flex-1">
+          
           {/* TAB 1: PERSONAL INFORMATION */}
           {activeTab === 'info' && (
             <form onSubmit={handleSaveInfo} className="space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-charcoal-900 mb-1">
-                  Full Student Name
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="w-full px-3.5 py-2 text-xs bg-white border border-hairline rounded font-bold text-charcoal-900 focus:outline-none focus:border-burgundy-900"
+              
+              {/* Photo Upload Section */}
+              <div className="p-4 rounded-xl bg-ivory-200/70 border border-hairline flex flex-col sm:flex-row items-center gap-4">
+                <img
+                  src={avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80'}
+                  alt="Profile"
+                  className="w-16 h-16 rounded-full object-cover border-2 border-burgundy-900 shrink-0"
                 />
+                <div className="flex-1 space-y-2 text-center sm:text-left">
+                  <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-burgundy-900 hover:bg-black text-ivory-100 text-xs font-semibold rounded transition-colors shadow-sm"
+                    >
+                      <Upload className="w-3.5 h-3.5" />
+                      <span>Upload Photo from Device</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setAvatar('https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80')}
+                      className="text-[11px] text-charcoal-50 hover:text-charcoal-900 underline"
+                    >
+                      Reset Default
+                    </button>
+                  </div>
+                  <p className="text-[11px] text-charcoal-50 font-sans">
+                    PNG, JPG, or WEBP under 2MB. Your photo appears on test submissions and course roster.
+                  </p>
+                </div>
               </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-charcoal-900 mb-1 flex items-center gap-1.5">
-                  <WhatsAppIcon className="w-3.5 h-3.5" />
-                  <span>WhatsApp Mobile Number</span>
-                </label>
-                <input
-                  type="tel"
-                  required
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  placeholder="+20 10xxxxxxxx"
-                  className="w-full px-3.5 py-2 text-xs bg-white border border-hairline rounded font-mono text-charcoal-900 focus:outline-none focus:border-burgundy-900"
-                />
-                <span className="text-[11px] text-charcoal-50 mt-1 block">
-                  Used by Dr. Omar Magdi to deliver test results, problem set evaluations, and direct academic guidance.
-                </span>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-charcoal-900 mb-1">
+                    Full Student Name
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    className="w-full px-3.5 py-2 text-xs bg-white border border-hairline rounded font-bold text-charcoal-900 focus:outline-none focus:border-burgundy-900"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-charcoal-900 mb-1 flex items-center gap-1.5">
+                    <WhatsAppIcon className="w-3.5 h-3.5" />
+                    <span>WhatsApp Mobile Number</span>
+                  </label>
+                  <input
+                    type="tel"
+                    required
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    placeholder="+20 10xxxxxxxx"
+                    className="w-full px-3.5 py-2 text-xs bg-white border border-hairline rounded font-mono text-charcoal-900 focus:outline-none focus:border-burgundy-900"
+                  />
+                </div>
               </div>
 
               <div>
@@ -270,10 +375,10 @@ export const StudentProfileModal: React.FC<StudentProfileModalProps> = ({
                   onChange={(e) => setTrack(e.target.value)}
                   className="w-full px-3.5 py-2 text-xs bg-white border border-hairline rounded text-charcoal-900 focus:outline-none focus:border-burgundy-900"
                 >
-                  <option value="Public Secondary AR">Public Secondary AR</option>
-                  <option value="Public Secondary EN">Public Secondary EN</option>
+                  <option value="Public Secondary AR">Public Secondary AR (ثانوية عامة عربي)</option>
+                  <option value="Public Secondary EN">Public Secondary EN (Languages / لغات)</option>
                   <option value="IGCSE & A-Level Chemistry">IGCSE & A-Level Chemistry (Cambridge / Edexcel)</option>
-                  <option value="University Chemistry">University Chemistry</option>
+                  <option value="University Chemistry">University Chemistry (Faculty of Pharmacy / Medicine / Science)</option>
                 </select>
               </div>
 
@@ -289,7 +394,7 @@ export const StudentProfileModal: React.FC<StudentProfileModalProps> = ({
                   type="submit"
                   className="px-5 py-2 text-xs bg-burgundy-900 hover:bg-black text-ivory-100 rounded font-semibold transition-colors"
                 >
-                  Save Profile
+                  Save Profile Changes
                 </button>
               </div>
             </form>
@@ -373,7 +478,104 @@ export const StudentProfileModal: React.FC<StudentProfileModalProps> = ({
             </div>
           )}
 
-          {/* TAB 3: SECURITY & PASSWORD */}
+          {/* TAB 3: REFERRALS & ACADEMIC REWARD POINTS */}
+          {activeTab === 'referrals' && (
+            <div className="space-y-5">
+              
+              {/* Points Banner */}
+              <div className="p-5 rounded-xl bg-gradient-to-r from-burgundy-900 to-black text-ivory-100 shadow-md flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div className="space-y-1 text-center sm:text-left">
+                  <div className="flex items-center justify-center sm:justify-start gap-1.5 text-amber-400 text-xs font-mono font-bold uppercase tracking-wider">
+                    <Sparkles className="w-3.5 h-3.5" />
+                    <span>Academic Ambassador Points</span>
+                  </div>
+                  <h3 className="text-2xl font-bold font-editorial">
+                    {referralStats?.points || 0} <span className="text-sm font-sans font-normal text-ivory-200">Points Earned</span>
+                  </h3>
+                  <p className="text-xs text-ivory-200/80 font-sans">
+                    Each colleague who registers with your link earns you <strong className="text-ivory-100">+50 Points</strong>.
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-3 bg-white/10 px-4 py-3 rounded-xl border border-white/15">
+                  <div className="text-center">
+                    <span className="text-xs font-mono text-ivory-200/70 block uppercase">Referrals</span>
+                    <span className="text-lg font-bold font-mono text-ivory-100">{referralStats?.successfulReferrals || 0}</span>
+                  </div>
+                  <div className="w-px h-8 bg-white/20" />
+                  <div className="text-center">
+                    <span className="text-xs font-mono text-ivory-200/70 block uppercase">Link Clicks</span>
+                    <span className="text-lg font-bold font-mono text-ivory-100">{referralStats?.totalClicks || 0}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Referral Link Box */}
+              <div className="p-4 rounded-xl bg-white border border-hairline space-y-2">
+                <label className="block text-xs font-bold text-charcoal-900">
+                  Your Personal Referral Link:
+                </label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    readOnly
+                    value={generateCourseReferralLink('catalog', userCode)}
+                    className="flex-1 px-3 py-2 text-xs font-mono bg-ivory-100 border border-hairline rounded text-charcoal-900 select-all"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleCopyReferralLink}
+                    className="inline-flex items-center gap-1.5 px-4 py-2 bg-burgundy-900 hover:bg-black text-ivory-100 text-xs font-semibold rounded transition-colors shrink-0"
+                  >
+                    {copiedRefLink ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                    <span>{copiedRefLink ? 'Copied' : 'Copy'}</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Milestones & Rewards */}
+              <div className="space-y-3">
+                <h4 className="text-xs font-bold font-mono uppercase tracking-wider text-charcoal-900 flex items-center gap-1.5">
+                  <Gift className="w-4 h-4 text-burgundy-500" />
+                  <span>Milestone Rewards & Unlocks</span>
+                </h4>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {REFERRAL_MILESTONES.map((m) => {
+                    const isUnlocked = (referralStats?.points || 0) >= m.pointsNeeded;
+                    return (
+                      <div
+                        key={m.pointsNeeded}
+                        className={`p-3.5 rounded-xl border space-y-1.5 transition-all ${
+                          isUnlocked
+                            ? 'bg-emerald-50/70 border-emerald-200 text-emerald-950'
+                            : 'bg-white border-hairline text-charcoal-900 opacity-80'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded ${
+                            isUnlocked ? 'bg-emerald-200/60 text-emerald-900' : 'bg-ivory-200 text-charcoal-100'
+                          }`}>
+                            {m.badge}
+                          </span>
+                          <span className="text-xs font-mono font-bold">
+                            {m.pointsNeeded} Pts
+                          </span>
+                        </div>
+                        <h5 className="text-xs font-bold">{m.rewardTitle}</h5>
+                        <p className="text-[11px] leading-relaxed text-charcoal-100">
+                          {m.rewardDescription}
+                        </p>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+            </div>
+          )}
+
+          {/* TAB 4: SECURITY & PASSWORD */}
           {activeTab === 'security' && (
             <form onSubmit={handleChangePassword} className="space-y-3.5">
               {passwordStatus.type !== 'idle' && (
@@ -402,32 +604,34 @@ export const StudentProfileModal: React.FC<StudentProfileModalProps> = ({
                 />
               </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-charcoal-900 mb-1">
-                  New Password
-                </label>
-                <input
-                  type="password"
-                  required
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  placeholder="At least 6 characters"
-                  className="w-full px-3.5 py-2 text-xs bg-white border border-hairline rounded text-charcoal-900 focus:outline-none focus:border-burgundy-900"
-                />
-              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-charcoal-900 mb-1">
+                    New Password
+                  </label>
+                  <input
+                    type="password"
+                    required
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    placeholder="At least 6 characters"
+                    className="w-full px-3.5 py-2 text-xs bg-white border border-hairline rounded text-charcoal-900 focus:outline-none focus:border-burgundy-900"
+                  />
+                </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-charcoal-900 mb-1">
-                  Confirm New Password
-                </label>
-                <input
-                  type="password"
-                  required
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="w-full px-3.5 py-2 text-xs bg-white border border-hairline rounded text-charcoal-900 focus:outline-none focus:border-burgundy-900"
-                />
+                <div>
+                  <label className="block text-xs font-semibold text-charcoal-900 mb-1">
+                    Confirm New Password
+                  </label>
+                  <input
+                    type="password"
+                    required
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    placeholder="••••••••"
+                    className="w-full px-3.5 py-2 text-xs bg-white border border-hairline rounded text-charcoal-900 focus:outline-none focus:border-burgundy-900"
+                  />
+                </div>
               </div>
 
               <div className="pt-2 flex justify-end">

@@ -18,7 +18,10 @@ import {
   Lock,
   CheckCircle2,
   Sparkles,
+  Share2,
 } from 'lucide-react';
+import { CourseShareModal } from '@/components/courses/CourseShareModal';
+import { captureIncomingReferral, getReferralCodeForUser } from '@/lib/referral-system';
 
 export default function CourseDetailsPage() {
   const params = useParams();
@@ -28,6 +31,7 @@ export default function CourseDetailsPage() {
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
   const [enrollmentStatus, setEnrollmentStatus] = useState<'ACTIVE' | 'PENDING' | 'NOT_ENROLLED'>('NOT_ENROLLED');
   const [requestToast, setRequestToast] = useState(false);
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
 
   useEffect(() => {
     const list = getStoredCourses();
@@ -35,7 +39,12 @@ export default function CourseDetailsPage() {
 
     try {
       const saved = localStorage.getItem('phenol_auth_user');
-      if (saved) {
+      if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const ref = params.get('ref');
+      if (ref) captureIncomingReferral(ref);
+    }
+    if (saved) {
         const u: AuthUser = JSON.parse(saved);
         setCurrentUser(u);
         const access = checkUserCourseAccess(u, courseId);
@@ -128,7 +137,7 @@ export default function CourseDetailsPage() {
               <span>Home</span>
             </Link>
           </div>
-        </main>
+    </main>
       </div>
     );
   }
@@ -278,6 +287,15 @@ export default function CourseDetailsPage() {
                 <span>Request Course Activation Now</span>
               </button>
             )}
+
+            <button
+              type="button"
+              onClick={() => setIsShareModalOpen(true)}
+              className="inline-flex items-center gap-2 px-5 py-3 rounded bg-ivory-100 hover:bg-ivory-300 border border-hairline text-charcoal-900 font-semibold text-xs sm:text-sm transition-colors shadow-quiet"
+            >
+              <Share2 className="w-4 h-4 text-burgundy-500" />
+              <span>Share & Earn Points</span>
+            </button>
           </div>
         </div>
 
@@ -391,7 +409,16 @@ export default function CourseDetailsPage() {
             </div>
           )}
         </div>
-      </main>
+        {/* Course Share & Referral Modal */}
+      <CourseShareModal
+        isOpen={isShareModalOpen}
+        onClose={() => setIsShareModalOpen(false)}
+        courseId={course.id}
+        courseTitle={course.title}
+        courseCode={course.code}
+        referralCode={getReferralCodeForUser(currentUser)}
+      />
+    </main>
     </div>
   );
 }
