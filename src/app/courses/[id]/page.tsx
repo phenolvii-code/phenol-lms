@@ -84,14 +84,14 @@ export default function CourseDetailsPage() {
                     href="/dashboard"
                     className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs sm:text-sm text-charcoal-100 hover:text-charcoal-900 border border-hairline rounded transition-colors font-sans"
                   >
-                    <span>{currentUser.role === 'INSTRUCTOR' ? 'لوحة الإدارة' : 'لوحة الطالب'}</span>
+                    <span>{currentUser.role === 'INSTRUCTOR' ? 'Admin Portal' : 'Student Dashboard'}</span>
                   </Link>
                 ) : (
                   <Link
                     href="/login"
                     className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs sm:text-sm text-ivory-100 bg-burgundy-900 hover:bg-black rounded transition-colors font-sans font-semibold shadow-sm"
                   >
-                    <span>تسجيل الدخول</span>
+                    <span>Sign In</span>
                   </Link>
                 )}
               </div>
@@ -105,10 +105,10 @@ export default function CourseDetailsPage() {
           </div>
           <div className="space-y-2">
             <h1 className="text-xl sm:text-2xl font-bold font-display text-charcoal-900">
-              جاري فحص وتحديث بيانات المقرر الأكاديمي...
+              Verifying and loading course curriculum...
             </h1>
             <p className="text-xs sm:text-sm text-charcoal-100 font-sans leading-relaxed">
-              إذا لم يظهر المقرر بعد لحظات، يرجى التأكد من إنشائه في لوحة التحكم أو العودة لدليل الكورسات.
+              If the course does not appear, please verify it in the dashboard or return to the course catalog.
             </p>
           </div>
           <div className="flex items-center gap-3 pt-3">
@@ -117,7 +117,7 @@ export default function CourseDetailsPage() {
                 href="/dashboard"
                 className="inline-flex items-center gap-2 px-5 py-2.5 rounded bg-burgundy-900 hover:bg-black text-ivory-100 text-xs font-semibold shadow-sm transition-colors"
               >
-                <span>الذهاب إلى لوحة التحكم</span>
+                <span>Go to Dashboard</span>
                 <ArrowRight className="w-3.5 h-3.5" />
               </Link>
             ) : null}
@@ -125,7 +125,7 @@ export default function CourseDetailsPage() {
               href="/"
               className="inline-flex items-center gap-2 px-5 py-2.5 rounded bg-ivory-100 border border-hairline hover:bg-ivory-50 text-charcoal-900 text-xs font-semibold transition-colors"
             >
-              <span>الصفحة الرئيسية</span>
+              <span>Home</span>
             </Link>
           </div>
         </main>
@@ -177,14 +177,14 @@ export default function CourseDetailsPage() {
                   href="/dashboard"
                   className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs sm:text-sm text-charcoal-100 hover:text-charcoal-900 border border-hairline rounded transition-colors font-sans"
                 >
-                  <span>{currentUser.role === 'INSTRUCTOR' ? 'لوحة الإدارة' : 'لوحة الطالب'}</span>
+                  <span>{currentUser.role === 'INSTRUCTOR' ? 'Admin Portal' : 'Student Dashboard'}</span>
                 </Link>
               ) : (
                 <Link
                   href="/login"
                   className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs sm:text-sm text-ivory-100 bg-burgundy-900 hover:bg-black rounded transition-colors font-sans font-semibold shadow-sm"
                 >
-                  <span>تسجيل الدخول</span>
+                  <span>Sign In</span>
                 </Link>
               )}
             </div>
@@ -231,7 +231,7 @@ export default function CourseDetailsPage() {
             <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs sm:text-sm flex items-center justify-between gap-3 shadow-sm animate-fade-in">
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
-                <span>تم إرسال طلب تفعيل الكورس إلى د. عمر مجدي بنجاح. سيتم مراجعة طلبك وتفعيل المحاضرات والتواصل معك عبر الواتساب.</span>
+                <span>Course activation request submitted to Dr. Omar Magdi. Your access will be reviewed and activated shortly.</span>
               </div>
               <button
                 onClick={() => setRequestToast(false)}
@@ -256,17 +256,17 @@ export default function CourseDetailsPage() {
                   className="inline-flex items-center gap-2 px-6 py-3 rounded bg-burgundy-900 hover:bg-black text-ivory-100 font-semibold text-xs sm:text-sm transition-colors shadow-quiet"
                 >
                   <Play className="w-4 h-4" />
-                  <span>Begin Syllabus (المشاهدة المباشرة)</span>
+                  <span>Begin Syllabus</span>
                 </Link>
               ) : (
                 <span className="inline-flex items-center gap-2 px-6 py-3 rounded bg-ivory-300 text-charcoal-100 font-semibold text-xs sm:text-sm border border-hairline">
-                  <span>قريباً: جاري تجهيز وإضافة المحاضرات</span>
+                  <span>Coming Soon: Lectures in preparation</span>
                 </span>
               )
             ) : enrollmentStatus === 'PENDING' ? (
               <span className="inline-flex items-center gap-2 px-6 py-3 rounded bg-amber-100 text-amber-900 font-semibold text-xs sm:text-sm border border-amber-200">
                 <Clock className="w-4 h-4 text-amber-600" />
-                <span>طلب التفعيل قيد الاعتماد من د. عمر مجدي</span>
+                <span>Activation pending review by Dr. Omar Magdi</span>
               </span>
             ) : (
               <button
@@ -275,7 +275,7 @@ export default function CourseDetailsPage() {
                 className="inline-flex items-center gap-2 px-6 py-3 rounded bg-burgundy-900 hover:bg-black text-ivory-100 font-semibold text-xs sm:text-sm transition-colors shadow-quiet"
               >
                 <Sparkles className="w-4 h-4" />
-                <span>طلب تفعيل هذا الكورس الآن</span>
+                <span>Request Course Activation Now</span>
               </button>
             )}
           </div>
@@ -294,7 +294,7 @@ export default function CourseDetailsPage() {
             </div>
             {enrollmentStatus !== 'ACTIVE' && (
               <span className="text-xs font-mono text-amber-800 bg-amber-50 border border-amber-200 px-3 py-1 rounded">
-                يتطلب تفعيل الاشتراك للمشاهدة
+                Enrollment activation required to watch
               </span>
             )}
           </div>
@@ -361,7 +361,7 @@ export default function CourseDetailsPage() {
                         className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded bg-ivory-200 text-charcoal-50 text-xs font-semibold font-sans cursor-pointer hover:bg-ivory-300 transition-colors"
                       >
                         <Lock className="w-3.5 h-3.5" />
-                        <span>يتطلب تفعيل الكورس</span>
+                        <span>Course Activation Required</span>
                       </button>
                     )}
                   </div>
@@ -372,10 +372,10 @@ export default function CourseDetailsPage() {
             <div className="border border-dashed border-hairline rounded-xl bg-ivory-100 p-10 text-center space-y-3 shadow-quiet">
               <Sparkles className="w-8 h-8 text-burgundy-500 mx-auto" />
               <h3 className="text-base font-bold text-charcoal-900 font-display">
-                لم يتم رفع محاضرات لهذا الكورس بعد
+                No lectures uploaded for this course yet
               </h3>
               <p className="text-xs text-charcoal-100 font-sans max-w-md mx-auto">
-                هذا المقرر جديد وقيد التجهيز الأكاديمي. يمكنك إضافة المحاضرات والفيديوهات ومذكرات الـ PDF عبر لوحة التحكم.
+                This course is newly created and currently being prepared. You can add lectures, videos, and PDF handouts via the Admin Dashboard.
               </p>
               {currentUser?.role === 'INSTRUCTOR' && (
                 <div className="pt-2">
@@ -383,7 +383,7 @@ export default function CourseDetailsPage() {
                     href="/dashboard"
                     className="inline-flex items-center gap-2 px-5 py-2.5 rounded bg-burgundy-900 hover:bg-black text-ivory-100 text-xs font-semibold shadow-sm transition-colors"
                   >
-                    <span>الذهاب إلى لوحة التحكم لإضافة محاضرة</span>
+                    <span>Go to Dashboard to Add Lectures</span>
                     <ArrowRight className="w-3.5 h-3.5" />
                   </Link>
                 </div>

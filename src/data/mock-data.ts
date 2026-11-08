@@ -15,14 +15,14 @@ export const ACADEMIC_TRACKS: AcademicTrackCategory[] = [
   {
     id: 'thanaweya-arabic',
     name: 'Public Secondary AR',
-    nameAr: 'Public Secondary AR (ثانوية عامة عربي)',
+    nameAr: 'Public Secondary AR',
     description: 'The complete Egyptian Public Secondary Chemistry curriculum in Arabic, deconstructing organic mechanisms, physical equilibria, and electrochemistry from first principles.',
     badge: 'Public Secondary AR',
   },
   {
     id: 'thanaweya-languages',
     name: 'Public Secondary EN',
-    nameAr: 'Public Secondary EN (ثانوية عامة لغات)',
+    nameAr: 'Public Secondary EN',
     description: 'Egyptian Public Secondary Chemistry curriculum taught in English for experimental and language schools, with structured focus on conceptual problem solving and ministerial exam mastery.',
     badge: 'Public Secondary EN',
   },
@@ -36,7 +36,7 @@ export const ACADEMIC_TRACKS: AcademicTrackCategory[] = [
   {
     id: 'university',
     name: 'University Chemistry',
-    nameAr: 'University Chemistry (كيمياء جامعية)',
+    nameAr: 'University Chemistry (Undergraduate)',
     description: 'Advanced undergraduate university modules for faculties of Pharmacy, Medicine, Science, and Engineering covering organic reaction mechanisms, spectroscopy, and physical kinetics.',
     badge: 'University Chemistry',
   },
@@ -57,7 +57,7 @@ export const CHEMISTRY_QUIZZES: ChemistryQuiz[] = [
   {
     id: 'quiz-phenol-01',
     courseId: 'chem-ar-301',
-    courseTitle: 'الكيمياء العضوية الشاملة للثانوية العامة',
+    courseTitle: 'Comprehensive Organic Chemistry (Public Secondary AR)',
     title: 'Dr. Omar Magdi Diagnostic: Phenolic Acidity & Delocalization',
     badge: 'Mastery Challenge',
     durationMinutes: 15,
@@ -155,60 +155,4 @@ export const WAITLIST_APPLICANTS: WaitlistApplication[] = [];
 
 export const ENROLLED_STUDENTS: EnrolledStudent[] = [];
 
-export const INITIAL_TIMELINE_POSTS: TimelinePost[] = [
-  {
-    id: 'post-1',
-    authorName: 'Dr. Omar Magdi',
-    authorEmail: 'phenolvii@gmail.com',
-    authorRole: 'INSTRUCTOR',
-    authorAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80',
-    trackBadge: 'Academic Announcement',
-    content: 'Welcome to the PHENOL Academic Community. Here, we deconstruct chemical phenomena from first principles rather than memorizing surface equations. Feel free to raise questions on organic reaction mechanisms, arenium ion resonance canonicals, or Le Chatelier perturbations below.',
-    molecularFormula: 'C₆H₅OH ↔ C₆H₅O⁻ + H⁺ (pKa = 9.95)',
-    createdAt: 'Today, 10:30 AM',
-    reactions: { flask: 14, bulb: 9, heart: 21 },
-    comments: [
-      {
-        id: 'c-1',
-        authorName: 'Ahmed Hossam El-Din',
-        authorEmail: 'ahmed.hossam@student.edu',
-        authorRole: 'STUDENT',
-        authorAvatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=80',
-        content: 'دكتور عمر، هل استقرار أيون الفينوكسيد بالرنين يؤثر على توجيه تفاعلات الاستبدال الإلكتروفيلي القادمة؟',
-        createdAt: 'Today, 11:15 AM',
-      },
-      {
-        id: 'c-2',
-        authorName: 'Dr. Omar Magdi',
-        authorEmail: 'phenolvii@gmail.com',
-        authorRole: 'INSTRUCTOR',
-        authorAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80',
-        content: 'نعم تماماً يا أحمد. زوج الإلكترونات غير الرابط على ذرة الأكسجين يزيد الكثافة الإلكترونية عند الموضعين أورثو وبارا (Ortho & Para)، مما يجعلهما الأكثر نشاطاً واستقطاباً للهجوم الإلكتروفيلي، وهو ما ندرسه تفصيلياً في ميكانزم النيترة والتبريم.',
-        createdAt: 'Today, 11:45 AM',
-      },
-    ],
-  },
-  {
-    id: 'post-2',
-    authorName: 'Salma Khaled El-Nemr',
-    authorEmail: 'salma.k@phenol.academy',
-    authorRole: 'STUDENT',
-    authorAvatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&auto=format&fit=crop&q=80',
-    trackBadge: 'Physical Equilibrium',
-    content: 'Why does increasing pressure shift the Haber-Bosch equilibrium to the right without changing the numerical equilibrium constant Kp?',
-    molecularFormula: 'N₂(g) + 3 H₂(g) ⇌ 2 NH₃(g) (Δn = -2)',
-    createdAt: 'Yesterday, 04:20 PM',
-    reactions: { flask: 8, bulb: 15, heart: 6 },
-    comments: [
-      {
-        id: 'c-3',
-        authorName: 'Dr. Omar Magdi',
-        authorEmail: 'phenolvii@gmail.com',
-        authorRole: 'INSTRUCTOR',
-        authorAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80',
-        content: 'Excellent conceptual inquiry, Salma! Increasing pressure forces the system to reduce its molar volume (4 moles gas → 2 moles gas). Kp depends strictly on temperature (van \'t Hoff relation); the partial pressures adjust dynamically to maintain the exact ratio Kp constant.',
-        createdAt: 'Yesterday, 05:10 PM',
-      },
-    ],
-  },
-];
+export const INITIAL_TIMELINE_POSTS: TimelinePost[] = [];

@@ -113,7 +113,7 @@ export const CourseStudentsModal: React.FC<CourseStudentsModalProps> = ({
               {course.title}
             </h2>
             <p className="text-xs text-charcoal-100 font-mono mt-0.5">
-              Course Enrollment Roster & Performance Telemetry • إشراف د. عمر مجدي
+              Course Enrollment Roster & Performance Telemetry • Supervised by Dr. Omar Magdi
             </p>
           </div>
 
@@ -129,12 +129,12 @@ export const CourseStudentsModal: React.FC<CourseStudentsModalProps> = ({
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-4 bg-white border-b border-hairline shrink-0">
           <div className="p-3 rounded-xl bg-ivory-50 border border-hairline">
             <span className="text-[10px] font-mono text-charcoal-50 uppercase block">Active Scholars</span>
-            <span className="text-xl font-bold font-editorial text-charcoal-900">{activeList.length} طلاب</span>
+            <span className="text-xl font-bold font-editorial text-charcoal-900">{activeList.length} Active</span>
           </div>
 
           <div className="p-3 rounded-xl bg-ivory-50 border border-hairline">
             <span className="text-[10px] font-mono text-amber-700 uppercase block">Pending Requests</span>
-            <span className="text-xl font-bold font-editorial text-amber-700">{pendingList.length} طلبات جديدة</span>
+            <span className="text-xl font-bold font-editorial text-amber-700">{pendingList.length} Pending</span>
           </div>
 
           <div className="p-3 rounded-xl bg-ivory-50 border border-hairline">
@@ -169,7 +169,7 @@ export const CourseStudentsModal: React.FC<CourseStudentsModalProps> = ({
                   : 'bg-white border border-hairline text-amber-800 hover:bg-amber-50'
               }`}
             >
-              <span>طلبات قيد المراجعة</span>
+              <span>Pending Requests</span>
               {pendingList.length > 0 && (
                 <span className="px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-white text-amber-800">
                   {pendingList.length}
@@ -184,7 +184,7 @@ export const CourseStudentsModal: React.FC<CourseStudentsModalProps> = ({
                   : 'bg-white border border-hairline text-emerald-800 hover:bg-emerald-50'
               }`}
             >
-              المشتركون المفعلون ({activeList.length})
+              Active Enrolled Students ({activeList.length})
             </button>
           </div>
 
@@ -204,13 +204,13 @@ export const CourseStudentsModal: React.FC<CourseStudentsModalProps> = ({
         <div className="flex-1 overflow-y-auto p-4 space-y-3">
           {filteredEnrollments.length === 0 ? (
             <div className="p-8 text-center bg-white rounded-xl border border-hairline text-charcoal-100 text-xs">
-              لا توجد بيانات مطابقة للبحث أو التصفية الحالية.
+              No students match the current search or filter criteria.
             </div>
           ) : (
             filteredEnrollments.map((enr) => {
               const cleanPhone = enr.studentPhone.replace(/[^0-9]/g, '');
               const whatsappLink = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(
-                `أهلاً بك يا ${enr.studentName} في أكاديمية PHENOL مع د. عمر مجدي. بخصوص اشتراكك في مادة (${course.title}):`
+                `Hello ${enr.studentName}, regarding your enrollment in (${course.title}) with Dr. Omar Magdi at PHENOL Academy:`
               )}`;
 
               return (
@@ -263,7 +263,7 @@ export const CourseStudentsModal: React.FC<CourseStudentsModalProps> = ({
                           className="px-3.5 py-1.5 rounded-lg bg-burgundy-900 hover:bg-black text-ivory-100 text-xs font-semibold shadow-sm transition-colors flex items-center gap-1"
                         >
                           <CheckCircle2 className="w-3.5 h-3.5" />
-                          <span>تفعيل الكورس فوراً</span>
+                          <span>Activate Access Now</span>
                         </button>
                       ) : (
                         <button
@@ -275,7 +275,7 @@ export const CourseStudentsModal: React.FC<CourseStudentsModalProps> = ({
                               : 'bg-emerald-600 text-white'
                           }`}
                         >
-                          {enr.status === 'ACTIVE' ? 'إلغاء التفعيل' : 'إعادة التفعيل'}
+                          {enr.status === 'ACTIVE' ? 'Revoke Access' : 'Reactivate Access'}
                         </button>
                       )}
                     </div>

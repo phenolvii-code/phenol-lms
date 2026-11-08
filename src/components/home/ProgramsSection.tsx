@@ -188,10 +188,10 @@ export const ProgramsSection: React.FC<ProgramsSectionProps> = ({ onOpenWaitlist
           {filteredCourses.length === 0 ? (
             <div className="py-12 text-center space-y-2">
               <p className="text-sm font-semibold text-charcoal-900 font-display">
-                لا توجد كورسات معروضة في هذا البرنامج حالياً
+                No courses currently available in this academic program
               </p>
               <p className="text-xs text-charcoal-100 font-sans">
-                يمكنك التقديم للدفعة القادمة عبر نموذج التسجيل بالأسفل وسيتم إشعارك فور إطلاق المقرر.
+                You can apply for the upcoming cohort using the registration form below, and you will be notified once courses launch.
               </p>
             </div>
           ) : (
@@ -304,7 +304,7 @@ export const ProgramsSection: React.FC<ProgramsSectionProps> = ({ onOpenWaitlist
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-semibold text-charcoal-900 font-sans mb-1.5">
-                    Full Name (الاسم بالكامل)
+                    Full Name
                   </label>
                   <input
                     type="text"
@@ -318,7 +318,7 @@ export const ProgramsSection: React.FC<ProgramsSectionProps> = ({ onOpenWaitlist
 
                 <div>
                   <label className="block text-xs font-semibold text-charcoal-900 font-sans mb-1.5">
-                    WhatsApp Number (رقم الواتساب)
+                    WhatsApp Number
                   </label>
                   <input
                     type="tel"
@@ -349,7 +349,7 @@ export const ProgramsSection: React.FC<ProgramsSectionProps> = ({ onOpenWaitlist
 
                 <div>
                   <label className="block text-xs font-semibold text-charcoal-900 font-sans mb-1.5">
-                    Target Academic Program (البرنامج الدراسي)
+                    Target Academic Program
                   </label>
                   <select
                     value={selectedTrack}
@@ -368,7 +368,7 @@ export const ProgramsSection: React.FC<ProgramsSectionProps> = ({ onOpenWaitlist
               {/* Row 3: Target Course in that track */}
               <div>
                 <label className="block text-xs font-semibold text-charcoal-900 font-sans mb-1.5">
-                  Target Course in Program (الكورس المطلوب)
+                  Target Course in Program
                 </label>
                 <select
                   value={targetCourse}

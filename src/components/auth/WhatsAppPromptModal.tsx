@@ -131,10 +131,10 @@ export const WhatsAppPromptModal: React.FC<WhatsAppPromptModalProps> = ({
           <div className="p-3.5 bg-emerald-50/60 border border-emerald-200 rounded text-xs text-charcoal-800 space-y-1.5 leading-relaxed">
             <div className="flex items-center gap-2 text-emerald-800 font-semibold">
               <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
-              <span>مطلوب: رقم الواتساب الخاص بالطالب</span>
+              <span>Required: Student WhatsApp Number</span>
             </div>
             <p className="text-charcoal-100 text-[11px]">
-              رقم الواتساب إلزامي لربطه بكودك الأكاديمي، إرسال مواعيد المحاضرات والواجبات الدورية، وتأكيد انضمامك لجروب الدفعة الخاص بـ د. عمر مجدي.
+              A valid WhatsApp phone number is required to link with your academic code, receive lecture schedules, and coordinate directly with Dr. Omar Magdi.
             </p>
           </div>
 
@@ -149,7 +149,7 @@ export const WhatsAppPromptModal: React.FC<WhatsAppPromptModalProps> = ({
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="block text-xs font-semibold text-charcoal-900 mb-1.5">
-                WhatsApp Phone Number / رقم الواتساب <span className="text-burgundy-500">*</span>
+                WhatsApp Phone Number <span className="text-burgundy-500">*</span>
               </label>
               <div className="relative">
                 <div className="absolute left-3 top-2.5 flex items-center gap-1.5 text-emerald-600">
@@ -175,17 +175,17 @@ export const WhatsAppPromptModal: React.FC<WhatsAppPromptModalProps> = ({
 
             <div>
               <label className="block text-xs font-semibold text-charcoal-900 mb-1.5">
-                Academic Track / المرحلة الدراسية <span className="text-burgundy-500">*</span>
+                Academic Program <span className="text-burgundy-500">*</span>
               </label>
               <select
                 value={academicTrack}
                 onChange={(e) => setAcademicTrack(e.target.value)}
                 className="w-full px-3 py-2.5 text-xs bg-ivory-50 border border-hairline rounded text-charcoal-900 focus:outline-none focus:border-burgundy-500"
               >
-                <option value="thanaweya-arabic">ثانوية عامة عربي (Thanaweya Amma - Arabic)</option>
-                <option value="thanaweya-languages">ثانوية عامة لغات (Thanaweya Amma - Languages)</option>
-                <option value="igcse-stem">IGCSE & STEM Chemistry (الشهادات الدولية)</option>
-                <option value="university">مرحلة جامعية وإعدادي طب وصيدلة (University Chemistry)</option>
+                <option value="thanaweya-arabic">Public Secondary AR</option>
+                <option value="thanaweya-languages">Public Secondary EN</option>
+                <option value="igcse-stem">IGCSE & A-Level Chemistry</option>
+                <option value="university">University Chemistry</option>
               </select>
             </div>
 

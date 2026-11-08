@@ -195,7 +195,7 @@ export const StudentProfileModal: React.FC<StudentProfileModalProps> = ({
             }`}
           >
             <User className="w-3.5 h-3.5" />
-            <span>Personal Information (البيانات الشخصية)</span>
+            <span>Personal Information</span>
           </button>
 
           <button
@@ -208,7 +208,7 @@ export const StudentProfileModal: React.FC<StudentProfileModalProps> = ({
             }`}
           >
             <GraduationCap className="w-3.5 h-3.5" />
-            <span>My Courses & Progress (كورساتي والأداء)</span>
+            <span>My Courses & Progress</span>
           </button>
 
           <button
@@ -221,7 +221,7 @@ export const StudentProfileModal: React.FC<StudentProfileModalProps> = ({
             }`}
           >
             <KeyRound className="w-3.5 h-3.5" />
-            <span>Security (كلمة المرور)</span>
+            <span>Security & Credentials</span>
           </button>
         </div>
 
@@ -232,7 +232,7 @@ export const StudentProfileModal: React.FC<StudentProfileModalProps> = ({
             <form onSubmit={handleSaveInfo} className="space-y-4">
               <div>
                 <label className="block text-xs font-semibold text-charcoal-900 mb-1">
-                  Full Student Name (اسم الطالب ثلاثي)
+                  Full Student Name
                 </label>
                 <input
                   type="text"
@@ -246,7 +246,7 @@ export const StudentProfileModal: React.FC<StudentProfileModalProps> = ({
               <div>
                 <label className="block text-xs font-semibold text-charcoal-900 mb-1 flex items-center gap-1.5">
                   <WhatsAppIcon className="w-3.5 h-3.5" />
-                  <span>WhatsApp Mobile Number (رقم الواتساب الفعال)</span>
+                  <span>WhatsApp Mobile Number</span>
                 </label>
                 <input
                   type="tel"
@@ -257,23 +257,23 @@ export const StudentProfileModal: React.FC<StudentProfileModalProps> = ({
                   className="w-full px-3.5 py-2 text-xs bg-white border border-hairline rounded font-mono text-charcoal-900 focus:outline-none focus:border-burgundy-900"
                 />
                 <span className="text-[11px] text-charcoal-50 mt-1 block">
-                  يُستخدم هذا الرقم من قبل د. عمر مجدي للتواصل وإرسال نتائج الاختبارات ومتابعة المنهج.
+                  Used by Dr. Omar Magdi to deliver test results, problem set evaluations, and direct academic guidance.
                 </span>
               </div>
 
               <div>
                 <label className="block text-xs font-semibold text-charcoal-900 mb-1">
-                  Academic Program (البرنامج الدراسي المقيد به)
+                  Academic Program
                 </label>
                 <select
                   value={track}
                   onChange={(e) => setTrack(e.target.value)}
                   className="w-full px-3.5 py-2 text-xs bg-white border border-hairline rounded text-charcoal-900 focus:outline-none focus:border-burgundy-900"
                 >
-                  <option value="Public Secondary AR">Public Secondary AR (ثانوية عامة عربي)</option>
-                  <option value="Public Secondary EN">Public Secondary EN (ثانوية عامة لغات)</option>
+                  <option value="Public Secondary AR">Public Secondary AR</option>
+                  <option value="Public Secondary EN">Public Secondary EN</option>
                   <option value="IGCSE & A-Level Chemistry">IGCSE & A-Level Chemistry (Cambridge / Edexcel)</option>
-                  <option value="University Chemistry">University Chemistry (كيمياء جامعية)</option>
+                  <option value="University Chemistry">University Chemistry</option>
                 </select>
               </div>
 
@@ -289,7 +289,7 @@ export const StudentProfileModal: React.FC<StudentProfileModalProps> = ({
                   type="submit"
                   className="px-5 py-2 text-xs bg-burgundy-900 hover:bg-black text-ivory-100 rounded font-semibold transition-colors"
                 >
-                  Save Profile (حفظ التعديلات)
+                  Save Profile
                 </button>
               </div>
             </form>
@@ -324,7 +324,7 @@ export const StudentProfileModal: React.FC<StudentProfileModalProps> = ({
 
                 {studentEnrollments.length === 0 ? (
                   <div className="p-6 text-center bg-white rounded-xl border border-hairline text-charcoal-100 text-xs">
-                    لم تقم بطلب تفعيل أي كورس بعد. يمكنك تصفح المقررات في لوحة التحكم وطلب التفعيل بضغطة زر.
+                    You have not requested any courses yet. Browse available courses in the catalog and request activation.
                   </div>
                 ) : (
                   studentEnrollments.map((enr) => (
@@ -348,7 +348,7 @@ export const StudentProfileModal: React.FC<StudentProfileModalProps> = ({
                               : 'bg-amber-50 text-amber-800 border border-amber-200'
                           }`}
                         >
-                          {enr.status === 'ACTIVE' ? 'مفعل (Active)' : 'قيد المراجعة (Pending)'}
+                          {enr.status === 'ACTIVE' ? 'Active Access' : 'Pending Approval'}
                         </span>
                       </div>
 
@@ -390,7 +390,7 @@ export const StudentProfileModal: React.FC<StudentProfileModalProps> = ({
 
               <div>
                 <label className="block text-xs font-semibold text-charcoal-900 mb-1">
-                  Current Password (كلمة المرور الحالية)
+                  Current Password
                 </label>
                 <input
                   type="password"
@@ -404,7 +404,7 @@ export const StudentProfileModal: React.FC<StudentProfileModalProps> = ({
 
               <div>
                 <label className="block text-xs font-semibold text-charcoal-900 mb-1">
-                  New Password (كلمة المرور الجديدة)
+                  New Password
                 </label>
                 <input
                   type="password"
@@ -418,7 +418,7 @@ export const StudentProfileModal: React.FC<StudentProfileModalProps> = ({
 
               <div>
                 <label className="block text-xs font-semibold text-charcoal-900 mb-1">
-                  Confirm New Password (تأكيد كلمة المرور)
+                  Confirm New Password
                 </label>
                 <input
                   type="password"
@@ -435,7 +435,7 @@ export const StudentProfileModal: React.FC<StudentProfileModalProps> = ({
                   type="submit"
                   className="px-5 py-2 text-xs bg-burgundy-900 hover:bg-black text-ivory-100 rounded font-semibold transition-colors"
                 >
-                  Update Password (تحديث كلمة المرور)
+                  Update Password
                 </button>
               </div>
             </form>

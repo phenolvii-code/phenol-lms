@@ -433,7 +433,7 @@ export const PhenolVideoPlayer: React.FC<PhenolVideoPlayerProps> = ({
         </div>
       )}
 
-      {/* 2. STEALTH BLENDED FORENSIC WATERMARK (كود الطالب الأكاديمي المدمج) */}
+      {/* 2. STEALTH BLENDED FORENSIC WATERMARK (Embedded Student Academic Code) */}
       <div
         style={{
           ...watermarkPos,
@@ -476,9 +476,9 @@ export const PhenolVideoPlayer: React.FC<PhenolVideoPlayerProps> = ({
             : 'opacity-0 translate-y-3 pointer-events-none'
         }`}
       >
-        {/* FROSTED GLASS BLUR CONTAINER (الجزء المضبب الشفاف لعزل أدوات التحكم عن الفيديو وعلامات يوتيوب) */}
+        {/* FROSTED GLASS BLUR CONTAINER (Isolated custom control bar) */}
         <div className="relative backdrop-blur-xl bg-[#0f1012]/85 border-t border-hairline/25 shadow-editorial px-3 sm:px-5 pt-3 pb-3 text-ivory-100">
-          {/* A. INTERACTIVE TIMELINE SCRUBBER (تايم لاين التقديم والتأخير التفاعلي) */}
+          {/* A. INTERACTIVE TIMELINE SCRUBBER (Interactive seeking bar) */}
           <div className="relative mb-3 pt-1 group/timeline">
             {/* Tooltip Preview on Hover */}
             {hoverPosition !== null && hoverTime !== null && (

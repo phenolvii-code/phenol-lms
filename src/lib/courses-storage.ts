@@ -1,7 +1,7 @@
 /**
  * PHENOL ACADEMY - Persistent Course Storage
  * Keeps courses synchronized across Dashboard, Landing Catalog, and Course Details.
- * Automatically purges legacy dummy courses.
+ * Automatically purges legacy dummy courses and guarantees permanent deletion persistence.
  */
 
 import { ChemistryCourse } from '@/types/lms';
@@ -21,14 +21,46 @@ const DUMMY_COURSE_IDS = [
   'chem-univ-401',
 ];
 
+export const getDeletedCourseIds = (): string[] => {
+  if (typeof window === 'undefined') return DUMMY_COURSE_IDS;
+  try {
+    const raw = localStorage.getItem('phenol_deleted_course_ids');
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        return Array.from(new Set([...DUMMY_COURSE_IDS, ...parsed]));
+      }
+    }
+  } catch (e) {}
+  return DUMMY_COURSE_IDS;
+};
+
+export const markCourseDeleted = (courseId: string): void => {
+  if (typeof window === 'undefined') return;
+  try {
+    const current = getDeletedCourseIds();
+    if (!current.includes(courseId)) {
+      current.push(courseId);
+      localStorage.setItem('phenol_deleted_course_ids', JSON.stringify(current));
+    }
+    // Also notify server
+    fetch('/api/courses', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ deletedId: courseId }),
+    }).catch(() => {});
+  } catch (e) {}
+};
+
 export const getStoredCourses = (): ChemistryCourse[] => {
   if (typeof window === 'undefined') return [];
   try {
+    const deletedIds = getDeletedCourseIds();
     const raw = localStorage.getItem('phenol_courses');
     if (raw !== null) {
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed)) {
-        const clean = parsed.filter((c) => !DUMMY_COURSE_IDS.includes(c.id));
+        const clean = parsed.filter((c) => !deletedIds.includes(c.id));
         if (clean.length !== parsed.length) {
           localStorage.setItem('phenol_courses', JSON.stringify(clean));
         }
@@ -44,7 +76,8 @@ export const getStoredCourses = (): ChemistryCourse[] => {
 export const saveStoredCourses = (courses: ChemistryCourse[]): void => {
   if (typeof window === 'undefined') return;
   try {
-    const clean = courses.filter((c) => !DUMMY_COURSE_IDS.includes(c.id));
+    const deletedIds = getDeletedCourseIds();
+    const clean = courses.filter((c) => !deletedIds.includes(c.id));
     localStorage.setItem('phenol_courses', JSON.stringify(clean));
     window.dispatchEvent(new Event('phenol_courses_updated'));
 
@@ -59,19 +92,28 @@ export const saveStoredCourses = (courses: ChemistryCourse[]): void => {
   }
 };
 
-export const syncWithServerCourses = async (): Promise<void> => {
-  if (typeof window === 'undefined') return;
+export const syncWithServerCourses = async (): Promise<ChemistryCourse[]> => {
+  if (typeof window === 'undefined') return [];
   try {
     const res = await fetch('/api/courses');
-    if (!res.ok) return;
+    if (!res.ok) return getStoredCourses();
     const data = await res.json();
+
+    if (Array.isArray(data.deletedIds)) {
+      const currentDeleted = getDeletedCourseIds();
+      const combinedDeleted = Array.from(new Set([...currentDeleted, ...data.deletedIds]));
+      localStorage.setItem('phenol_deleted_course_ids', JSON.stringify(combinedDeleted));
+    }
+
     if (Array.isArray(data.courses)) {
+      const deletedIds = getDeletedCourseIds();
       const serverClean = data.courses.filter(
-        (c: ChemistryCourse) => !DUMMY_COURSE_IDS.includes(c.id)
+        (c: ChemistryCourse) => !deletedIds.includes(c.id)
       );
-      const local = getStoredCourses();
+      const localClean = getStoredCourses();
+
       const courseMap = new Map<string, ChemistryCourse>();
-      local.forEach((c) => courseMap.set(c.id, c));
+      localClean.forEach((c) => courseMap.set(c.id, c));
       serverClean.forEach((sc: ChemistryCourse) => {
         const existing = courseMap.get(sc.id);
         if (!existing) {
@@ -84,9 +126,11 @@ export const syncWithServerCourses = async (): Promise<void> => {
           }
         }
       });
-      const merged = Array.from(courseMap.values());
+      const merged = Array.from(courseMap.values()).filter((c) => !deletedIds.includes(c.id));
       localStorage.setItem('phenol_courses', JSON.stringify(merged));
       window.dispatchEvent(new Event('phenol_courses_updated'));
+      return merged;
     }
   } catch (e) {}
+  return getStoredCourses();
 };

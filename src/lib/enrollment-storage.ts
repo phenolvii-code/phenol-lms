@@ -224,9 +224,9 @@ export const recordRegisteredStudent = (user: {
     id: existingIdx >= 0 ? all[existingIdx].id : user.id || `stu-${Date.now()}`,
     email: cleanEmail,
     name: user.name || (existingIdx >= 0 ? all[existingIdx].name : cleanEmail.split('@')[0]),
-    phone: user.phone || (existingIdx >= 0 ? all[existingIdx].phone : 'قيد تأكيد الواتساب'),
+    phone: user.phone || (existingIdx >= 0 ? all[existingIdx].phone : 'Pending WhatsApp Verification'),
     academicCode,
-    academicTrack: user.academicTrack || (existingIdx >= 0 ? all[existingIdx].academicTrack : 'ثانوية عامة (عام)'),
+    academicTrack: user.academicTrack || (existingIdx >= 0 ? all[existingIdx].academicTrack : 'Public Secondary AR'),
     avatar: user.avatar || (existingIdx >= 0 ? all[existingIdx].avatar : ''),
     role: 'STUDENT',
     registeredAt:
@@ -497,7 +497,7 @@ export const getAggregatedStudentsDirectory = (): StudentOverview[] => {
       pendingRequestsCount: 0,
       overallProgressPercent: 0,
       averageQuizGrade: 0,
-      lastActiveDate: 'حساب مسجل حديثاً',
+      lastActiveDate: 'Newly Registered Account',
       enrollments: [],
     });
   }

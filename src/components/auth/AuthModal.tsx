@@ -450,7 +450,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 <div>
                   <label className="block text-xs font-semibold text-charcoal-900 mb-1 font-sans flex items-center gap-1.5">
                     <WhatsAppIcon className="w-3.5 h-3.5 fill-emerald-600" />
-                    <span>WhatsApp Contact (مطلوب)</span>
+                    <span>WhatsApp Contact (Required)</span>
                   </label>
                   <div className="relative">
                     <Phone className="w-4 h-4 text-charcoal-50 absolute left-3 top-2.5" />

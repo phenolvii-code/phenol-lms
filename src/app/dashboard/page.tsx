@@ -30,7 +30,8 @@ import {
 import { BookletsView } from '@/components/booklets/BookletsView';
 import { supabase } from '@/lib/supabase';
 import { getUserPassword, setUserPassword, verifyUserPassword } from '@/lib/auth-passwords';
-import { getStoredCourses, saveStoredCourses } from '@/lib/courses-storage';
+import { getStoredCourses, saveStoredCourses, markCourseDeleted } from '@/lib/courses-storage';
+import { getStoredPosts, saveStoredPosts, markPostDeleted, syncWithServerTimeline } from '@/lib/timeline-storage';
 import { StudentProfileModal } from '@/components/profile/StudentProfileModal';
 import { CourseStudentsModal } from '@/components/courses/CourseStudentsModal';
 import {
@@ -103,7 +104,7 @@ export default function DashboardPage() {
   const [submissions, setSubmissions] = useState<StudentSubmission[]>(SUBMISSIONS);
   const [waitlist, setWaitlist] = useState<WaitlistApplication[]>(WAITLIST_APPLICANTS);
   const [students, setStudents] = useState<EnrolledStudent[]>(ENROLLED_STUDENTS);
-  const [posts, setPosts] = useState<TimelinePost[]>(INITIAL_TIMELINE_POSTS);
+  const [posts, setPosts] = useState<TimelinePost[]>(() => typeof window !== 'undefined' ? getStoredPosts() : []);
   const [rosterSearchQuery, setRosterSearchQuery] = useState('');
 
   // Profile Modal State (Instructor)
@@ -137,7 +138,7 @@ export default function DashboardPage() {
   const [manualStudentName, setManualStudentName] = useState('');
   const [manualStudentEmail, setManualStudentEmail] = useState('');
   const [manualStudentPhone, setManualStudentPhone] = useState('');
-  const [manualStudentTrack, setManualStudentTrack] = useState('ثانوية عامة (عربي)');
+  const [manualStudentTrack, setManualStudentTrack] = useState('Public Secondary AR');
 
   // Password Change State
   const [currentPasswordInput, setCurrentPasswordInput] = useState('');
@@ -352,18 +353,14 @@ export default function DashboardPage() {
         localStorage.setItem('phenol_courses', JSON.stringify(CHEMISTRY_COURSES));
       }
 
-      // 3. Timeline Posts from local storage with permanent deletion persistence
-      const savedPosts = localStorage.getItem('phenol_timeline_posts');
-      if (savedPosts !== null) {
-        try {
-          const parsed = JSON.parse(savedPosts);
-          if (Array.isArray(parsed)) {
-            setPosts(parsed);
-          }
-        } catch (e) {}
-      } else {
-        localStorage.setItem('phenol_timeline_posts', JSON.stringify(INITIAL_TIMELINE_POSTS));
-      }
+      // 3. Timeline Posts with permanent deletion persistence and server sync
+      const cleanPosts = getStoredPosts();
+      setPosts(cleanPosts);
+      syncWithServerTimeline().then((synced) => {
+        if (Array.isArray(synced)) {
+          setPosts(synced);
+        }
+      });
 
       // 4. Waitlist Applications from local storage with permanent deletion persistence
       const savedWaitlist = localStorage.getItem('phenol_waitlist_applications');
@@ -487,7 +484,7 @@ export default function DashboardPage() {
     requestCourseEnrollment(currentUser, course);
     setEnrollments(getStoredEnrollments());
     setEnrollmentToast(
-      `تم إرسال طلب تفعيل مادة (${course.title}) إلى د. عمر مجدي بنجاح. سيتم مراجعة طلبك وتفعيل الكورس والتواصل معك عبر الواتساب.`
+      `Activation request for (${course.title}) submitted to Dr. Omar Magdi. Your access will be reviewed and approved shortly.`
     );
     setTimeout(() => setEnrollmentToast(null), 6000);
   };
@@ -508,7 +505,7 @@ export default function DashboardPage() {
     directEnrollStudentInCourse(directEnrollStudent.email, courseObj);
     setEnrollments(getStoredEnrollments());
     setIsDirectEnrollModalOpen(false);
-    setEnrollmentToast(`تم تفعيل مادة (${courseObj.title}) بنجاح للطالب ${directEnrollStudent.name}`);
+    setEnrollmentToast(`Successfully activated (${courseObj.title}) for ${directEnrollStudent.name}`);
     setTimeout(() => setEnrollmentToast(null), 4000);
   };
 
@@ -530,7 +527,7 @@ export default function DashboardPage() {
     setManualStudentName('');
     setManualStudentEmail('');
     setManualStudentPhone('');
-    setEnrollmentToast(`تم تسجيل الطالب ${manualStudentName} في السجل بنجاح`);
+    setEnrollmentToast(`Student ${manualStudentName} registered successfully in the roster`);
     setTimeout(() => setEnrollmentToast(null), 4000);
   };
 
@@ -652,7 +649,7 @@ export default function DashboardPage() {
     const updated = [newPost, ...posts];
     setPosts(updated);
     try {
-      localStorage.setItem('phenol_timeline_posts', JSON.stringify(updated));
+      saveStoredPosts(updated);
     } catch (e) {}
 
     setNewPostContent('');
@@ -682,7 +679,7 @@ export default function DashboardPage() {
 
     setPosts(updated);
     try {
-      localStorage.setItem('phenol_timeline_posts', JSON.stringify(updated));
+      saveStoredPosts(updated);
     } catch (e) {}
   };
 
@@ -713,25 +710,24 @@ export default function DashboardPage() {
 
     setPosts(updated);
     try {
-      localStorage.setItem('phenol_timeline_posts', JSON.stringify(updated));
+      saveStoredPosts(updated);
     } catch (e) {}
 
     setCommentInputs((prev) => ({ ...prev, [postId]: '' }));
   };
 
-  // Admin / Author Delete Post (Permanent Deletion)
+  // Admin / Author Delete Post (Permanent Deletion with sync)
   const handleDeletePost = (postId: string) => {
-    if (typeof window !== 'undefined' && !window.confirm('Are you sure you want to delete this post?')) return;
+    if (typeof window !== 'undefined' && !window.confirm('Are you sure you want to permanently delete this post?')) return;
+    markPostDeleted(postId);
     setPosts((prev) => {
       const updated = prev.filter((p) => p.id !== postId);
-      try {
-        localStorage.setItem('phenol_timeline_posts', JSON.stringify(updated));
-      } catch (e) {}
+      saveStoredPosts(updated);
       return updated;
     });
   };
 
-  // Admin / Author Delete Comment (Permanent Deletion)
+  // Admin / Author Delete Comment (Permanent Deletion with sync)
   const handleDeleteComment = (postId: string, commentId: string) => {
     if (typeof window !== 'undefined' && !window.confirm('Are you sure you want to delete this comment?')) return;
     setPosts((prev) => {
@@ -744,9 +740,7 @@ export default function DashboardPage() {
         }
         return p;
       });
-      try {
-        localStorage.setItem('phenol_timeline_posts', JSON.stringify(updated));
-      } catch (e) {}
+      saveStoredPosts(updated);
       return updated;
     });
   };
@@ -832,6 +826,7 @@ export default function DashboardPage() {
 
   const handleDeleteCourse = (courseId: string, title: string) => {
     if (typeof window !== 'undefined' && !window.confirm(`Are you sure you want to permanently delete course "${title}" and all its syllabus modules?`)) return;
+    markCourseDeleted(courseId);
     setCourses((prev) => {
       const updated = prev.filter((c) => c.id !== courseId);
       saveStoredCourses(updated);
@@ -843,11 +838,11 @@ export default function DashboardPage() {
     e.preventDefault();
     const targetCourseId = newLectureCourse || (courses.length > 0 ? courses[0].id : '');
     if (!targetCourseId) {
-      alert('يرجى اختيار الكورس أولاً');
+      alert('Please select a course first');
       return;
     }
     if (!newLectureTitle.trim()) {
-      alert('يرجى كتابة عنوان المحاضرة');
+      alert('Please enter a lecture title');
       return;
     }
 
@@ -860,12 +855,12 @@ export default function DashboardPage() {
       videoUrl: newLectureVideoUrl.trim() || undefined,
       pdfNotesUrl: newLecturePdfUrl.trim() || undefined,
       pdfNotesName: newLecturePdfName.trim() || undefined,
-      summary: newLectureSummary.trim() || 'محاضرة تأصيلية وشرح المفاهيم بإشراف د. عمر مجدي.',
+      summary: newLectureSummary.trim() || 'Foundational lecture and concept deconstruction under the academic direction of Dr. Omar Magdi.',
       keyFormulas: newLectureFormula.trim() ? [newLectureFormula.trim()] : undefined,
       timestamps: [
-        { timeSeconds: 0, timeLabel: '00:00', title: 'المقدمة وتأصيل المفاهيم' },
-        { timeSeconds: 600, timeLabel: '10:00', title: 'ميكانزم التفاعل والأوربيتالات' },
-        { timeSeconds: 1500, timeLabel: '25:00', title: 'تطبيقات عملية وأسئلة وزارية' },
+        { timeSeconds: 0, timeLabel: '00:00', title: 'Introduction & Theoretical Fundamentals' },
+        { timeSeconds: 600, timeLabel: '10:00', title: 'Reaction Mechanism & Orbital Analysis' },
+        { timeSeconds: 1500, timeLabel: '25:00', title: 'Diagnostic Applications & Exam Problem Sets' },
       ],
     };
 
@@ -889,7 +884,7 @@ export default function DashboardPage() {
     setNewLecturePdfName('');
     setNewLectureSummary('');
     setNewLectureFormula('');
-    setEnrollmentToast(`تمت إضافة محاضرة (${newLesson.title}) بنجاح`);
+    setEnrollmentToast(`Lecture (${newLesson.title}) added successfully`);
     setTimeout(() => setEnrollmentToast(null), 4000);
   };
 
@@ -1102,7 +1097,7 @@ export default function DashboardPage() {
     return (
       <div className="min-h-screen bg-ivory-200 flex flex-col items-center justify-center p-6 text-center font-sans">
         <div className="w-10 h-10 rounded-full border-2 border-burgundy-500 border-t-transparent animate-spin mb-4" />
-        <p className="text-xs font-semibold text-charcoal-100">جاري التحقق من هوية الحساب الأكاديمي...</p>
+        <p className="text-xs font-semibold text-charcoal-100">Verifying academic account credentials...</p>
       </div>
     );
   }
@@ -1433,10 +1428,10 @@ export default function DashboardPage() {
                     <div className="border border-dashed border-hairline rounded-xl bg-ivory-100 p-12 text-center space-y-4 shadow-quiet">
                       <GraduationCap className="w-10 h-10 text-burgundy-500 mx-auto" />
                       <h3 className="text-base font-bold text-charcoal-900 font-display">
-                        لا توجد كورسات في هذا البرنامج حالياً
+                        No courses in this program yet
                       </h3>
                       <p className="text-xs text-charcoal-100 font-sans max-w-md mx-auto">
-                        يمكنك إنشاء كورس حقيقي جديد في هذا البرنامج والبدء في رفع المحاضرات فوراً.
+                        You can create a new course under this program and start adding lectures immediately.
                       </p>
                       <div>
                         <button
@@ -1445,7 +1440,7 @@ export default function DashboardPage() {
                           className="inline-flex items-center gap-2 px-5 py-2.5 rounded bg-burgundy-900 hover:bg-black text-ivory-100 text-xs font-semibold shadow-sm transition-colors"
                         >
                           <Plus className="w-4 h-4" />
-                          <span>+ إنشاء كورس جديد الآن</span>
+                          <span>+ Create New Course Now</span>
                         </button>
                       </div>
                     </div>
@@ -1492,17 +1487,17 @@ export default function DashboardPage() {
                               setSelectedCourseForStudents(course);
                               setIsCourseStudentsOpen(true);
                             }}
-                            title="عرض قائمة الطلاب المشتركين وتتبع الأداء"
+                            title="View enrolled students roster and track performance"
                             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded bg-burgundy-900 hover:bg-black text-ivory-100 text-xs font-semibold shadow-sm transition-colors"
                           >
                             <Users className="w-3.5 h-3.5" />
-                            <span>الطلاب وتتبع الأداء</span>
+                            <span>Students & Telemetry</span>
                             {(() => {
                               const pending = enrollments.filter((e) => e.courseId === course.id && e.status === 'PENDING').length;
                               if (pending > 0) {
                                 return (
                                   <span className="bg-amber-500 text-charcoal-900 text-[10px] font-bold px-1.5 py-0.2 rounded-full">
-                                    {pending} جديد
+                                    {pending} Pending
                                   </span>
                                 );
                               }
@@ -1522,10 +1517,10 @@ export default function DashboardPage() {
                               setIsAddLectureOpen(true);
                             }}
                             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded bg-burgundy-900 hover:bg-black text-ivory-100 text-xs font-semibold shadow-sm transition-colors"
-                            title="إضافة محاضرة لهذا الكورس"
+                            title="Add a new lecture to this course"
                           >
                             <Plus className="w-3.5 h-3.5" />
-                            <span>+ إضافة محاضرة</span>
+                            <span>+ Add Lecture</span>
                           </button>
 
                           <button
@@ -1618,7 +1613,7 @@ export default function DashboardPage() {
                           </div>
                         ) : (
                           <div className="py-6 text-center text-xs text-charcoal-100 border border-dashed border-hairline rounded bg-ivory-50 space-y-2">
-                            <p className="font-medium">لا توجد محاضرات مضافة في هذا الكورس بعد.</p>
+                            <p className="font-medium">No lectures added to this course yet.</p>
                             <div>
                               <button
                                 type="button"
@@ -1629,7 +1624,7 @@ export default function DashboardPage() {
                                 className="inline-flex items-center gap-1.5 px-4 py-2 rounded bg-burgundy-900 hover:bg-black text-ivory-100 text-xs font-semibold transition-colors shadow-sm"
                               >
                                 <Plus className="w-3.5 h-3.5" />
-                                <span>إضافة أول محاضرة لهذا الكورس الآن</span>
+                                <span>Add First Lecture to Course Now</span>
                               </button>
                             </div>
                           </div>
@@ -2210,7 +2205,7 @@ export default function DashboardPage() {
                       className="px-3.5 py-2 rounded bg-burgundy-900 hover:bg-black text-ivory-100 text-xs font-semibold shadow-quiet flex items-center gap-1.5 shrink-0"
                     >
                       <Plus className="w-3.5 h-3.5" />
-                      <span>إضافة طالب يدوياً</span>
+                      <span>Register Student Manually</span>
                     </button>
                   </div>
                 </div>
@@ -2224,24 +2219,24 @@ export default function DashboardPage() {
                         <div className="flex items-center gap-2">
                           <span className="w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse" />
                           <h3 className="text-sm font-bold text-charcoal-900 font-display">
-                            طلبات تفعيل الكورسات الجديدة (Course Activation Requests)
+                            Course Activation Requests
                           </h3>
                         </div>
                         <span className="text-xs font-mono font-bold px-2 py-0.5 rounded bg-amber-50 text-amber-800 border border-amber-200">
-                          {pendingRequests.length} طلبات بانتظار الاعتماد
+                          {pendingRequests.length} Pending Approval
                         </span>
                       </div>
 
                       {pendingRequests.length === 0 ? (
                         <div className="p-4 text-center text-xs text-charcoal-100 bg-ivory-50 rounded-lg border border-hairline">
-                          لا توجد طلبات تفعيل معلقة حالياً. جميع طلبات اشتراك الطلاب مفعلة ومكتملة.
+                          No pending activation requests. All student course enrollments are active and up to date.
                         </div>
                       ) : (
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
                           {pendingRequests.map((req) => {
                             const cleanPhone = req.studentPhone.replace(/[^0-9]/g, '');
                             const waLink = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(
-                              `أهلاً بك يا ${req.studentName} في أكاديمية PHENOL. تم استلام طلب تفعيل مادة (${req.courseTitle}):`
+                              `Hello ${req.studentName}, regarding your activation request for (${req.courseTitle}) at PHENOL Academy:`
                             )}`;
 
                             return (
@@ -2270,7 +2265,7 @@ export default function DashboardPage() {
 
                                 <div className="p-2 rounded bg-white border border-hairline text-xs font-sans">
                                   <span className="text-[10px] font-mono text-burgundy-900 font-bold block">
-                                    المادة المطلوبة: {req.courseCode}
+                                    Target Course: {req.courseCode}
                                   </span>
                                   <span className="font-semibold text-charcoal-900 text-xs truncate block">
                                     {req.courseTitle}
@@ -2285,7 +2280,7 @@ export default function DashboardPage() {
                                     className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-xs font-semibold transition-colors"
                                   >
                                     <WhatsAppIcon className="w-3.5 h-3.5" />
-                                    <span>محادثة واتساب</span>
+                                    <span>WhatsApp Chat</span>
                                   </a>
 
                                   <button
@@ -2294,7 +2289,7 @@ export default function DashboardPage() {
                                     className="px-4 py-1.5 rounded bg-burgundy-900 hover:bg-black text-ivory-100 text-xs font-semibold shadow-sm transition-colors flex items-center gap-1"
                                   >
                                     <CheckCircle2 className="w-3.5 h-3.5" />
-                                    <span>تفعيل الكورس فوراً</span>
+                                    <span>Activate Access Now</span>
                                   </button>
                                 </div>
                               </div>
@@ -2310,7 +2305,7 @@ export default function DashboardPage() {
                 <div className="p-3.5 bg-ivory-300/60 border border-hairline rounded text-xs space-y-1">
                   <span className="font-semibold text-charcoal-900 flex items-center gap-1.5 font-formula">
                     <ShieldCheck className="w-3.5 h-3.5 text-burgundy-500" />
-                    <span>Forensic Leak Detection Guide (كشف تسريبات الفيديو):</span>
+                    <span>Forensic Leak Detection Guide:</span>
                   </span>
                   <p className="text-[11px] text-charcoal-100 leading-relaxed font-sans">
                     Every enrolled student has a unique Academic Security Code blended into their video stream (e.g. <code className="text-burgundy-500 font-bold">PH-4821-Y</code>). If an unauthorized video is leaked on social media or Telegram, search the code appearing in the video above to immediately pinpoint the student identity and phone number.
@@ -2351,7 +2346,7 @@ export default function DashboardPage() {
                             {filteredStudents.map((st) => {
                               const cleanPhone = st.phone.replace(/[^0-9]/g, '');
                               const waLink = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(
-                                `أهلاً بك يا ${st.name} في أكاديمية PHENOL مع د. عمر مجدي. بخصوص متابعة أدائك الأكاديمي:`
+                                `Hello ${st.name}, regarding your academic performance and coursework with Dr. Omar Magdi at PHENOL Academy:`
                               )}`;
 
                               return (
@@ -2389,11 +2384,11 @@ export default function DashboardPage() {
                                   <td className="py-3.5 px-4">
                                     {st.activeCoursesCount > 0 ? (
                                       <span className="px-2 py-0.5 rounded bg-emerald-50 text-emerald-800 font-mono font-semibold text-xs border border-emerald-200">
-                                        {st.activeCoursesCount} مواد مفعلة
+                                        {st.activeCoursesCount} Active Courses
                                       </span>
                                     ) : (
                                       <span className="px-2 py-0.5 rounded bg-amber-50 text-amber-800 font-mono text-[11px] border border-amber-200">
-                                        في انتظار تفعيل كورس
+                                        Awaiting Course Activation
                                       </span>
                                     )}
                                   </td>
@@ -2423,10 +2418,10 @@ export default function DashboardPage() {
                                           setIsDirectEnrollModalOpen(true);
                                         }}
                                         className="px-2.5 py-1 rounded bg-burgundy-900 hover:bg-black text-ivory-100 text-[11px] font-semibold transition-colors flex items-center gap-1 shadow-sm"
-                                        title="تفعيل كورس لهذا الطالب"
+                                        title="Activate course access for this student"
                                       >
                                         <Plus className="w-3 h-3" />
-                                        <span>تفعيل كورس</span>
+                                        <span>Activate Course</span>
                                       </button>
 
                                       <a
@@ -2434,10 +2429,10 @@ export default function DashboardPage() {
                                         target="_blank"
                                         rel="noreferrer"
                                         className="inline-flex items-center gap-1 px-2.5 py-1 rounded border border-emerald-300 bg-emerald-50 text-emerald-800 text-[11px] hover:bg-emerald-100 font-semibold transition-colors"
-                                        title="محادثة واتساب"
+                                        title="Chat via WhatsApp"
                                       >
                                         <WhatsAppIcon className="w-3 h-3" />
-                                        <span>تواصل</span>
+                                        <span>Message</span>
                                       </a>
                                     </div>
                                   </td>
@@ -2621,17 +2616,17 @@ export default function DashboardPage() {
                             {access.status === 'ACTIVE' ? (
                               <span className="text-[10px] font-mono font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded flex items-center gap-1">
                                 <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                                <span>مفعل (Active Access)</span>
+                                <span>Active Access</span>
                               </span>
                             ) : access.status === 'PENDING' ? (
                               <span className="text-[10px] font-mono font-bold text-amber-800 bg-amber-50 border border-amber-200 px-2.5 py-0.5 rounded flex items-center gap-1">
                                 <Clock className="w-3 h-3 text-amber-600" />
-                                <span>قيد المراجعة والاعتماد</span>
+                                <span>Pending Review</span>
                               </span>
                             ) : (
                               <span className="text-[10px] font-mono font-bold text-charcoal-100 bg-ivory-200 border border-hairline px-2.5 py-0.5 rounded flex items-center gap-1">
                                 <Lock className="w-3 h-3 text-charcoal-50" />
-                                <span>يتطلب التفعيل</span>
+                                <span>Activation Required</span>
                               </span>
                             )}
                           </div>
@@ -2661,7 +2656,7 @@ export default function DashboardPage() {
                           ) : access.status === 'PENDING' ? (
                             <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded bg-amber-100 text-amber-900 text-xs font-semibold">
                               <Clock className="w-3.5 h-3.5" />
-                              <span>طلب التفعيل قيد الانتظار</span>
+                              <span>Activation Pending Review</span>
                             </span>
                           ) : (
                             <button
@@ -2670,7 +2665,7 @@ export default function DashboardPage() {
                               className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded bg-burgundy-900 hover:bg-black text-ivory-100 text-xs font-semibold shadow-sm transition-colors"
                             >
                               <Sparkles className="w-3.5 h-3.5" />
-                              <span>طلب تفعيل الكورس</span>
+                              <span>Request Course Activation</span>
                             </button>
                           )}
                         </div>
@@ -3142,7 +3137,7 @@ export default function DashboardPage() {
                 }`}
               >
                 <Lock className="w-3.5 h-3.5" />
-                <span>Security & Password (تغيير كلمة المرور)</span>
+                <span>Security & Password</span>
               </button>
             </div>
 
@@ -3156,7 +3151,7 @@ export default function DashboardPage() {
                   />
                   <div className="flex-1 space-y-1">
                     <label className="block text-xs font-semibold text-charcoal-900 font-sans">
-                      Avatar Image URL (رابط الصورة الشخصية)
+                      Avatar Image URL
                     </label>
                     <input
                       type="url"
@@ -3189,7 +3184,7 @@ export default function DashboardPage() {
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-xs font-semibold text-charcoal-900 font-sans mb-1">
-                      Display Name (الاسم الكامل)
+                      Display Name
                     </label>
                     <input
                       type="text"
@@ -3202,7 +3197,7 @@ export default function DashboardPage() {
 
                   <div>
                     <label className="block text-xs font-semibold text-charcoal-900 font-sans mb-1">
-                      Academic Title (اللقب الأكاديمي)
+                      Academic Title
                     </label>
                     <input
                       type="text"
@@ -3217,7 +3212,7 @@ export default function DashboardPage() {
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-xs font-semibold text-charcoal-900 font-sans mb-1">
-                      Specialization (التخصص العلمي)
+                      Specialization
                     </label>
                     <input
                       type="text"
@@ -3244,7 +3239,7 @@ export default function DashboardPage() {
 
                 <div>
                   <label className="block text-xs font-semibold text-charcoal-900 font-sans mb-1">
-                    Bio / Academic Manifesto (النبذة التعريفية)
+                    Bio / Academic Manifesto
                   </label>
                   <textarea
                     rows={3}
@@ -3276,7 +3271,7 @@ export default function DashboardPage() {
                 <div className="p-3.5 bg-ivory-200 border border-hairline rounded text-xs space-y-1">
                   <span className="font-semibold text-charcoal-900 flex items-center gap-1.5 font-formula">
                     <KeyRound className="w-3.5 h-3.5 text-burgundy-500" />
-                    <span>Password Management (إدارة كلمة المرور)</span>
+                    <span>Password Management</span>
                   </span>
                   <p className="text-[11px] text-charcoal-100 leading-relaxed font-sans">
                     Change your confidential login password. Any profile (student or administrator) can safely update their password at any time.
@@ -3299,7 +3294,7 @@ export default function DashboardPage() {
 
                 <div>
                   <label className="block text-xs font-semibold text-charcoal-900 font-sans mb-1">
-                    Current Password (كلمة المرور الحالية)
+                    Current Password
                   </label>
                   <div className="relative">
                     <Lock className="w-4 h-4 text-charcoal-50 absolute left-3 top-2.5 pointer-events-none" />
@@ -3316,7 +3311,7 @@ export default function DashboardPage() {
 
                 <div>
                   <label className="block text-xs font-semibold text-charcoal-900 font-sans mb-1">
-                    New Password (كلمة المرور الجديدة)
+                    New Password
                   </label>
                   <div className="relative">
                     <Lock className="w-4 h-4 text-charcoal-50 absolute left-3 top-2.5 pointer-events-none" />
@@ -3334,7 +3329,7 @@ export default function DashboardPage() {
 
                 <div>
                   <label className="block text-xs font-semibold text-charcoal-900 font-sans mb-1">
-                    Confirm New Password (تأكيد كلمة المرور)
+                    Confirm New Password
                   </label>
                   <div className="relative">
                     <Lock className="w-4 h-4 text-charcoal-50 absolute left-3 top-2.5 pointer-events-none" />
@@ -3429,7 +3424,7 @@ export default function DashboardPage() {
             <form onSubmit={handleCreateCourse} className="p-6 space-y-4">
               <div>
                 <label className="block text-xs font-semibold text-charcoal-900 font-sans mb-1">
-                  Target Academic Program (البرنامج الأكاديمي)
+                  Target Academic Program
                 </label>
                 <select
                   value={newCourseCategory}
@@ -3461,14 +3456,14 @@ export default function DashboardPage() {
 
                 <div>
                   <label className="block text-xs font-semibold text-charcoal-900 font-sans mb-1">
-                    Academic Level (المستوى الدراسي)
+                    Academic Level
                   </label>
                   <input
                     type="text"
                     required
                     value={newCourseLevel}
                     onChange={(e) => setNewCourseLevel(e.target.value)}
-                    placeholder="الصف الثالث الثانوي"
+                    placeholder="e.g. Year 3 Secondary / Senior"
                     className="w-full px-3 py-2 text-xs bg-ivory-50 border border-hairline rounded text-charcoal-900 focus:outline-none focus:border-burgundy-500"
                   />
                 </div>
@@ -3476,14 +3471,14 @@ export default function DashboardPage() {
 
               <div>
                 <label className="block text-xs font-semibold text-charcoal-900 font-sans mb-1">
-                  Course Title (اسم المنهج / الكورس)
+                  Course Title
                 </label>
                 <input
                   type="text"
                   required
                   value={newCourseTitle}
                   onChange={(e) => setNewCourseTitle(e.target.value)}
-                  placeholder="e.g. الكيمياء الكهربية والتحليل الكهربي المتقدم"
+                  placeholder="e.g. Advanced Electrochemistry & Galvanic Thermodynamics"
                   className="w-full px-3 py-2 text-xs bg-ivory-50 border border-hairline rounded text-charcoal-900 focus:outline-none focus:border-burgundy-500"
                 />
               </div>
@@ -3496,7 +3491,7 @@ export default function DashboardPage() {
                   type="text"
                   value={newCourseSubtitle}
                   onChange={(e) => setNewCourseSubtitle(e.target.value)}
-                  placeholder="e.g. قوانين فاراداي، معادلة نيرنست، وحسابات القوة الدافعة الكهربية"
+                  placeholder="e.g. Faraday's Laws, Nernst Equation, and Cell Potentials"
                   className="w-full px-3 py-2 text-xs bg-ivory-50 border border-hairline rounded text-charcoal-900 focus:outline-none focus:border-burgundy-500"
                 />
               </div>
@@ -3523,7 +3518,7 @@ export default function DashboardPage() {
                     type="text"
                     value={newCourseHours}
                     onChange={(e) => setNewCourseHours(e.target.value)}
-                    placeholder="32 ساعة تدريسية"
+                    placeholder="e.g. 32 Academic Hours"
                     className="w-full px-3 py-2 text-xs bg-ivory-50 border border-hairline rounded text-charcoal-900 focus:outline-none focus:border-burgundy-500"
                   />
                 </div>
@@ -3588,7 +3583,7 @@ export default function DashboardPage() {
             <form onSubmit={handleUpdateCourse} className="p-6 space-y-4">
               <div>
                 <label className="block text-xs font-semibold text-charcoal-900 font-sans mb-1">
-                  Academic Program (البرنامج الأكاديمي)
+                  Academic Program
                 </label>
                 <select
                   value={editCourseCategory}
@@ -3771,7 +3766,7 @@ export default function DashboardPage() {
 
               <div>
                 <label className="block text-xs font-semibold text-charcoal-900 font-sans mb-1">
-                  Video URL (رابط يوتيوب غير مدرج أو رابط مباشر)
+                  Video URL (Unlisted YouTube link or direct video file)
                 </label>
                 <input
                   type="url"
@@ -3787,7 +3782,7 @@ export default function DashboardPage() {
 
               <div>
                 <label className="block text-xs font-semibold text-charcoal-900 font-sans mb-1">
-                  Companion PDF Handout URL (رابط مذكرة المحاضرة PDF)
+                  Companion PDF Handout URL (Optional lecture notes link)
                 </label>
                 <input
                   type="url"
@@ -3899,7 +3894,7 @@ export default function DashboardPage() {
 
               <div>
                 <label className="block text-xs font-semibold text-charcoal-900 font-sans mb-1">
-                  Video URL (رابط يوتيوب غير مدرج أو رابط مباشر)
+                  Video URL (Unlisted YouTube link or direct video file)
                 </label>
                 <input
                   type="url"
@@ -3912,7 +3907,7 @@ export default function DashboardPage() {
 
               <div>
                 <label className="block text-xs font-semibold text-charcoal-900 font-sans mb-1">
-                  Companion PDF Handout URL (رابط مذكرة المحاضرة PDF)
+                  Companion PDF Handout URL (Optional lecture notes link)
                 </label>
                 <input
                   type="url"
@@ -4008,7 +4003,7 @@ export default function DashboardPage() {
             <form onSubmit={handleAddApplicant} className="p-6 space-y-4">
               <div>
                 <label className="block text-xs font-semibold text-charcoal-900 font-sans mb-1">
-                  Full Name (اسم الطالب)
+                  Full Name
                 </label>
                 <input
                   type="text"
@@ -4022,7 +4017,7 @@ export default function DashboardPage() {
 
               <div>
                 <label className="block text-xs font-semibold text-charcoal-900 font-sans mb-1">
-                  WhatsApp Contact (رقم الواتساب)
+                  WhatsApp Contact
                 </label>
                 <input
                   type="tel"
@@ -4253,7 +4248,7 @@ export default function DashboardPage() {
             <div className="flex items-center justify-between border-b border-hairline pb-3">
               <div className="flex items-center gap-2">
                 <Sparkles className="w-5 h-5 text-burgundy-900" />
-                <h3 className="text-base font-bold font-display">تفعيل كورس للطالب</h3>
+                <h3 className="text-base font-bold font-display">Activate Course for Student</h3>
               </div>
               <button
                 type="button"
@@ -4277,7 +4272,7 @@ export default function DashboardPage() {
 
             <form onSubmit={handleDirectEnrollSubmit} className="space-y-4">
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-charcoal-900">اختر الكورس المراد تفعيله:</label>
+                <label className="text-xs font-semibold text-charcoal-900">Select Course to Activate:</label>
                 <select
                   value={selectedCourseIdToEnroll}
                   onChange={(e) => setSelectedCourseIdToEnroll(e.target.value)}
@@ -4297,14 +4292,14 @@ export default function DashboardPage() {
                   onClick={() => setIsDirectEnrollModalOpen(false)}
                   className="px-4 py-2 rounded border border-hairline text-charcoal-100 text-xs font-semibold hover:bg-ivory-200"
                 >
-                  إلغاء
+                  Cancel
                 </button>
                 <button
                   type="submit"
                   className="px-5 py-2 rounded bg-burgundy-900 hover:bg-black text-ivory-100 text-xs font-semibold shadow-quiet flex items-center gap-1.5"
                 >
                   <CheckCircle2 className="w-3.5 h-3.5" />
-                  <span>تفعيل الكورس فوراً</span>
+                  <span>Activate Access Now</span>
                 </button>
               </div>
             </form>
@@ -4319,7 +4314,7 @@ export default function DashboardPage() {
             <div className="flex items-center justify-between border-b border-hairline pb-3">
               <div className="flex items-center gap-2">
                 <Users className="w-5 h-5 text-burgundy-900" />
-                <h3 className="text-base font-bold font-display">تسجيل طالب جديد يدوياً</h3>
+                <h3 className="text-base font-bold font-display">Register New Student Manually</h3>
               </div>
               <button
                 type="button"
@@ -4332,19 +4327,19 @@ export default function DashboardPage() {
 
             <form onSubmit={handleManualAddStudentSubmit} className="space-y-3.5">
               <div className="space-y-1">
-                <label className="text-xs font-semibold text-charcoal-900">الاسم الكامل للطالب *</label>
+                <label className="text-xs font-semibold text-charcoal-900">Full Student Name *</label>
                 <input
                   type="text"
                   required
                   value={manualStudentName}
                   onChange={(e) => setManualStudentName(e.target.value)}
-                  placeholder="مثال: أحمد محمد علي"
+                  placeholder="e.g. Ahmed Mohamed Ali"
                   className="w-full px-3 py-2 text-xs bg-white border border-hairline rounded text-charcoal-900 focus:outline-none focus:border-burgundy-500"
                 />
               </div>
 
               <div className="space-y-1">
-                <label className="text-xs font-semibold text-charcoal-900">البريد الإلكتروني *</label>
+                <label className="text-xs font-semibold text-charcoal-900">Email Address *</label>
                 <input
                   type="email"
                   required
@@ -4356,7 +4351,7 @@ export default function DashboardPage() {
               </div>
 
               <div className="space-y-1">
-                <label className="text-xs font-semibold text-charcoal-900">رقم الهاتف (الواتساب) *</label>
+                <label className="text-xs font-semibold text-charcoal-900">Phone Number (WhatsApp) *</label>
                 <input
                   type="text"
                   required
@@ -4368,16 +4363,16 @@ export default function DashboardPage() {
               </div>
 
               <div className="space-y-1">
-                <label className="text-xs font-semibold text-charcoal-900">الشعبة الأكاديمية (Track)</label>
+                <label className="text-xs font-semibold text-charcoal-900">Academic Program</label>
                 <select
                   value={manualStudentTrack}
                   onChange={(e) => setManualStudentTrack(e.target.value)}
                   className="w-full px-3 py-2 text-xs bg-white border border-hairline rounded text-charcoal-900 focus:outline-none focus:border-burgundy-500 font-sans"
                 >
-                  <option value="ثانوية عامة (عربي)">ثانوية عامة (عربي)</option>
-                  <option value="ثانوية عامة (لغات)">ثانوية عامة (لغات)</option>
+                  <option value="Public Secondary AR">Public Secondary AR</option>
+                  <option value="Public Secondary EN">Public Secondary EN</option>
                   <option value="IGCSE & A-Level / STEM">IGCSE & A-Level / STEM</option>
-                  <option value="كيمياء جامعية (صيدلة، علوم، طب)">كيمياء جامعية (صيدلة، علوم، طب)</option>
+                  <option value="University Chemistry">University Chemistry</option>
                 </select>
               </div>
 
@@ -4387,14 +4382,14 @@ export default function DashboardPage() {
                   onClick={() => setIsManualAddStudentModalOpen(false)}
                   className="px-4 py-2 rounded border border-hairline text-charcoal-100 text-xs font-semibold hover:bg-ivory-200"
                 >
-                  إلغاء
+                  Cancel
                 </button>
                 <button
                   type="submit"
                   className="px-5 py-2 rounded bg-burgundy-900 hover:bg-black text-ivory-100 text-xs font-semibold shadow-quiet flex items-center gap-1.5"
                 >
                   <CheckCircle2 className="w-3.5 h-3.5" />
-                  <span>حفظ وتسجيل الطالب</span>
+                  <span>Save & Register Student</span>
                 </button>
               </div>
             </form>

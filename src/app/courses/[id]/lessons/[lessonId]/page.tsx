@@ -90,7 +90,7 @@ export default function LessonExperiencePage() {
             authorName: 'Youssef Mansour',
             authorCode: 'PH-4821-Y',
             authorRole: 'STUDENT',
-            content: 'يا دكتور عمر، هل الرنين في الفينول بيزود الشحنة السالبة على ذرة الأكسجين ولا بيقللها مقارنة بالكحولات؟',
+            content: 'Dr. Omar, does resonance delocalization in phenol increase or decrease electron density on the oxygen atom compared to aliphatic alcohols?',
             timestamp: 'Yesterday at 04:30 PM',
           },
           {
@@ -98,7 +98,7 @@ export default function LessonExperiencePage() {
             authorName: 'Dr. Omar Magdi',
             authorCode: 'DIR-OMAR-01',
             authorRole: 'INSTRUCTOR',
-            content: 'سؤال ممتاز يا يوسف. الرنين يسحب زوج الإلكترونات من الأكسجين نحو حلقة البنزين، مما يقلل الكثافة الإلكترونية على الأكسجين ويجعل رابطة O-H أكثر استقطاباً وضعفاً، فيسهل خروج أيون الهيدروجين الحامضي H⁺ بكل سهولة.',
+            content: 'Excellent inquiry, Youssef. Resonance delocalization withdraws the unshared electron pair from oxygen into the aromatic ring, reducing oxygen electron density and making the O-H bond significantly more polarized and labile, facilitating proton release.',
             timestamp: 'Yesterday at 05:15 PM',
           },
         ]);
@@ -129,7 +129,7 @@ export default function LessonExperiencePage() {
                   href="/login"
                   className="px-3.5 py-1.5 rounded bg-burgundy-900 hover:bg-black text-ivory-100 text-xs font-semibold transition-colors shadow-sm"
                 >
-                  تسجيل الدخول
+                  Sign In
                 </Link>
               )}
             </div>
@@ -141,17 +141,17 @@ export default function LessonExperiencePage() {
             <BookOpen className="w-6 h-6" />
           </div>
           <h2 className="text-xl font-bold font-display text-charcoal-900">
-            جاري فحص وتحميل المحاضرة الأكاديمية...
+            Loading academic lecture and resources...
           </h2>
           <p className="text-xs text-charcoal-100 leading-relaxed font-sans">
-            إذا لم تكن المحاضرة متوفرة، يرجى مراجعة لوحة التحكم للتأكد من نشرها في الكورس.
+            If this lecture is not available, please verify that it is published within the course curriculum.
           </p>
           <div className="pt-2">
             <Link
               href="/dashboard"
               className="inline-flex items-center gap-2 px-5 py-2.5 rounded bg-burgundy-900 hover:bg-black text-ivory-100 text-xs font-semibold transition-colors shadow-sm"
             >
-              <span>العودة إلى لوحة التحكم</span>
+              <span>Return to Dashboard</span>
             </Link>
           </div>
         </main>
@@ -166,10 +166,10 @@ export default function LessonExperiencePage() {
       ? lessons[lessonIndex]
       : lessons[0] || {
           id: 'default-les',
-          title: 'محاضرة قيد التجهيز',
+          title: 'Lecture In Preparation',
           duration: '45 min',
           type: 'video',
-          summary: 'لم يتم رفع فيديو أو محتوى لهذه المحاضرة بعد.',
+          summary: 'Video and supplementary academic resources are currently being finalized.',
         };
 
   const prevLesson = lessonIndex > 0 ? lessons[lessonIndex - 1] : null;
@@ -225,10 +225,10 @@ export default function LessonExperiencePage() {
 
   // Default Timestamps if not populated
   const timestamps: LectureTimestamp[] = currentLesson.timestamps || [
-    { timeSeconds: 0, timeLabel: '00:00', title: 'المقدمة وتأصيل المفاهيم الأساسية' },
-    { timeSeconds: 420, timeLabel: '07:00', title: 'التوزيع الفراغي للأوربيتالات ونظرية التهجين' },
-    { timeSeconds: 1140, timeLabel: '19:00', title: 'دراسة ميكانزم التفاعل خطوة بخطوة' },
-    { timeSeconds: 1980, timeLabel: '33:00', title: 'تطبيقات عملية وأسئلة امتحانات السنوات السابقة' },
+    { timeSeconds: 0, timeLabel: '00:00', title: 'Introduction & Theoretical Fundamentals' },
+    { timeSeconds: 420, timeLabel: '07:00', title: 'Orbital Hybridization & Spatial Geometry' },
+    { timeSeconds: 1140, timeLabel: '19:00', title: 'Step-by-Step Reaction Mechanism Analysis' },
+    { timeSeconds: 1980, timeLabel: '33:00', title: 'Worked Exam Problems & Diagnostic Applications' },
   ];
 
   return (
@@ -283,7 +283,7 @@ export default function LessonExperiencePage() {
                   href="/login"
                   className="px-3.5 py-1.5 rounded bg-burgundy-900 hover:bg-black text-ivory-100 text-xs font-semibold transition-colors shadow-sm"
                 >
-                  تسجيل الدخول
+                  Sign In
                 </Link>
               )}
             </div>
@@ -307,10 +307,10 @@ export default function LessonExperiencePage() {
                     </div>
                     <div className="max-w-md space-y-1.5">
                       <h3 className="text-lg font-bold text-ivory-100 font-display">
-                        المحتوى الأكاديمي محمي ويتطلب التفعيل
+                        Academic Content Protected — Activation Required
                       </h3>
                       <p className="text-xs text-ivory-200/70 font-sans leading-relaxed">
-                        هذه المحاضرة تتبع مادة ({course.title}) وتتطلب تفعيل الاشتراك بواسطة د. عمر مجدي.
+                        This lecture is part of ({course.title}) and requires active enrollment authorized by Dr. Omar Magdi.
                       </p>
                     </div>
 
@@ -318,7 +318,7 @@ export default function LessonExperiencePage() {
                       {access.status === 'PENDING' ? (
                         <span className="px-5 py-2.5 rounded bg-amber-500/20 text-amber-300 text-xs font-semibold border border-amber-500/30 flex items-center gap-1.5">
                           <Clock className="w-4 h-4" />
-                          <span>طلب تفعيل الكورس قيد المراجعة والاعتماد</span>
+                          <span>Course activation request is currently pending review</span>
                         </span>
                       ) : (
                         <button
@@ -332,7 +332,7 @@ export default function LessonExperiencePage() {
                           className="px-6 py-2.5 rounded bg-burgundy-900 hover:bg-black text-ivory-100 text-xs font-semibold transition-colors shadow-sm flex items-center gap-2"
                         >
                           <Sparkles className="w-4 h-4" />
-                          <span>طلب تفعيل هذا الكورس الآن</span>
+                          <span>Request Course Activation Now</span>
                         </button>
                       )}
 
@@ -340,7 +340,7 @@ export default function LessonExperiencePage() {
                         href="/dashboard"
                         className="px-5 py-2.5 rounded bg-white/10 hover:bg-white/15 text-ivory-100 text-xs font-semibold transition-colors"
                       >
-                        العودة للوحة التحكم
+                        Return to Dashboard
                       </Link>
                     </div>
                   </div>
@@ -452,7 +452,7 @@ export default function LessonExperiencePage() {
                   }`}
                 >
                   <BookOpen className="w-3.5 h-3.5" />
-                  <span>Summary & Formulas (الملخص والمعادلات)</span>
+                  <span>Summary & Formulas</span>
                 </button>
 
                 <button
@@ -464,7 +464,7 @@ export default function LessonExperiencePage() {
                   }`}
                 >
                   <Clock className="w-3.5 h-3.5" />
-                  <span>Lecture Chapters (فصول المحاضرة)</span>
+                  <span>Lecture Chapters</span>
                   <span className="font-formula text-[10px] px-1.5 py-0.2 rounded-full bg-ivory-300">
                     {timestamps.length}
                   </span>
@@ -479,7 +479,7 @@ export default function LessonExperiencePage() {
                   }`}
                 >
                   <FileText className="w-3.5 h-3.5" />
-                  <span>PDF Handout (المذكرة المرفقة)</span>
+                  <span>PDF Handout</span>
                 </button>
 
                 <button
@@ -491,7 +491,7 @@ export default function LessonExperiencePage() {
                   }`}
                 >
                   <MessageSquare className="w-3.5 h-3.5" />
-                  <span>Classroom Q&A (المناقشة والاستفسارات)</span>
+                  <span>Classroom Q&A</span>
                   <span className="font-formula text-[10px] px-1.5 py-0.2 rounded-full bg-burgundy-50 text-burgundy-500">
                     {lessonComments.length}
                   </span>
@@ -514,7 +514,7 @@ export default function LessonExperiencePage() {
                     {currentLesson.keyFormulas && currentLesson.keyFormulas.length > 0 && (
                       <div className="space-y-2.5 pt-2">
                         <span className="text-xs font-bold text-charcoal-900 font-sans block">
-                          Governing Laws & Reaction Formulas (المعادلات الحاكمة):
+                          Governing Laws & Reaction Formulas:
                         </span>
                         <div className="grid grid-cols-1 gap-2">
                           {currentLesson.keyFormulas.map((formula, idx) => (
