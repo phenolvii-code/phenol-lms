@@ -119,16 +119,16 @@ export const ProgramsSection: React.FC<ProgramsSectionProps> = ({ onOpenWaitlist
               </span>
               <span className="text-hairline-strong">•</span>
               <span className="text-xs sm:text-sm text-charcoal-100 font-sans font-medium">
-                Academic Cohorts & Curricula
+                Academic Programs & Courses
               </span>
             </div>
 
             <h2 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-charcoal-900 font-display">
-              The 4 Academic Tracks
+              Programs & Courses
             </h2>
 
             <p className="text-sm sm:text-base text-charcoal-100 leading-relaxed font-sans">
-              Rigorous, structured chemistry curricula designed for foundational comprehension, from high school national & international certifications to university undergraduate mastery.
+              Rigorous, structured chemistry courses across 4 Academic Programs: Public Secondary (AR & EN), IGCSE & A-Level, and University.
             </p>
           </div>
 
@@ -137,7 +137,7 @@ export const ProgramsSection: React.FC<ProgramsSectionProps> = ({ onOpenWaitlist
           </div>
         </div>
 
-        {/* Academic Track Filter Tabs */}
+        {/* Academic Program Filter Tabs */}
         <div className="flex flex-wrap items-center gap-2 border-b border-hairline pb-4">
           <button
             onClick={() => setSelectedCategory('all')}
@@ -147,7 +147,7 @@ export const ProgramsSection: React.FC<ProgramsSectionProps> = ({ onOpenWaitlist
                 : 'bg-ivory-100 text-charcoal-100 hover:text-charcoal-900 border border-hairline'
             }`}
           >
-            <span>All Tracks</span>
+            <span>All Programs</span>
             <span
               className={`text-[11px] font-formula px-1.5 py-0.5 rounded ${
                 selectedCategory === 'all' ? 'bg-burgundy-800 text-ivory-200' : 'bg-ivory-300 text-charcoal-100'
@@ -188,7 +188,7 @@ export const ProgramsSection: React.FC<ProgramsSectionProps> = ({ onOpenWaitlist
           {filteredCourses.length === 0 ? (
             <div className="py-12 text-center space-y-2">
               <p className="text-sm font-semibold text-charcoal-900 font-display">
-                لا توجد مقررات معروضة في هذا التراك حالياً
+                لا توجد كورسات معروضة في هذا البرنامج حالياً
               </p>
               <p className="text-xs text-charcoal-100 font-sans">
                 يمكنك التقديم للدفعة القادمة عبر نموذج التسجيل بالأسفل وسيتم إشعارك فور إطلاق المقرر.
@@ -349,7 +349,7 @@ export const ProgramsSection: React.FC<ProgramsSectionProps> = ({ onOpenWaitlist
 
                 <div>
                   <label className="block text-xs font-semibold text-charcoal-900 font-sans mb-1.5">
-                    Target Academic Track (المسار الدراسي)
+                    Target Academic Program (البرنامج الدراسي)
                   </label>
                   <select
                     value={selectedTrack}
@@ -368,7 +368,7 @@ export const ProgramsSection: React.FC<ProgramsSectionProps> = ({ onOpenWaitlist
               {/* Row 3: Target Course in that track */}
               <div>
                 <label className="block text-xs font-semibold text-charcoal-900 font-sans mb-1.5">
-                  Target Course in Track (المقرر المطلوب)
+                  Target Course in Program (الكورس المطلوب)
                 </label>
                 <select
                   value={targetCourse}

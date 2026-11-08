@@ -111,7 +111,7 @@ export default function Home() {
                 Analytical Matrix
               </Link>
               <Link href="/#programs" className="hover:text-burgundy-500 transition-colors">
-                Curriculum
+                Courses
               </Link>
               <Link href="/#admission" className="hover:text-burgundy-500 transition-colors">
                 Admissions

@@ -263,17 +263,17 @@ export const StudentProfileModal: React.FC<StudentProfileModalProps> = ({
 
               <div>
                 <label className="block text-xs font-semibold text-charcoal-900 mb-1">
-                  Academic Track (المسار الدراسي المقيد به)
+                  Academic Program (البرنامج الدراسي المقيد به)
                 </label>
                 <select
                   value={track}
                   onChange={(e) => setTrack(e.target.value)}
                   className="w-full px-3.5 py-2 text-xs bg-white border border-hairline rounded text-charcoal-900 focus:outline-none focus:border-burgundy-900"
                 >
-                  <option value="ثانوية عامة (عربي)">ثانوية عامة (عربي) — National Curriculum</option>
-                  <option value="ثانوية عامة (لغات)">ثانوية عامة (لغات) — English Language Curriculum</option>
-                  <option value="الشهادات الدولية IG & STEM">الشهادات الدولية (Cambridge & Edexcel / STEM)</option>
-                  <option value="كيمياء جامعية (صيدلة، علوم، طب)">كيمياء جامعية (صيدلة، علوم، طب، هندسة)</option>
+                  <option value="Public Secondary AR">Public Secondary AR (ثانوية عامة عربي)</option>
+                  <option value="Public Secondary EN">Public Secondary EN (ثانوية عامة لغات)</option>
+                  <option value="IGCSE & A-Level Chemistry">IGCSE & A-Level Chemistry (Cambridge / Edexcel)</option>
+                  <option value="University Chemistry">University Chemistry (كيمياء جامعية)</option>
                 </select>
               </div>
 

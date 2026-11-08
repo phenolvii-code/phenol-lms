@@ -160,7 +160,7 @@ export default function CourseDetailsPage() {
                 ) : (
                   <>
                     <Link href="/#programs" className="hover:text-charcoal-900 transition-colors">
-                      Curriculum
+                      Courses
                     </Link>
                     <span>/</span>
                   </>
@@ -245,7 +245,7 @@ export default function CourseDetailsPage() {
           <div className="pt-4 border-t border-hairline flex flex-wrap items-center justify-between gap-4 text-xs sm:text-sm text-charcoal-100 font-sans">
             <div className="flex flex-wrap items-center gap-4 sm:gap-6">
               <span>Supervision: <strong className="text-charcoal-900 font-sans">Dr. Omar Magdi</strong></span>
-              <span>Track: <strong className="text-charcoal-900 font-sans">{course.categoryName}</strong></span>
+              <span>Program: <strong className="text-charcoal-900 font-sans">{course.categoryName}</strong></span>
               <span>Duration: <strong className="text-charcoal-900 font-sans">{course.totalHours}</strong></span>
             </div>
 
@@ -286,7 +286,7 @@ export default function CourseDetailsPage() {
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-lg sm:text-xl font-bold text-charcoal-900 font-display">
-                Curriculum Modules ({lessons.length} Lectures)
+                Course Lectures & Modules ({lessons.length} Lectures)
               </h2>
               <p className="text-xs sm:text-sm text-charcoal-100 font-sans">
                 Deductive progression dissecting chemical principles without cognitive leaps.

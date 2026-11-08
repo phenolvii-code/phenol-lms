@@ -764,7 +764,7 @@ export default function DashboardPage() {
       subTitle: newCourseSubtitle || 'Theoretical & Analytical Foundations',
       description: newCourseDesc || 'Curated chemistry curriculum directed by Dr. Omar Magdi.',
       category: newCourseCategory,
-      categoryName: trackObj?.name || 'Academic Track',
+      categoryName: trackObj?.name || 'Academic Program',
       level: newCourseLevel || 'Academic Year 2026/2027',
       molecularFormula: newCourseFormula || undefined,
       thumbnail: 'https://images.unsplash.com/photo-1532187863486-abf9dbad1b69?w=800&auto=format&fit=crop&q=80',
@@ -1284,7 +1284,7 @@ export default function DashboardPage() {
                       : 'border-transparent text-charcoal-100 hover:text-charcoal-900'
                   }`}
                 >
-                  <span>Curriculum & Tracks</span>
+                  <span>Programs & Courses</span>
                   <span className="font-formula text-xs px-2 py-0.5 rounded-full bg-ivory-300 text-charcoal-900">
                     {courses.length}
                   </span>
@@ -1392,10 +1392,10 @@ export default function DashboardPage() {
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                   <div>
                     <h2 className="text-xl font-bold text-charcoal-900 font-display">
-                      Chemistry Tracks & Course Syllabi
+                      Academic Programs & Courses
                     </h2>
                     <p className="text-xs text-charcoal-100 font-sans mt-0.5">
-                      Organized under Dr. Omar Magdi&apos;s 4 core educational tracks. Edit, delete, or build courses and lecture modules.
+                      Organized under the 4 Academic Programs: Public Secondary (AR & EN), IGCSE & A-Level, and University.
                     </p>
                   </div>
 
@@ -1433,10 +1433,10 @@ export default function DashboardPage() {
                     <div className="border border-dashed border-hairline rounded-xl bg-ivory-100 p-12 text-center space-y-4 shadow-quiet">
                       <GraduationCap className="w-10 h-10 text-burgundy-500 mx-auto" />
                       <h3 className="text-base font-bold text-charcoal-900 font-display">
-                        لا توجد كورسات في هذا التراك حالياً
+                        لا توجد كورسات في هذا البرنامج حالياً
                       </h3>
                       <p className="text-xs text-charcoal-100 font-sans max-w-md mx-auto">
-                        تم تفريغ الكورسات الوهمية بنجاح. يمكنك إنشاء كورس حقيقي جديد في هذا التراك والبدء في رفع المحاضرات فوراً.
+                        يمكنك إنشاء كورس حقيقي جديد في هذا البرنامج والبدء في رفع المحاضرات فوراً.
                       </p>
                       <div>
                         <button
@@ -2505,7 +2505,7 @@ export default function DashboardPage() {
                     : 'border-transparent text-charcoal-100 hover:text-charcoal-900'
                 }`}
               >
-                Curriculum Tracks ({courses.length})
+                Programs & Courses ({courses.length})
               </button>
 
               <button
@@ -2572,7 +2572,7 @@ export default function DashboardPage() {
                         : 'bg-ivory-100 text-charcoal-100 border border-hairline'
                     }`}
                   >
-                    All Tracks
+                    All Programs
                   </button>
                   {ACADEMIC_TRACKS.map((t) => (
                     <button
@@ -3415,7 +3415,7 @@ export default function DashboardPage() {
                   COURSE BUILDER
                 </span>
                 <h3 className="font-bold text-charcoal-900 font-display text-sm">
-                  Create New Course under Academic Track
+                  Create New Course under Academic Program
                 </h3>
               </div>
               <button
@@ -3429,7 +3429,7 @@ export default function DashboardPage() {
             <form onSubmit={handleCreateCourse} className="p-6 space-y-4">
               <div>
                 <label className="block text-xs font-semibold text-charcoal-900 font-sans mb-1">
-                  Target Academic Track (المسار التعليمي)
+                  Target Academic Program (البرنامج الأكاديمي)
                 </label>
                 <select
                   value={newCourseCategory}
@@ -3588,7 +3588,7 @@ export default function DashboardPage() {
             <form onSubmit={handleUpdateCourse} className="p-6 space-y-4">
               <div>
                 <label className="block text-xs font-semibold text-charcoal-900 font-sans mb-1">
-                  Academic Track
+                  Academic Program (البرنامج الأكاديمي)
                 </label>
                 <select
                   value={editCourseCategory}

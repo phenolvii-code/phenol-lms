@@ -42,7 +42,7 @@ export const Navbar: React.FC<NavbarProps> = ({
     { label: 'Philosophy', href: '/#philosophy' },
     { label: 'Feynman Method', href: '/#method' },
     { label: 'Analytical Matrix', href: '/#comparison' },
-    { label: 'Curriculum', href: '/#programs' },
+    { label: 'Courses', href: '/#programs' },
     { label: 'About Dr. Omar', href: '/#about' },
   ];
 
