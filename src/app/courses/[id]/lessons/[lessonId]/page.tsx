@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { CHEMISTRY_COURSES } from '@/data/mock-data';
-import { getStoredCourses } from '@/lib/courses-storage';
+import { getStoredCourses, syncWithServerCourses } from '@/lib/courses-storage';
 import { getStudentAcademicCode } from '@/lib/student-code';
 import {
   checkUserCourseAccess,
@@ -50,7 +50,7 @@ export default function LessonExperiencePage() {
   const courseId = params?.id as string;
   const lessonId = params?.lessonId as string;
 
-  const [coursesList, setCoursesList] = useState<ChemistryCourse[]>(CHEMISTRY_COURSES);
+  const [coursesList, setCoursesList] = useState<ChemistryCourse[]>([]);
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
   const [completedLessons, setCompletedLessons] = useState<string[]>([]);
   const [activeTab, setActiveTab] = useState<'summary' | 'timestamps' | 'pdf' | 'qa'>('summary');
@@ -64,6 +64,9 @@ export default function LessonExperiencePage() {
   // Load Course and User State
   useEffect(() => {
     setCoursesList(getStoredCourses());
+    syncWithServerCourses().then(() => {
+      setCoursesList(getStoredCourses());
+    });
 
     try {
       const savedUser = localStorage.getItem('phenol_auth_user');
@@ -103,18 +106,61 @@ export default function LessonExperiencePage() {
     } catch (e) {}
   }, [lessonId]);
 
-  const course = coursesList.find((c) => c.id === courseId) || coursesList[0] || CHEMISTRY_COURSES[0];
-  const lessons = course?.lessons || [];
+  const course = coursesList.find((c) => c.id === courseId);
+
+  if (!course) {
+    return (
+      <div className="min-h-screen bg-ivory-200 text-charcoal-900 flex flex-col font-sans selection:bg-burgundy-500 selection:text-ivory-100">
+        <header className="border-b border-hairline bg-ivory-100 sticky top-0 z-40">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex items-center justify-between h-16 sm:h-20">
+              <Link href="/" aria-label="PHENOL Home">
+                <PhenolLogo size={34} subtitle="Dr. Omar Magdi" />
+              </Link>
+              <Link
+                href="/dashboard"
+                className="px-3.5 py-1.5 rounded bg-burgundy-500 hover:bg-burgundy-800 text-ivory-100 text-xs font-semibold transition-colors shadow-quiet"
+              >
+                Dashboard
+              </Link>
+            </div>
+          </div>
+        </header>
+
+        <main className="flex-1 max-w-xl mx-auto w-full px-4 py-20 flex flex-col items-center justify-center text-center space-y-4">
+          <div className="w-12 h-12 rounded-full bg-burgundy-50 border border-burgundy-200 flex items-center justify-center text-burgundy-500 shadow-sm">
+            <BookOpen className="w-6 h-6" />
+          </div>
+          <h2 className="text-xl font-bold font-display text-charcoal-900">
+            جاري فحص وتحميل المحاضرة الأكاديمية...
+          </h2>
+          <p className="text-xs text-charcoal-100 leading-relaxed font-sans">
+            إذا لم تكن المحاضرة متوفرة، يرجى مراجعة لوحة التحكم للتأكد من نشرها في الكورس.
+          </p>
+          <div className="pt-2">
+            <Link
+              href="/dashboard"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded bg-burgundy-900 hover:bg-black text-ivory-100 text-xs font-semibold transition-colors shadow-sm"
+            >
+              <span>العودة إلى لوحة التحكم</span>
+            </Link>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  const lessons = course.lessons || [];
   const lessonIndex = lessons.findIndex((l) => l.id === lessonId);
   const currentLesson: ChemistryLesson =
     lessonIndex !== -1
       ? lessons[lessonIndex]
       : lessons[0] || {
           id: 'default-les',
-          title: 'Introductory Module',
+          title: 'محاضرة قيد التجهيز',
           duration: '45 min',
           type: 'video',
-          summary: 'Conceptual Chemistry Lecture',
+          summary: 'لم يتم رفع فيديو أو محتوى لهذه المحاضرة بعد.',
         };
 
   const prevLesson = lessonIndex > 0 ? lessons[lessonIndex - 1] : null;
@@ -139,7 +185,7 @@ export default function LessonExperiencePage() {
           currentUser.email,
           courseId,
           updated.length,
-          course.lessons.length,
+          lessons.length,
           currentLesson.title
         );
       }
@@ -205,7 +251,7 @@ export default function LessonExperiencePage() {
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded border border-hairline text-xs font-semibold text-charcoal-900 hover:border-burgundy-500 bg-ivory-50 transition-colors"
               >
                 <Layers className="w-3.5 h-3.5 text-burgundy-500" />
-                <span>Modules ({course.lessons.length})</span>
+                <span>Modules ({lessons.length})</span>
               </button>
 
               <Link

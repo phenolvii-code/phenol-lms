@@ -174,7 +174,7 @@ export default function DashboardPage() {
 
   // Add Lecture Modal State
   const [isAddLectureOpen, setIsAddLectureOpen] = useState(false);
-  const [newLectureCourse, setNewLectureCourse] = useState(CHEMISTRY_COURSES[0].id);
+  const [newLectureCourse, setNewLectureCourse] = useState<string>('');
   const [newLectureTitle, setNewLectureTitle] = useState('');
   const [newLectureDuration, setNewLectureDuration] = useState('45 min');
   const [newLectureVideoUrl, setNewLectureVideoUrl] = useState('');
@@ -836,28 +836,39 @@ export default function DashboardPage() {
 
   const handleAddLecture = (e: React.FormEvent) => {
     e.preventDefault();
+    const targetCourseId = newLectureCourse || (courses.length > 0 ? courses[0].id : '');
+    if (!targetCourseId) {
+      alert('يرجى اختيار الكورس أولاً');
+      return;
+    }
+    if (!newLectureTitle.trim()) {
+      alert('يرجى كتابة عنوان المحاضرة');
+      return;
+    }
+
+    const newLesson: ChemistryLesson = {
+      id: `les-${Date.now()}`,
+      title: newLectureTitle.trim(),
+      duration: newLectureDuration.trim() || '45 min',
+      type: 'video',
+      completed: false,
+      videoUrl: newLectureVideoUrl.trim() || undefined,
+      pdfNotesUrl: newLecturePdfUrl.trim() || undefined,
+      pdfNotesName: newLecturePdfName.trim() || undefined,
+      summary: newLectureSummary.trim() || 'محاضرة تأصيلية وشرح المفاهيم بإشراف د. عمر مجدي.',
+      keyFormulas: newLectureFormula.trim() ? [newLectureFormula.trim()] : undefined,
+      timestamps: [
+        { timeSeconds: 0, timeLabel: '00:00', title: 'المقدمة وتأصيل المفاهيم' },
+        { timeSeconds: 600, timeLabel: '10:00', title: 'ميكانزم التفاعل والأوربيتالات' },
+        { timeSeconds: 1500, timeLabel: '25:00', title: 'تطبيقات عملية وأسئلة وزارية' },
+      ],
+    };
+
     const updated = courses.map((course) => {
-      if (course.id === newLectureCourse) {
-        const newLesson: ChemistryLesson = {
-          id: `les-${Date.now()}`,
-          title: newLectureTitle,
-          duration: newLectureDuration,
-          type: 'video',
-          completed: false,
-          videoUrl: newLectureVideoUrl.trim() || undefined,
-          pdfNotesUrl: newLecturePdfUrl.trim() || undefined,
-          pdfNotesName: newLecturePdfName.trim() || undefined,
-          summary: newLectureSummary || 'Module curated by Dr. Omar Magdi for deep conceptual mastery.',
-          keyFormulas: newLectureFormula ? [newLectureFormula] : undefined,
-          timestamps: [
-            { timeSeconds: 0, timeLabel: '00:00', title: 'المقدمة وتأصيل المفاهيم' },
-            { timeSeconds: 600, timeLabel: '10:00', title: 'ميكانزم التفاعل والأوربيتالات' },
-            { timeSeconds: 1500, timeLabel: '25:00', title: 'تطبيقات عملية وأسئلة وزارية' },
-          ],
-        };
+      if (course.id === targetCourseId) {
         return {
           ...course,
-          lessons: [...course.lessons, newLesson],
+          lessons: [...(course.lessons || []), newLesson],
         };
       }
       return course;
@@ -873,6 +884,8 @@ export default function DashboardPage() {
     setNewLecturePdfName('');
     setNewLectureSummary('');
     setNewLectureFormula('');
+    setEnrollmentToast(`تمت إضافة محاضرة (${newLesson.title}) بنجاح`);
+    setTimeout(() => setEnrollmentToast(null), 4000);
   };
 
   const handleOpenEditLesson = (courseId: string, lesson: ChemistryLesson) => {
@@ -1332,7 +1345,12 @@ export default function DashboardPage() {
                       <span>Create New Course</span>
                     </button>
                     <button
-                      onClick={() => setIsAddLectureOpen(true)}
+                      onClick={() => {
+                        if (courses.length > 0 && !newLectureCourse) {
+                          setNewLectureCourse(courses[0].id);
+                        }
+                        setIsAddLectureOpen(true);
+                      }}
                       className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded bg-ivory-100 border border-hairline hover:border-charcoal-100 text-charcoal-900 text-xs font-semibold transition-colors"
                     >
                       <PlusCircle className="w-3.5 h-3.5 text-burgundy-500" />
@@ -1397,7 +1415,28 @@ export default function DashboardPage() {
 
                 {/* Courses List */}
                 <div className="space-y-6">
-                  {displayedCourses.map((course) => (
+                  {displayedCourses.length === 0 ? (
+                    <div className="border border-dashed border-hairline rounded-xl bg-ivory-100 p-12 text-center space-y-4 shadow-quiet">
+                      <GraduationCap className="w-10 h-10 text-burgundy-500 mx-auto" />
+                      <h3 className="text-base font-bold text-charcoal-900 font-display">
+                        لا توجد كورسات في هذا التراك حالياً
+                      </h3>
+                      <p className="text-xs text-charcoal-100 font-sans max-w-md mx-auto">
+                        تم تفريغ الكورسات الوهمية بنجاح. يمكنك إنشاء كورس حقيقي جديد في هذا التراك والبدء في رفع المحاضرات فوراً.
+                      </p>
+                      <div>
+                        <button
+                          type="button"
+                          onClick={() => setIsCreateCourseOpen(true)}
+                          className="inline-flex items-center gap-2 px-5 py-2.5 rounded bg-burgundy-900 hover:bg-black text-ivory-100 text-xs font-semibold shadow-sm transition-colors"
+                        >
+                          <Plus className="w-4 h-4" />
+                          <span>+ إنشاء كورس جديد الآن</span>
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    displayedCourses.map((course) => (
                     <div
                       key={course.id}
                       className="border border-hairline rounded bg-ivory-100 p-6 space-y-4 shadow-quiet"
@@ -1460,6 +1499,19 @@ export default function DashboardPage() {
                                 </span>
                               );
                             })()}
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setNewLectureCourse(course.id);
+                              setIsAddLectureOpen(true);
+                            }}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded bg-burgundy-900 hover:bg-black text-ivory-100 text-xs font-semibold shadow-sm transition-colors"
+                            title="إضافة محاضرة لهذا الكورس"
+                          >
+                            <Plus className="w-3.5 h-3.5" />
+                            <span>+ إضافة محاضرة</span>
                           </button>
 
                           <button
@@ -1551,13 +1603,26 @@ export default function DashboardPage() {
                             ))}
                           </div>
                         ) : (
-                          <div className="py-6 text-center text-xs text-charcoal-50 border border-dashed border-hairline rounded bg-ivory-50">
-                            <span>No lecture modules added yet. Click &quot;Add Lecture&quot; to build this syllabus.</span>
+                          <div className="py-6 text-center text-xs text-charcoal-100 border border-dashed border-hairline rounded bg-ivory-50 space-y-2">
+                            <p className="font-medium">لا توجد محاضرات مضافة في هذا الكورس بعد.</p>
+                            <div>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setNewLectureCourse(course.id);
+                                  setIsAddLectureOpen(true);
+                                }}
+                                className="inline-flex items-center gap-1.5 px-4 py-2 rounded bg-burgundy-900 hover:bg-black text-ivory-100 text-xs font-semibold transition-colors shadow-sm"
+                              >
+                                <Plus className="w-3.5 h-3.5" />
+                                <span>إضافة أول محاضرة لهذا الكورس الآن</span>
+                              </button>
+                            </div>
                           </div>
                         )}
                       </div>
                     </div>
-                  ))}
+                  )))}
                 </div>
               </div>
             )}
@@ -3664,7 +3729,7 @@ export default function DashboardPage() {
                   Target Course
                 </label>
                 <select
-                  value={newLectureCourse}
+                  value={newLectureCourse || (courses.length > 0 ? courses[0].id : '')}
                   onChange={(e) => setNewLectureCourse(e.target.value)}
                   className="w-full px-3 py-2 text-xs bg-ivory-50 border border-hairline rounded text-charcoal-900 font-sans focus:outline-none focus:border-burgundy-500"
                 >

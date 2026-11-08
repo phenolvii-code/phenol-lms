@@ -3,7 +3,7 @@ import { CHEMISTRY_COURSES } from '@/data/mock-data';
 import { ChemistryCourse } from '@/types/lms';
 
 // In-memory server store for dynamic courses
-let globalCourses: ChemistryCourse[] = [...CHEMISTRY_COURSES];
+let globalCourses: ChemistryCourse[] = [];
 
 export async function GET() {
   return NextResponse.json({
@@ -16,7 +16,7 @@ export async function POST(req: Request) {
     const body = await req.json();
     const { courses } = body;
 
-    if (Array.isArray(courses) && courses.length > 0) {
+    if (Array.isArray(courses)) {
       globalCourses = courses;
     }
 

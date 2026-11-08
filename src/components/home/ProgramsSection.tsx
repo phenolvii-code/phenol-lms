@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { CHEMISTRY_COURSES, ACADEMIC_TRACKS } from '@/data/mock-data';
 import { AcademicCategory, ChemistryCourse } from '@/types/lms';
-import { getStoredCourses } from '@/lib/courses-storage';
+import { getStoredCourses, syncWithServerCourses } from '@/lib/courses-storage';
 import { supabase } from '@/lib/supabase';
 import { ArrowRight, CheckCircle2, BookOpen, Clock, Layers } from 'lucide-react';
 
@@ -22,10 +22,13 @@ export const ProgramsSection: React.FC<ProgramsSectionProps> = ({ onOpenWaitlist
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
-  const [coursesList, setCoursesList] = useState<ChemistryCourse[]>(CHEMISTRY_COURSES);
+  const [coursesList, setCoursesList] = useState<ChemistryCourse[]>([]);
 
   useEffect(() => {
     setCoursesList(getStoredCourses());
+    syncWithServerCourses().then(() => {
+      setCoursesList(getStoredCourses());
+    });
 
     const handleUpdate = () => {
       setCoursesList(getStoredCourses());
@@ -182,81 +185,92 @@ export const ProgramsSection: React.FC<ProgramsSectionProps> = ({ onOpenWaitlist
 
         {/* Academic Course Catalog */}
         <div className="divide-y divide-hairline border-b border-hairline">
-          {filteredCourses.map((course) => (
-            <div
-              key={course.id}
-              className="py-8 sm:py-10 grid grid-cols-1 lg:grid-cols-12 gap-6 items-start hover:bg-ivory-300/30 transition-colors px-2 -mx-2 rounded"
-            >
-              {/* Course Title & Identifier */}
-              <div className="lg:col-span-5 space-y-2">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="font-formula text-xs font-bold text-burgundy-500 bg-burgundy-50 px-2 py-0.5 rounded border border-burgundy-200">
-                    {course.code}
-                  </span>
-                  <span className="font-sans text-[11px] font-semibold text-charcoal-900 bg-ivory-300 px-2 py-0.5 rounded border border-hairline">
-                    {course.categoryName}
-                  </span>
-                  <span className="text-xs font-medium text-charcoal-50 font-sans">
-                    {course.level}
-                  </span>
-                  {course.molecularFormula && (
-                    <span className="font-formula text-xs text-charcoal-100 bg-ivory-200 px-2 py-0.5 rounded">
-                      {course.molecularFormula}
-                    </span>
-                  )}
-                </div>
-
-                <h3 className="text-xl sm:text-2xl font-bold text-charcoal-900 font-display">
-                  {course.title}
-                </h3>
-
-                <p className="text-xs sm:text-sm text-charcoal-50 font-sans">
-                  {course.subTitle}
-                </p>
-
-                <div className="pt-2 flex items-center gap-4 text-xs font-formula text-charcoal-100">
-                  <span className="inline-flex items-center gap-1.5">
-                    <Clock className="w-3.5 h-3.5 text-charcoal-50" />
-                    <span>{course.totalHours}</span>
-                  </span>
-                  <span>•</span>
-                  <span className="inline-flex items-center gap-1.5">
-                    <Layers className="w-3.5 h-3.5 text-charcoal-50" />
-                    <span>{course.lessons.length} Core Modules</span>
-                  </span>
-                </div>
-              </div>
-
-              {/* Course Description */}
-              <div className="lg:col-span-5 space-y-3">
-                <p className="text-xs sm:text-sm text-charcoal-100 leading-relaxed font-sans">
-                  {course.description}
-                </p>
-
-                <div className="text-xs font-sans text-charcoal-50 space-y-1">
-                  <span className="font-semibold text-charcoal-900 block">Syllabus Highlights:</span>
-                  <ul className="list-disc list-inside space-y-0.5">
-                    {course.lessons.slice(0, 2).map((l, idx) => (
-                      <li key={idx} className="truncate">
-                        {l.title}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              </div>
-
-              {/* Action Link */}
-              <div className="lg:col-span-2 flex items-center lg:justify-end pt-2 lg:pt-0">
-                <Link
-                  href={`/courses/${course.id}`}
-                  className="inline-flex items-center gap-2 text-sm font-semibold text-charcoal-900 hover:text-burgundy-500 font-sans transition-colors group"
-                >
-                  <span>View Syllabus</span>
-                  <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
-                </Link>
-              </div>
+          {filteredCourses.length === 0 ? (
+            <div className="py-12 text-center space-y-2">
+              <p className="text-sm font-semibold text-charcoal-900 font-display">
+                لا توجد مقررات معروضة في هذا التراك حالياً
+              </p>
+              <p className="text-xs text-charcoal-100 font-sans">
+                يمكنك التقديم للدفعة القادمة عبر نموذج التسجيل بالأسفل وسيتم إشعارك فور إطلاق المقرر.
+              </p>
             </div>
-          ))}
+          ) : (
+            filteredCourses.map((course) => (
+              <div
+                key={course.id}
+                className="py-8 sm:py-10 grid grid-cols-1 lg:grid-cols-12 gap-6 items-start hover:bg-ivory-300/30 transition-colors px-2 -mx-2 rounded"
+              >
+                {/* Course Title & Identifier */}
+                <div className="lg:col-span-5 space-y-2">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="font-formula text-xs font-bold text-burgundy-500 bg-burgundy-50 px-2 py-0.5 rounded border border-burgundy-200">
+                      {course.code}
+                    </span>
+                    <span className="font-sans text-[11px] font-semibold text-charcoal-900 bg-ivory-300 px-2 py-0.5 rounded border border-hairline">
+                      {course.categoryName}
+                    </span>
+                    <span className="text-xs font-medium text-charcoal-50 font-sans">
+                      {course.level}
+                    </span>
+                    {course.molecularFormula && (
+                      <span className="font-formula text-xs text-charcoal-100 bg-ivory-200 px-2 py-0.5 rounded">
+                        {course.molecularFormula}
+                      </span>
+                    )}
+                  </div>
+
+                  <h3 className="text-xl sm:text-2xl font-bold text-charcoal-900 font-display">
+                    {course.title}
+                  </h3>
+
+                  <p className="text-xs sm:text-sm text-charcoal-50 font-sans">
+                    {course.subTitle}
+                  </p>
+
+                  <div className="pt-2 flex items-center gap-4 text-xs font-formula text-charcoal-100">
+                    <span className="inline-flex items-center gap-1.5">
+                      <Clock className="w-3.5 h-3.5 text-charcoal-50" />
+                      <span>{course.totalHours}</span>
+                    </span>
+                    <span>•</span>
+                    <span className="inline-flex items-center gap-1.5">
+                      <Layers className="w-3.5 h-3.5 text-charcoal-50" />
+                      <span>{(course.lessons || []).length} Core Modules</span>
+                    </span>
+                  </div>
+                </div>
+
+                {/* Course Description */}
+                <div className="lg:col-span-5 space-y-3">
+                  <p className="text-xs sm:text-sm text-charcoal-100 leading-relaxed font-sans">
+                    {course.description}
+                  </p>
+
+                  <div className="text-xs font-sans text-charcoal-50 space-y-1">
+                    <span className="font-semibold text-charcoal-900 block">Syllabus Highlights:</span>
+                    <ul className="list-disc list-inside space-y-0.5">
+                      {(course.lessons || []).slice(0, 2).map((l, idx) => (
+                        <li key={idx} className="truncate">
+                          {l.title}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+
+                {/* Action Link */}
+                <div className="lg:col-span-2 flex items-center lg:justify-end pt-2 lg:pt-0">
+                  <Link
+                    href={`/courses/${course.id}`}
+                    className="inline-flex items-center gap-2 text-sm font-semibold text-charcoal-900 hover:text-burgundy-500 font-sans transition-colors group"
+                  >
+                    <span>View Syllabus</span>
+                    <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+                  </Link>
+                </div>
+              </div>
+            ))
+          )}
         </div>
 
         {/* Admission & Waitlist Registrar Box */}

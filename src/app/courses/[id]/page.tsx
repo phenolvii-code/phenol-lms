@@ -24,7 +24,7 @@ export default function CourseDetailsPage() {
   const params = useParams();
   const courseId = params?.id as string;
 
-  const [coursesList, setCoursesList] = useState<ChemistryCourse[]>(CHEMISTRY_COURSES);
+  const [coursesList, setCoursesList] = useState<ChemistryCourse[]>([]);
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
   const [enrollmentStatus, setEnrollmentStatus] = useState<'ACTIVE' | 'PENDING' | 'NOT_ENROLLED'>('NOT_ENROLLED');
   const [requestToast, setRequestToast] = useState(false);
@@ -58,16 +58,69 @@ export default function CourseDetailsPage() {
     };
   }, [courseId]);
 
-  const course = coursesList.find((c) => c.id === courseId) || coursesList[0] || CHEMISTRY_COURSES[0];
+  const course = coursesList.find((c) => c.id === courseId);
   const lessons = course?.lessons || [];
   const firstLesson = lessons[0];
 
   const handleRequestActivation = () => {
-    if (!currentUser) return;
+    if (!currentUser || !course) return;
     requestCourseEnrollment(currentUser, course);
     setEnrollmentStatus('PENDING');
     setRequestToast(true);
   };
+
+  if (!course) {
+    return (
+      <div className="min-h-screen bg-ivory-200 text-charcoal-900 flex flex-col font-sans selection:bg-burgundy-500 selection:text-ivory-100">
+        <header className="border-b border-hairline bg-ivory-100 sticky top-0 z-40">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex items-center justify-between h-16 sm:h-20">
+              <Link href="/" aria-label="PHENOL Home">
+                <PhenolLogo size={36} subtitle="Dr. Omar Magdi" />
+              </Link>
+              <div className="flex items-center gap-3">
+                <Link
+                  href="/dashboard"
+                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs sm:text-sm text-charcoal-100 hover:text-charcoal-900 border border-hairline rounded transition-colors font-sans"
+                >
+                  <span>Dashboard</span>
+                </Link>
+              </div>
+            </div>
+          </div>
+        </header>
+
+        <main className="flex-1 max-w-xl mx-auto w-full px-4 py-20 flex flex-col items-center justify-center text-center space-y-4">
+          <div className="w-14 h-14 rounded-full bg-burgundy-50 border border-burgundy-200 flex items-center justify-center text-burgundy-500 shadow-sm">
+            <FlaskConical className="w-7 h-7" />
+          </div>
+          <div className="space-y-2">
+            <h1 className="text-xl sm:text-2xl font-bold font-display text-charcoal-900">
+              جاري فحص وتحديث بيانات المقرر الأكاديمي...
+            </h1>
+            <p className="text-xs sm:text-sm text-charcoal-100 font-sans leading-relaxed">
+              إذا لم يظهر المقرر بعد لحظات، يرجى التأكد من إنشائه في لوحة التحكم أو العودة لدليل الكورسات.
+            </p>
+          </div>
+          <div className="flex items-center gap-3 pt-3">
+            <Link
+              href="/dashboard"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded bg-burgundy-900 hover:bg-black text-ivory-100 text-xs font-semibold shadow-sm transition-colors"
+            >
+              <span>الذهاب إلى لوحة التحكم</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
+            <Link
+              href="/"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded bg-ivory-100 border border-hairline hover:bg-ivory-50 text-charcoal-900 text-xs font-semibold transition-colors"
+            >
+              <span>الصفحة الرئيسية</span>
+            </Link>
+          </div>
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-ivory-200 text-charcoal-900 flex flex-col font-sans selection:bg-burgundy-500 selection:text-ivory-100">
