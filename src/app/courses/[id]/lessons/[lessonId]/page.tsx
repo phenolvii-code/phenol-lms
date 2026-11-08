@@ -221,6 +221,7 @@ export default function LessonExperiencePage() {
                 title={currentLesson.title}
                 duration={currentLesson.duration}
                 studentCode={studentCode}
+                timestamps={timestamps}
                 onCompleted={() => {
                   if (!completedLessons.includes(currentLesson.id)) {
                     toggleCompleted();
