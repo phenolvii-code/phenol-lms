@@ -9,6 +9,7 @@ import { verifyUserPassword, setUserPassword } from '@/lib/auth-passwords';
 import { getStudentAcademicCode } from '@/lib/student-code';
 import { GoogleIcon, WhatsAppIcon } from '@/components/auth/AuthIcons';
 import { WhatsAppPromptModal } from '@/components/auth/WhatsAppPromptModal';
+import { GoogleAccountModal } from '@/components/auth/GoogleAccountModal';
 import {
   X,
   Lock,
@@ -16,8 +17,6 @@ import {
   User,
   Phone,
   ShieldAlert,
-  ArrowRight,
-  ShieldCheck,
 } from 'lucide-react';
 
 interface AuthModalProps {
@@ -47,25 +46,22 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const [phone, setPhone] = useState('');
   const [academicLevel, setAcademicLevel] = useState('High School Senior');
 
-  // Pending Google User awaiting WhatsApp phone verification
-  const [pendingGoogleUser, setPendingGoogleUser] = useState<AuthUser | null>(null);
-
-  // Quick Google test account selection modal
+  // Modals state
   const [showGoogleChooser, setShowGoogleChooser] = useState(false);
-  const [googleEmailInput, setGoogleEmailInput] = useState('');
-  const [googleNameInput, setGoogleNameInput] = useState('');
+  const [pendingGoogleUser, setPendingGoogleUser] = useState<AuthUser | null>(null);
 
   useEffect(() => {
     if (isOpen) {
       setMode(initialMode === 'INSTRUCTOR_LOGIN' ? 'LOGIN' : initialMode);
       setErrorMessage(null);
       setPendingGoogleUser(null);
+      setShowGoogleChooser(false);
     }
   }, [initialMode, isOpen]);
 
   if (!isOpen) return null;
 
-  // Unified Sign In Handler (Student and Administrator)
+  // Unified Sign In Handler
   const handleUnifiedLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -101,7 +97,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           specialization: isAdmin ? 'Organic Reaction Mechanisms & Physical Chemistry' : undefined,
         };
 
-        // If student has no phone, require WhatsApp step!
         if (!isAdmin && (!userPhone || userPhone.trim().length < 6)) {
           setPendingGoogleUser(userObj);
           return;
@@ -144,56 +139,36 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     }
   };
 
-  // Google OAuth Handler (Sign up and in with Google)
-  const handleGoogleAuth = async () => {
-    setIsLoading(true);
+  // Google OAuth Trigger -> Opens Google Account Chooser
+  const handleGoogleAuth = () => {
     setErrorMessage(null);
-
-    try {
-      // 1. Try Supabase Google OAuth
-      const { data, error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: `${window.location.origin}/dashboard?auth=google`,
-        },
-      });
-
-      if (error) {
-        // If Google provider credentials are still being configured in Supabase console,
-        // open the fast-track Google profile selector so the student can test immediately.
-        setShowGoogleChooser(true);
-      }
-    } catch (err) {
-      setShowGoogleChooser(true);
-    } finally {
-      setIsLoading(false);
-    }
+    setShowGoogleChooser(true);
   };
 
-  // Confirm Simulated Google Account (Fast Track / Fallback)
-  const handleConfirmGoogleProfile = (customEmail?: string, customName?: string) => {
-    const finalEmail = (customEmail || googleEmailInput || 'student@gmail.com').trim().toLowerCase();
-    const finalName = (customName || googleNameInput || finalEmail.split('@')[0]).trim();
+  // Google Account Selected -> Immediately requires WhatsApp number for students
+  const handleGoogleAccountSelected = (account: { email: string; name: string; avatar?: string }) => {
+    setShowGoogleChooser(false);
+
+    const cleanEmail = account.email.trim().toLowerCase();
     const isAdmin =
-      finalEmail === 'phenolvii@gmail.com' ||
-      finalEmail.includes('phenolvii') ||
-      ADMIN_EMAILS.includes(finalEmail);
+      cleanEmail === 'phenolvii@gmail.com' ||
+      cleanEmail.includes('phenolvii') ||
+      ADMIN_EMAILS.includes(cleanEmail);
 
     const googleUser: AuthUser = {
       id: isAdmin ? 'dr-omar-magdi' : `g-${Date.now()}`,
-      name: isAdmin ? 'Dr. Omar Magdi' : finalName,
-      email: finalEmail,
+      name: isAdmin ? 'Dr. Omar Magdi' : account.name,
+      email: cleanEmail,
       role: isAdmin ? 'INSTRUCTOR' : 'STUDENT',
-      avatar: isAdmin
-        ? 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80'
-        : 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=80',
+      avatar:
+        account.avatar ||
+        (isAdmin
+          ? 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80'
+          : 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=80'),
       registeredAt: new Date().toISOString(),
       title: isAdmin ? 'Academic Director & Senior Fellow' : undefined,
     };
 
-    setShowGoogleChooser(false);
-
-    // If Admin, direct entry
     if (isAdmin) {
       localStorage.setItem('phenol_auth_user', JSON.stringify(googleUser));
       onLoginSuccess(googleUser);
@@ -202,7 +177,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       return;
     }
 
-    // IF STUDENT: REQUIRE WHATSAPP NUMBER IMMEDIATELY!
+    // REQUIRE WHATSAPP NUMBER IMMEDIATELY!
     setPendingGoogleUser(googleUser);
   };
 
@@ -289,86 +264,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         />
       )}
 
-      {/* 2. Fast-Track Google Profile Chooser Dialog (in case OAuth keys are being set in console) */}
-      {showGoogleChooser && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-charcoal-900/80 backdrop-blur-sm animate-fade-in font-sans">
-          <div className="w-full max-w-sm bg-ivory-100 rounded-lg border border-hairline p-6 shadow-editorial space-y-4">
-            <div className="flex items-center justify-between border-b border-hairline pb-3">
-              <div className="flex items-center gap-2">
-                <GoogleIcon className="w-5 h-5" />
-                <span className="font-bold text-xs text-charcoal-900">Sign in with Google</span>
-              </div>
-              <button
-                onClick={() => setShowGoogleChooser(false)}
-                className="text-charcoal-50 hover:text-charcoal-900"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <p className="text-xs text-charcoal-100 leading-relaxed">
-              Select or enter your Google Account to proceed. You will immediately be asked to link your WhatsApp number.
-            </p>
-
-            {/* Quick Demo Options */}
-            <div className="space-y-2">
-              <button
-                onClick={() => handleConfirmGoogleProfile('omar.student@gmail.com', 'Omar Samir')}
-                className="w-full flex items-center gap-3 p-2.5 rounded bg-ivory-50 border border-hairline hover:border-burgundy-500 hover:bg-ivory-200 text-left transition-colors"
-              >
-                <div className="w-8 h-8 rounded-full bg-burgundy-100 text-burgundy-900 font-bold flex items-center justify-center text-xs">
-                  OS
-                </div>
-                <div>
-                  <p className="text-xs font-semibold text-charcoal-900">Omar Samir</p>
-                  <p className="text-[11px] text-charcoal-100 font-mono">omar.student@gmail.com</p>
-                </div>
-              </button>
-
-              <button
-                onClick={() => handleConfirmGoogleProfile('phenolvii@gmail.com', 'Dr. Omar Magdi')}
-                className="w-full flex items-center gap-3 p-2.5 rounded bg-ivory-50 border border-hairline hover:border-burgundy-500 hover:bg-ivory-200 text-left transition-colors"
-              >
-                <div className="w-8 h-8 rounded-full bg-burgundy-900 text-ivory-100 font-bold flex items-center justify-center text-xs">
-                  OM
-                </div>
-                <div>
-                  <p className="text-xs font-semibold text-charcoal-900">Dr. Omar Magdi (Academic Director)</p>
-                  <p className="text-[11px] text-charcoal-100 font-mono">phenolvii@gmail.com</p>
-                </div>
-              </button>
-            </div>
-
-            {/* Custom Google Email Input */}
-            <div className="border-t border-hairline pt-3 space-y-2.5">
-              <label className="block text-[11px] font-semibold text-charcoal-900">
-                Or enter any Google account:
-              </label>
-              <input
-                type="email"
-                placeholder="your.email@gmail.com"
-                value={googleEmailInput}
-                onChange={(e) => setGoogleEmailInput(e.target.value)}
-                className="w-full px-3 py-2 text-xs bg-ivory-50 border border-hairline rounded text-charcoal-900 focus:outline-none focus:border-burgundy-500"
-              />
-              <input
-                type="text"
-                placeholder="Full Name (e.g. Youssef Tarek)"
-                value={googleNameInput}
-                onChange={(e) => setGoogleNameInput(e.target.value)}
-                className="w-full px-3 py-2 text-xs bg-ivory-50 border border-hairline rounded text-charcoal-900 focus:outline-none focus:border-burgundy-500"
-              />
-              <button
-                disabled={!googleEmailInput.trim()}
-                onClick={() => handleConfirmGoogleProfile()}
-                className="w-full py-2 bg-charcoal-900 hover:bg-black text-ivory-100 text-xs font-semibold rounded disabled:opacity-40 transition-colors"
-              >
-                Continue with Google Account →
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* 2. Authentic Google Account Chooser Dialog */}
+      <GoogleAccountModal
+        isOpen={showGoogleChooser}
+        onClose={() => setShowGoogleChooser(false)}
+        onSelectAccount={handleGoogleAccountSelected}
+      />
 
       {/* 3. MAIN AUTH MODAL (Sign In & Register) */}
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-charcoal-900/60 backdrop-blur-sm animate-fade-in font-sans">
@@ -437,7 +338,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               </button>
             </div>
 
-            {/* A. GOOGLE ONE-CLICK AUTH BUTTON (Sign up and in with Google) */}
+            {/* A. GOOGLE ONE-CLICK AUTH BUTTON */}
             <div className="space-y-4">
               <button
                 type="button"
