@@ -13,7 +13,6 @@ import { ProblemSolvingSection } from '@/components/home/ProblemSolvingSection';
 import { ProgramsSection } from '@/components/home/ProgramsSection';
 import { ResourcesSection } from '@/components/home/ResourcesSection';
 import { AboutSection } from '@/components/home/AboutSection';
-import { ContactSection } from '@/components/home/ContactSection';
 import { FinalCtaSection } from '@/components/home/FinalCtaSection';
 import { PhenolLogo } from '@/components/brand/PhenolLogo';
 import { Mail, Send, Youtube, Facebook } from 'lucide-react';
@@ -93,10 +92,7 @@ export default function Home() {
         {/* Section 08: About Dr. Omar Magdi */}
         <AboutSection />
 
-        {/* Section 09: Direct Academic Office & Communication Channels */}
-        <ContactSection />
-
-        {/* Section 10: Final CTA */}
+        {/* Section 09: Final CTA */}
         <FinalCtaSection onStart={() => handleOpenAuth('REGISTER')} />
       </main>
 
@@ -124,9 +120,6 @@ export default function Home() {
               </Link>
               <Link href="/#about" className="hover:text-burgundy-500 transition-colors">
                 About Dr. Omar
-              </Link>
-              <Link href="/#contact" className="hover:text-burgundy-500 transition-colors font-semibold text-charcoal-900">
-                Contact & Office
               </Link>
             </nav>
 
@@ -161,7 +154,7 @@ export default function Home() {
                 href="https://www.facebook.com/phenolVII"
                 target="_blank"
                 rel="noopener noreferrer"
-                title="Facebook (phenolVII)"
+                title="Facebook Profile"
                 className="w-8 h-8 rounded-full border border-hairline bg-ivory-200 flex items-center justify-center text-charcoal-100 hover:text-blue-600 hover:border-blue-300 transition-colors"
               >
                 <Facebook className="w-4 h-4" />
