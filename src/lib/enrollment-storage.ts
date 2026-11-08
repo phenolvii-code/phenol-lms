@@ -1,6 +1,7 @@
 /**
  * PHENOL ACADEMY - Persistent Enrollment & Student Performance Management
- * Manages course activation requests, instructor approvals, per-course rosters, and student tracking.
+ * Manages real registered students, course activation requests, instructor approvals,
+ * per-course rosters, and cross-device synchronization.
  */
 
 import { AuthUser, ADMIN_EMAILS } from '@/types/auth';
@@ -27,9 +28,21 @@ export interface CourseEnrollment {
   progressPercent: number; // 0 - 100
   completedLessonsCount: number;
   totalLessonsCount: number;
-  averageQuizGrade: number; // e.g. 19/20 or 95%
+  averageQuizGrade: number; // e.g. 19/20
   lastActiveDate: string;
   lastLessonTitle?: string;
+}
+
+export interface RegisteredStudent {
+  id: string;
+  email: string;
+  name: string;
+  phone: string;
+  academicCode: string;
+  academicTrack: string;
+  avatar?: string;
+  role: 'STUDENT';
+  registeredAt: string;
 }
 
 export interface StudentOverview {
@@ -48,150 +61,197 @@ export interface StudentOverview {
   enrollments: CourseEnrollment[];
 }
 
-const STORAGE_KEY = 'phenol_course_enrollments';
+const ENROLLMENTS_KEY = 'phenol_course_enrollments';
+const REGISTERED_STUDENTS_KEY = 'phenol_registered_students';
 
-// Realistic initial seed data for PHENOL Academy cohorts
-const INITIAL_ENROLLMENTS: CourseEnrollment[] = [
-  {
-    id: 'enr-101',
-    studentId: 'std-youssef',
-    studentEmail: 'youssef.tarek@gmail.com',
-    studentName: 'يوسف طارق المنشاوي',
-    studentPhone: '+20 102 345 6789',
-    studentCode: 'PH-4821-T',
-    studentTrack: 'ثانوية عامة (عربي)',
-    studentAvatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=80',
-    courseId: 'chem-ar-301',
-    courseTitle: 'كيمياء الثانوية العامة (عربي) — التأسيس النظري والتحليلي المتكامل',
-    courseCode: 'CHEM-AR 301',
-    status: 'ACTIVE',
-    requestedAt: '2026-10-15',
-    approvedAt: '2026-10-16',
-    progressPercent: 75,
-    completedLessonsCount: 6,
-    totalLessonsCount: 8,
-    averageQuizGrade: 19,
-    lastActiveDate: 'Today, 11:20 AM',
-    lastLessonTitle: 'ميكانزم تفاعلات الاستبدال والإضافة في الألكينات',
-  },
-  {
-    id: 'enr-102',
-    studentId: 'std-mariam',
-    studentEmail: 'mariam.ahmed@gmail.com',
-    studentName: 'مريم أحمد الشريف',
-    studentPhone: '+20 114 987 6543',
-    studentCode: 'PH-7319-M',
-    studentTrack: 'ثانوية عامة (لغات)',
-    studentAvatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&auto=format&fit=crop&q=80',
-    courseId: 'chem-lang-302',
-    courseTitle: 'Thanaweya Chemistry (Languages) — Advanced Conceptual Problem Solving',
-    courseCode: 'CHEM-EN 302',
-    status: 'ACTIVE',
-    requestedAt: '2026-10-20',
-    approvedAt: '2026-10-21',
-    progressPercent: 90,
-    completedLessonsCount: 7,
-    totalLessonsCount: 8,
-    averageQuizGrade: 20,
-    lastActiveDate: 'Yesterday',
-    lastLessonTitle: 'Thermodynamics & Equilibrium Calculations',
-  },
-  {
-    id: 'enr-103',
-    studentId: 'std-zeyad',
-    studentEmail: 'zeyad.khalid@gmail.com',
-    studentName: 'زياد خالد محمود',
-    studentPhone: '+20 120 555 4321',
-    studentCode: 'PH-2940-Z',
-    studentTrack: 'ثانوية عامة (عربي)',
-    studentAvatar: 'https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?w=100&auto=format&fit=crop&q=80',
-    courseId: 'chem-ar-301',
-    courseTitle: 'كيمياء الثانوية العامة (عربي) — التأسيس النظري والتحليلي المتكامل',
-    courseCode: 'CHEM-AR 301',
-    status: 'PENDING',
-    requestedAt: '2026-11-08',
-    progressPercent: 0,
-    completedLessonsCount: 0,
-    totalLessonsCount: 8,
-    averageQuizGrade: 0,
-    lastActiveDate: '2 hours ago',
-    lastLessonTitle: 'Awaiting Activation',
-  },
-  {
-    id: 'enr-104',
-    studentId: 'std-farida',
-    studentEmail: 'farida.hassan@gmail.com',
-    studentName: 'فريدة حسن القاضي',
-    studentPhone: '+20 109 888 1234',
-    studentCode: 'PH-6152-F',
-    studentTrack: 'IGCSE & A-Level / STEM',
-    studentAvatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=100&auto=format&fit=crop&q=80',
-    courseId: 'chem-ig-303',
-    courseTitle: 'Cambridge IGCSE & A-Level Chemistry — Analytical Depth & Spectrometry',
-    courseCode: 'CHEM-IG 303',
-    status: 'PENDING',
-    requestedAt: '2026-11-08',
-    progressPercent: 0,
-    completedLessonsCount: 0,
-    totalLessonsCount: 6,
-    averageQuizGrade: 0,
-    lastActiveDate: '1 hour ago',
-    lastLessonTitle: 'Awaiting Activation',
-  },
-  {
-    id: 'enr-105',
-    studentId: 'std-omar-s',
-    studentEmail: 'omar.samir.scholar@gmail.com',
-    studentName: 'عمر سمير السيد',
-    studentPhone: '+20 101 234 5678',
-    studentCode: 'PH-9104-O',
-    studentTrack: 'كيمياء جامعية (صيدلة، علوم، طب)',
-    studentAvatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&auto=format&fit=crop&q=80',
-    courseId: 'chem-univ-401',
-    courseTitle: 'Advanced Organic Reaction Mechanisms & Spectroscopy',
-    courseCode: 'CHEM-UNIV 401',
-    status: 'ACTIVE',
-    requestedAt: '2026-10-10',
-    approvedAt: '2026-10-10',
-    progressPercent: 60,
-    completedLessonsCount: 3,
-    totalLessonsCount: 5,
-    averageQuizGrade: 18,
-    lastActiveDate: '3 days ago',
-    lastLessonTitle: 'NMR Spectroscopy & Carbon-13 Chemical Shifts',
-  },
+// Dummy seeds to purge from client browsers
+const DUMMY_EMAILS = [
+  'youssef.tarek@gmail.com',
+  'mariam.ahmed@gmail.com',
+  'zeyad.khalid@gmail.com',
+  'farida.hassan@gmail.com',
+  'omar.samir.scholar@gmail.com',
+  'youssef.mansour@student.phenol.academy',
+  'salma.k@phenol.academy',
+  'ahmed.hossam@student.edu',
+  'mariam.tarek@pharmacy.cu.edu.eg',
 ];
 
+const DUMMY_IDS = [
+  'enr-101',
+  'enr-102',
+  'enr-103',
+  'enr-104',
+  'enr-105',
+  'stu-101',
+  'stu-102',
+  'stu-103',
+  'stu-104',
+];
+
+const isDummy = (email?: string, id?: string): boolean => {
+  if (email && DUMMY_EMAILS.includes(email.trim().toLowerCase())) return true;
+  if (id && DUMMY_IDS.includes(id)) return true;
+  return false;
+};
+
+const isAdminEmail = (email?: string): boolean => {
+  if (!email) return false;
+  const clean = email.trim().toLowerCase();
+  return (
+    clean === 'phenolvii@gmail.com' ||
+    clean.includes('phenolvii') ||
+    ADMIN_EMAILS.includes(clean)
+  );
+};
+
+// -----------------------------------------------------------------------------
+// Course Enrollments Storage
+// -----------------------------------------------------------------------------
+
 export const getStoredEnrollments = (): CourseEnrollment[] => {
-  if (typeof window === 'undefined') return INITIAL_ENROLLMENTS;
+  if (typeof window === 'undefined') return [];
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = localStorage.getItem(ENROLLMENTS_KEY);
     if (raw !== null) {
       const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      if (Array.isArray(parsed)) {
+        // Filter out dummy items
+        const clean = parsed.filter((e) => !isDummy(e.studentEmail, e.id));
+        if (clean.length !== parsed.length) {
+          localStorage.setItem(ENROLLMENTS_KEY, JSON.stringify(clean));
+        }
+        return clean;
+      }
     }
-    // Seed initial
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(INITIAL_ENROLLMENTS));
   } catch (e) {
     console.error('Error reading stored enrollments:', e);
   }
-  return INITIAL_ENROLLMENTS;
+  return [];
 };
 
 export const saveStoredEnrollments = (enrollments: CourseEnrollment[]): void => {
   if (typeof window === 'undefined') return;
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(enrollments));
+    const clean = enrollments.filter((e) => !isDummy(e.studentEmail, e.id));
+    localStorage.setItem(ENROLLMENTS_KEY, JSON.stringify(clean));
     window.dispatchEvent(new Event('phenol_enrollments_updated'));
+
+    // Sync to server API in background
+    fetch('/api/students', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ enrollments: clean }),
+    }).catch(() => {});
   } catch (e) {
     console.error('Error saving enrollments:', e);
   }
 };
 
+// -----------------------------------------------------------------------------
+// Registered Students Storage
+// -----------------------------------------------------------------------------
+
+export const getRegisteredStudents = (): RegisteredStudent[] => {
+  if (typeof window === 'undefined') return [];
+  try {
+    const raw = localStorage.getItem(REGISTERED_STUDENTS_KEY);
+    if (raw !== null) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        const clean = parsed.filter((s) => !isDummy(s.email, s.id) && !isAdminEmail(s.email));
+        if (clean.length !== parsed.length) {
+          localStorage.setItem(REGISTERED_STUDENTS_KEY, JSON.stringify(clean));
+        }
+        return clean;
+      }
+    }
+  } catch (e) {
+    console.error('Error reading registered students:', e);
+  }
+  return [];
+};
+
+export const saveRegisteredStudents = (students: RegisteredStudent[]): void => {
+  if (typeof window === 'undefined') return;
+  try {
+    const clean = students.filter((s) => !isDummy(s.email, s.id) && !isAdminEmail(s.email));
+    localStorage.setItem(REGISTERED_STUDENTS_KEY, JSON.stringify(clean));
+    window.dispatchEvent(new Event('phenol_students_updated'));
+
+    // Sync to server API in background
+    fetch('/api/students', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ students: clean }),
+    }).catch(() => {});
+  } catch (e) {
+    console.error('Error saving registered students:', e);
+  }
+};
+
 /**
- * Checks enrollment status of a specific user for a given course.
- * Directors/Admins are always ACTIVE.
+ * Automatically records any user who registers or logs in as a student.
+ * Guarantees that any real account immediately appears in Dr. Omar's student directory.
  */
+export const recordRegisteredStudent = (user: {
+  id?: string;
+  email: string;
+  name?: string;
+  phone?: string;
+  academicCode?: string;
+  academicTrack?: string;
+  avatar?: string;
+}): RegisteredStudent | null => {
+  if (!user.email || isAdminEmail(user.email)) return null;
+
+  const cleanEmail = user.email.trim().toLowerCase();
+  const all = getRegisteredStudents();
+  const existingIdx = all.findIndex((s) => s.email.toLowerCase() === cleanEmail);
+
+  const academicCode =
+    user.academicCode ||
+    getStudentAcademicCode({
+      id: user.id || `stu-${Date.now()}`,
+      name: user.name || cleanEmail.split('@')[0],
+      email: cleanEmail,
+      role: 'STUDENT',
+      avatar: user.avatar || '',
+      registeredAt: '',
+    });
+
+  const studentObj: RegisteredStudent = {
+    id: existingIdx >= 0 ? all[existingIdx].id : user.id || `stu-${Date.now()}`,
+    email: cleanEmail,
+    name: user.name || (existingIdx >= 0 ? all[existingIdx].name : cleanEmail.split('@')[0]),
+    phone: user.phone || (existingIdx >= 0 ? all[existingIdx].phone : 'قيد تأكيد الواتساب'),
+    academicCode,
+    academicTrack: user.academicTrack || (existingIdx >= 0 ? all[existingIdx].academicTrack : 'ثانوية عامة (عام)'),
+    avatar: user.avatar || (existingIdx >= 0 ? all[existingIdx].avatar : ''),
+    role: 'STUDENT',
+    registeredAt:
+      existingIdx >= 0 ? all[existingIdx].registeredAt : new Date().toISOString().split('T')[0],
+  };
+
+  if (existingIdx >= 0) {
+    all[existingIdx] = {
+      ...all[existingIdx],
+      ...studentObj,
+      // Retain existing phone if new one is empty
+      phone: user.phone && user.phone.length > 5 ? user.phone : all[existingIdx].phone,
+    };
+  } else {
+    all.unshift(studentObj);
+  }
+
+  saveRegisteredStudents(all);
+  return studentObj;
+};
+
+// -----------------------------------------------------------------------------
+// Course Access & Enrollment Checks
+// -----------------------------------------------------------------------------
+
 export const checkUserCourseAccess = (
   user: AuthUser | null,
   courseId: string
@@ -199,13 +259,7 @@ export const checkUserCourseAccess = (
   if (!user) return { isEnrolled: false, status: 'NOT_ENROLLED' };
 
   const cleanEmail = user.email.trim().toLowerCase();
-  const isAdmin =
-    user.role === 'INSTRUCTOR' ||
-    cleanEmail === 'phenolvii@gmail.com' ||
-    cleanEmail.includes('phenolvii') ||
-    ADMIN_EMAILS.includes(cleanEmail);
-
-  if (isAdmin) {
+  if (isAdminEmail(cleanEmail) || user.role === 'INSTRUCTOR') {
     return { isEnrolled: true, status: 'ACTIVE' };
   }
 
@@ -235,7 +289,9 @@ export const requestCourseEnrollment = (
   const all = getStoredEnrollments();
   const cleanEmail = user.email.trim().toLowerCase();
 
-  // Check if exists
+  // Also ensure the student is permanently registered in the roster
+  recordRegisteredStudent(user);
+
   const existingIndex = all.findIndex(
     (e) => e.courseId === course.id && e.studentEmail.toLowerCase() === cleanEmail
   );
@@ -245,13 +301,12 @@ export const requestCourseEnrollment = (
   const studentTrack = user.academicTrack || course.categoryName || 'General Track';
 
   if (existingIndex >= 0) {
-    // Re-request if rejected or update
     const updatedItem: CourseEnrollment = {
       ...all[existingIndex],
       status: 'PENDING',
       requestedAt: new Date().toISOString().split('T')[0],
-      studentPhone,
-      studentName: user.name,
+      studentPhone: studentPhone.length > 5 ? studentPhone : all[existingIndex].studentPhone,
+      studentName: user.name || all[existingIndex].studentName,
     };
     all[existingIndex] = updatedItem;
     saveStoredEnrollments(all);
@@ -283,6 +338,63 @@ export const requestCourseEnrollment = (
   const updated = [newEnrollment, ...all];
   saveStoredEnrollments(updated);
   return newEnrollment;
+};
+
+/**
+ * Instructor directly activates / enrolls a student into a course.
+ */
+export const directEnrollStudentInCourse = (
+  studentEmail: string,
+  course: ChemistryCourse
+): CourseEnrollment => {
+  const allEnrollments = getStoredEnrollments();
+  const allStudents = getRegisteredStudents();
+  const cleanEmail = studentEmail.trim().toLowerCase();
+  const student = allStudents.find((s) => s.email.toLowerCase() === cleanEmail);
+
+  const existingIdx = allEnrollments.findIndex(
+    (e) => e.courseId === course.id && e.studentEmail.toLowerCase() === cleanEmail
+  );
+
+  const studentName = student?.name || cleanEmail.split('@')[0];
+  const studentPhone = student?.phone || '+20 010 000 0000';
+  const studentCode = student?.academicCode || 'PH-0000-S';
+  const studentTrack = student?.academicTrack || course.categoryName;
+
+  const enrollmentItem: CourseEnrollment = {
+    id:
+      existingIdx >= 0
+        ? allEnrollments[existingIdx].id
+        : `enr-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+    studentId: student?.id || `stu-${Date.now()}`,
+    studentEmail: cleanEmail,
+    studentName,
+    studentPhone,
+    studentCode,
+    studentTrack,
+    studentAvatar: student?.avatar,
+    courseId: course.id,
+    courseTitle: course.title,
+    courseCode: course.code,
+    status: 'ACTIVE',
+    requestedAt: existingIdx >= 0 ? allEnrollments[existingIdx].requestedAt : new Date().toISOString().split('T')[0],
+    approvedAt: new Date().toISOString().split('T')[0],
+    progressPercent: existingIdx >= 0 ? allEnrollments[existingIdx].progressPercent : 0,
+    completedLessonsCount: existingIdx >= 0 ? allEnrollments[existingIdx].completedLessonsCount : 0,
+    totalLessonsCount: course.lessons?.length || 8,
+    averageQuizGrade: existingIdx >= 0 ? allEnrollments[existingIdx].averageQuizGrade : 0,
+    lastActiveDate: 'Just Activated',
+    lastLessonTitle: 'Course Activated by Dr. Omar',
+  };
+
+  if (existingIdx >= 0) {
+    allEnrollments[existingIdx] = enrollmentItem;
+  } else {
+    allEnrollments.unshift(enrollmentItem);
+  }
+
+  saveStoredEnrollments(allEnrollments);
+  return enrollmentItem;
 };
 
 /**
@@ -361,23 +473,48 @@ export const recordStudentLessonProgress = (
 };
 
 /**
- * Aggregates all unique students with overall performance metrics for the Admin Directory.
+ * Aggregates all registered students and their enrollments for the Admin Directory.
+ * Guarantees that EVERY registered user appears, with or without active courses.
  */
 export const getAggregatedStudentsDirectory = (): StudentOverview[] => {
+  const registered = getRegisteredStudents();
   const enrollments = getStoredEnrollments();
+
   const studentsMap = new Map<string, StudentOverview>();
 
+  // 1. Initialize directory with all registered students
+  for (const reg of registered) {
+    const key = reg.email.toLowerCase();
+    studentsMap.set(key, {
+      email: reg.email,
+      name: reg.name,
+      phone: reg.phone,
+      code: reg.academicCode,
+      track: reg.academicTrack,
+      avatar: reg.avatar,
+      registeredAt: reg.registeredAt || '2026-11-01',
+      activeCoursesCount: 0,
+      pendingRequestsCount: 0,
+      overallProgressPercent: 0,
+      averageQuizGrade: 0,
+      lastActiveDate: 'حساب مسجل حديثاً',
+      enrollments: [],
+    });
+  }
+
+  // 2. Attach and populate enrollments
   for (const enr of enrollments) {
-    const emailKey = enr.studentEmail.toLowerCase();
-    if (!studentsMap.has(emailKey)) {
-      studentsMap.set(emailKey, {
+    const key = enr.studentEmail.toLowerCase();
+    if (!studentsMap.has(key)) {
+      // If someone has an enrollment but wasn't in registered list, add them
+      studentsMap.set(key, {
         email: enr.studentEmail,
         name: enr.studentName,
         phone: enr.studentPhone,
         code: enr.studentCode,
         track: enr.studentTrack,
         avatar: enr.studentAvatar,
-        registeredAt: enr.requestedAt || '2026-10-01',
+        registeredAt: enr.requestedAt || '2026-11-01',
         activeCoursesCount: 0,
         pendingRequestsCount: 0,
         overallProgressPercent: 0,
@@ -387,7 +524,7 @@ export const getAggregatedStudentsDirectory = (): StudentOverview[] => {
       });
     }
 
-    const st = studentsMap.get(emailKey)!;
+    const st = studentsMap.get(key)!;
     st.enrollments.push(enr);
     if (enr.status === 'ACTIVE') {
       st.activeCoursesCount += 1;
@@ -396,7 +533,7 @@ export const getAggregatedStudentsDirectory = (): StudentOverview[] => {
     }
   }
 
-  // Calculate averages
+  // 3. Compute overall progress & quiz grades
   const result: StudentOverview[] = [];
   studentsMap.forEach((st) => {
     const activeEnr = st.enrollments.filter((e) => e.status === 'ACTIVE');
@@ -405,9 +542,58 @@ export const getAggregatedStudentsDirectory = (): StudentOverview[] => {
       const totalGrade = activeEnr.reduce((acc, curr) => acc + curr.averageQuizGrade, 0);
       st.overallProgressPercent = Math.round(totalProg / activeEnr.length);
       st.averageQuizGrade = Math.round(totalGrade / activeEnr.length);
+      st.lastActiveDate = activeEnr[0].lastActiveDate || 'Active';
     }
     result.push(st);
   });
 
   return result;
+};
+
+/**
+ * Cross-device synchronization: fetches any students & enrollments registered on other devices.
+ */
+export const syncWithServerStudents = async (): Promise<void> => {
+  if (typeof window === 'undefined') return;
+  try {
+    const res = await fetch('/api/students');
+    if (!res.ok) return;
+    const data = await res.json();
+
+    if (Array.isArray(data.students) && data.students.length > 0) {
+      const local = getRegisteredStudents();
+      const mergedMap = new Map<string, RegisteredStudent>();
+      local.forEach((s) => mergedMap.set(s.email.toLowerCase(), s));
+      data.students.forEach((s: RegisteredStudent) => {
+        if (!isDummy(s.email, s.id) && !isAdminEmail(s.email)) {
+          mergedMap.set(s.email.toLowerCase(), {
+            ...(mergedMap.get(s.email.toLowerCase()) || {}),
+            ...s,
+          });
+        }
+      });
+      const finalStudents = Array.from(mergedMap.values());
+      localStorage.setItem(REGISTERED_STUDENTS_KEY, JSON.stringify(finalStudents));
+      window.dispatchEvent(new Event('phenol_students_updated'));
+    }
+
+    if (Array.isArray(data.enrollments) && data.enrollments.length > 0) {
+      const localEnr = getStoredEnrollments();
+      const enrMap = new Map<string, CourseEnrollment>();
+      localEnr.forEach((e) => enrMap.set(e.id, e));
+      data.enrollments.forEach((e: CourseEnrollment) => {
+        if (!isDummy(e.studentEmail, e.id)) {
+          enrMap.set(e.id, {
+            ...(enrMap.get(e.id) || {}),
+            ...e,
+          });
+        }
+      });
+      const finalEnr = Array.from(enrMap.values());
+      localStorage.setItem(ENROLLMENTS_KEY, JSON.stringify(finalEnr));
+      window.dispatchEvent(new Event('phenol_enrollments_updated'));
+    }
+  } catch (e) {
+    // Graceful offline fallback
+  }
 };

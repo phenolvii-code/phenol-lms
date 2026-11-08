@@ -138,17 +138,24 @@ export const ProgramsSection: React.FC<ProgramsSectionProps> = ({ onOpenWaitlist
         <div className="flex flex-wrap items-center gap-2 border-b border-hairline pb-4">
           <button
             onClick={() => setSelectedCategory('all')}
-            className={`px-3.5 py-1.5 text-xs sm:text-sm font-semibold rounded transition-colors ${
+            className={`px-3.5 py-1.5 text-xs sm:text-sm font-semibold rounded transition-colors flex items-center gap-2 ${
               selectedCategory === 'all'
                 ? 'bg-burgundy-500 text-ivory-100 shadow-quiet'
                 : 'bg-ivory-100 text-charcoal-100 hover:text-charcoal-900 border border-hairline'
             }`}
           >
-            All Tracks ({CHEMISTRY_COURSES.length})
+            <span>All Tracks</span>
+            <span
+              className={`text-[11px] font-formula px-1.5 py-0.5 rounded ${
+                selectedCategory === 'all' ? 'bg-burgundy-800 text-ivory-200' : 'bg-ivory-300 text-charcoal-100'
+              }`}
+            >
+              {coursesList.length} Courses
+            </span>
           </button>
 
           {ACADEMIC_TRACKS.map((track) => {
-            const count = CHEMISTRY_COURSES.filter((c) => c.category === track.id).length;
+            const count = coursesList.filter((c) => c.category === track.id).length;
             const isSelected = selectedCategory === track.id;
             return (
               <button
@@ -161,9 +168,11 @@ export const ProgramsSection: React.FC<ProgramsSectionProps> = ({ onOpenWaitlist
                 }`}
               >
                 <span>{track.name}</span>
-                <span className={`text-[11px] font-formula px-1.5 py-0.2 rounded ${
-                  isSelected ? 'bg-burgundy-800 text-ivory-200' : 'bg-ivory-300 text-charcoal-100'
-                }`}>
+                <span
+                  className={`text-[11px] font-formula px-1.5 py-0.5 rounded ${
+                    isSelected ? 'bg-burgundy-800 text-ivory-200' : 'bg-ivory-300 text-charcoal-100'
+                  }`}
+                >
                   {count}
                 </span>
               </button>

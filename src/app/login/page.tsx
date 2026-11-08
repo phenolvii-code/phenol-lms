@@ -7,6 +7,7 @@ import { supabase } from '@/lib/supabase';
 import { AuthUser, ADMIN_EMAILS } from '@/types/auth';
 import { PhenolLogo } from '@/components/brand/PhenolLogo';
 import { verifyUserPassword } from '@/lib/auth-passwords';
+import { recordRegisteredStudent } from '@/lib/enrollment-storage';
 import { GoogleIcon } from '@/components/auth/AuthIcons';
 import { WhatsAppPromptModal } from '@/components/auth/WhatsAppPromptModal';
 import { GoogleAccountModal } from '@/components/auth/GoogleAccountModal';
@@ -66,6 +67,9 @@ export default function LoginPage() {
         }
 
         localStorage.setItem('phenol_auth_user', JSON.stringify(userObj));
+        if (!isAdmin) {
+          recordRegisteredStudent(userObj);
+        }
         router.push('/dashboard');
         return;
       }
@@ -86,6 +90,9 @@ export default function LoginPage() {
           bio: isAdmin ? 'Specialist in organic mechanisms, reaction kinetics, and first-principles pedagogy across 4 Core Tracks.' : undefined,
         };
         localStorage.setItem('phenol_auth_user', JSON.stringify(userObj));
+        if (!isAdmin) {
+          recordRegisteredStudent(userObj);
+        }
         router.push('/dashboard');
         return;
       }

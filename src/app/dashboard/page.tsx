@@ -41,6 +41,9 @@ import {
   approveCourseEnrollment,
   toggleCourseEnrollmentStatus,
   getAggregatedStudentsDirectory,
+  recordRegisteredStudent,
+  directEnrollStudentInCourse,
+  syncWithServerStudents,
 } from '@/lib/enrollment-storage';
 import {
   BookOpen,
@@ -123,6 +126,18 @@ export default function DashboardPage() {
   // Course Enrollments & Activation Requests State
   const [enrollments, setEnrollments] = useState<CourseEnrollment[]>([]);
   const [enrollmentToast, setEnrollmentToast] = useState<string | null>(null);
+
+  // Direct Enroll Student Modal State
+  const [isDirectEnrollModalOpen, setIsDirectEnrollModalOpen] = useState(false);
+  const [directEnrollStudent, setDirectEnrollStudent] = useState<any | null>(null);
+  const [selectedCourseIdToEnroll, setSelectedCourseIdToEnroll] = useState<string>('');
+
+  // Manual Add Student Modal State
+  const [isManualAddStudentModalOpen, setIsManualAddStudentModalOpen] = useState(false);
+  const [manualStudentName, setManualStudentName] = useState('');
+  const [manualStudentEmail, setManualStudentEmail] = useState('');
+  const [manualStudentPhone, setManualStudentPhone] = useState('');
+  const [manualStudentTrack, setManualStudentTrack] = useState('ثانوية عامة (عربي)');
 
   // Password Change State
   const [currentPasswordInput, setCurrentPasswordInput] = useState('');
@@ -237,6 +252,9 @@ export default function DashboardPage() {
               specialization: isAdmin ? 'Organic Reaction Mechanisms & Physical Chemistry' : undefined,
             };
             localStorage.setItem('phenol_auth_user', JSON.stringify(googleUser));
+            if (!isAdmin) {
+              recordRegisteredStudent(googleUser);
+            }
             setCurrentUser(googleUser);
             if (!isAdmin && (!userPhone || userPhone.trim().length < 6)) {
               setIsWhatsAppRequiredModalOpen(true);
@@ -269,6 +287,9 @@ export default function DashboardPage() {
             specialization: isAdmin ? 'Organic Reaction Mechanisms & Physical Chemistry' : undefined,
           };
           localStorage.setItem('phenol_auth_user', JSON.stringify(googleUser));
+          if (!isAdmin) {
+            recordRegisteredStudent(googleUser);
+          }
           setCurrentUser(googleUser);
           if (!isAdmin && (!userPhone || userPhone.trim().length < 6)) {
             setIsWhatsAppRequiredModalOpen(true);
@@ -279,6 +300,9 @@ export default function DashboardPage() {
       const savedUser = localStorage.getItem('phenol_auth_user');
       if (savedUser) {
         const u: AuthUser = JSON.parse(savedUser);
+        if (u.role === 'STUDENT' && u.email && !ADMIN_EMAILS.includes(u.email.toLowerCase())) {
+          recordRegisteredStudent(u);
+        }
         setCurrentUser(u);
         setProfileName(u.name || 'Dr. Omar Magdi');
         setProfileTitle(u.title || (u.role === 'INSTRUCTOR' ? 'Academic Director & Senior Fellow' : 'Enrolled Scholar'));
@@ -395,15 +419,17 @@ export default function DashboardPage() {
         localStorage.setItem('phenol_submissions', JSON.stringify(SUBMISSIONS));
       }
 
-      // 6. Enrolled students from local storage
-      const savedStudents = localStorage.getItem('phenol_students');
-      if (savedStudents !== null) {
-        try {
-          setStudents(JSON.parse(savedStudents));
-        } catch (e) {}
-      } else {
-        localStorage.setItem('phenol_students', JSON.stringify(ENROLLED_STUDENTS));
-      }
+      // 6. Purge legacy dummy students from local storage
+      try {
+        const savedStudents = localStorage.getItem('phenol_students');
+        if (savedStudents) {
+          const parsed = JSON.parse(savedStudents);
+          if (Array.isArray(parsed) && parsed.some((s: any) => s.id === 'stu-101' || s.email?.includes('phenol.academy'))) {
+            localStorage.removeItem('phenol_students');
+            setStudents([]);
+          }
+        }
+      } catch (e) {}
 
       // 7. Course Enrollments & Performance Telemetry
       setEnrollments(getStoredEnrollments());
@@ -411,6 +437,10 @@ export default function DashboardPage() {
         setEnrollments(getStoredEnrollments());
       };
       window.addEventListener('phenol_enrollments_updated', handleEnrollmentsUpdate);
+      window.addEventListener('phenol_students_updated', handleEnrollmentsUpdate);
+
+      // 8. Cross-device cloud sync
+      syncWithServerStudents();
     } catch (e) {
       console.error(e);
     }
@@ -461,6 +491,42 @@ export default function DashboardPage() {
   const handleApproveEnrollment = (enrId: string) => {
     const updated = approveCourseEnrollment(enrId);
     setEnrollments(updated);
+  };
+
+  // Instructor directly activates a course for a student
+  const handleDirectEnrollSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!directEnrollStudent || !selectedCourseIdToEnroll) return;
+    const courseObj = courses.find((c) => c.id === selectedCourseIdToEnroll);
+    if (!courseObj) return;
+
+    directEnrollStudentInCourse(directEnrollStudent.email, courseObj);
+    setEnrollments(getStoredEnrollments());
+    setIsDirectEnrollModalOpen(false);
+    setEnrollmentToast(`تم تفعيل مادة (${courseObj.title}) بنجاح للطالب ${directEnrollStudent.name}`);
+    setTimeout(() => setEnrollmentToast(null), 4000);
+  };
+
+  // Instructor registers a new student manually
+  const handleManualAddStudentSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!manualStudentEmail.trim() || !manualStudentName.trim()) return;
+
+    recordRegisteredStudent({
+      id: `stu-${Date.now()}`,
+      name: manualStudentName.trim(),
+      email: manualStudentEmail.trim(),
+      phone: manualStudentPhone.trim() || '+20 010 000 0000',
+      academicTrack: manualStudentTrack,
+    });
+
+    setEnrollments(getStoredEnrollments());
+    setIsManualAddStudentModalOpen(false);
+    setManualStudentName('');
+    setManualStudentEmail('');
+    setManualStudentPhone('');
+    setEnrollmentToast(`تم تسجيل الطالب ${manualStudentName} في السجل بنجاح`);
+    setTimeout(() => setEnrollmentToast(null), 4000);
   };
 
   const isInstructor = currentUser?.role === 'INSTRUCTOR';
@@ -2046,16 +2112,27 @@ export default function DashboardPage() {
                     </p>
                   </div>
 
-                  {/* Forensic Code Search Input */}
-                  <div className="w-full sm:w-80 relative">
-                    <Search className="w-4 h-4 text-charcoal-50 absolute left-3 top-2.5 pointer-events-none" />
-                    <input
-                      type="text"
-                      value={rosterSearchQuery}
-                      onChange={(e) => setRosterSearchQuery(e.target.value)}
-                      placeholder="Search by Code (PH-XXXX), name, or phone..."
-                      className="w-full pl-9 pr-3 py-2 text-xs bg-ivory-100 border border-hairline rounded text-charcoal-900 font-sans focus:outline-none focus:border-burgundy-500 shadow-quiet"
-                    />
+                  <div className="flex items-center gap-3 w-full sm:w-auto">
+                    {/* Forensic Code Search Input */}
+                    <div className="w-full sm:w-72 relative">
+                      <Search className="w-4 h-4 text-charcoal-50 absolute left-3 top-2.5 pointer-events-none" />
+                      <input
+                        type="text"
+                        value={rosterSearchQuery}
+                        onChange={(e) => setRosterSearchQuery(e.target.value)}
+                        placeholder="Search by Code (PH-XXXX), name, or phone..."
+                        className="w-full pl-9 pr-3 py-2 text-xs bg-ivory-100 border border-hairline rounded text-charcoal-900 font-sans focus:outline-none focus:border-burgundy-500 shadow-quiet"
+                      />
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => setIsManualAddStudentModalOpen(true)}
+                      className="px-3.5 py-2 rounded bg-burgundy-900 hover:bg-black text-ivory-100 text-xs font-semibold shadow-quiet flex items-center gap-1.5 shrink-0"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>إضافة طالب يدوياً</span>
+                    </button>
                   </div>
                 </div>
 
@@ -2231,9 +2308,15 @@ export default function DashboardPage() {
                                     </span>
                                   </td>
                                   <td className="py-3.5 px-4">
-                                    <span className="px-2 py-0.5 rounded bg-ivory-300 font-mono font-semibold text-xs text-charcoal-900 border border-hairline">
-                                      {st.activeCoursesCount} مواد
-                                    </span>
+                                    {st.activeCoursesCount > 0 ? (
+                                      <span className="px-2 py-0.5 rounded bg-emerald-50 text-emerald-800 font-mono font-semibold text-xs border border-emerald-200">
+                                        {st.activeCoursesCount} مواد مفعلة
+                                      </span>
+                                    ) : (
+                                      <span className="px-2 py-0.5 rounded bg-amber-50 text-amber-800 font-mono text-[11px] border border-amber-200">
+                                        في انتظار تفعيل كورس
+                                      </span>
+                                    )}
                                   </td>
                                   <td className="py-3.5 px-4">
                                     <div className="w-28 space-y-1">
@@ -2252,15 +2335,32 @@ export default function DashboardPage() {
                                     {st.averageQuizGrade > 0 ? `${st.averageQuizGrade} / 20` : '—'}
                                   </td>
                                   <td className="py-3.5 px-4 text-right">
-                                    <a
-                                      href={waLink}
-                                      target="_blank"
-                                      rel="noreferrer"
-                                      className="inline-flex items-center gap-1 text-xs text-emerald-800 hover:underline font-semibold"
-                                    >
-                                      <span>تواصل</span>
-                                      <ExternalLink className="w-3 h-3" />
-                                    </a>
+                                    <div className="flex items-center justify-end gap-2">
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          setDirectEnrollStudent(st);
+                                          setSelectedCourseIdToEnroll(courses[0]?.id || '');
+                                          setIsDirectEnrollModalOpen(true);
+                                        }}
+                                        className="px-2.5 py-1 rounded bg-burgundy-900 hover:bg-black text-ivory-100 text-[11px] font-semibold transition-colors flex items-center gap-1 shadow-sm"
+                                        title="تفعيل كورس لهذا الطالب"
+                                      >
+                                        <Plus className="w-3 h-3" />
+                                        <span>تفعيل كورس</span>
+                                      </button>
+
+                                      <a
+                                        href={waLink}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded border border-emerald-300 bg-emerald-50 text-emerald-800 text-[11px] hover:bg-emerald-100 font-semibold transition-colors"
+                                        title="محادثة واتساب"
+                                      >
+                                        <WhatsAppIcon className="w-3 h-3" />
+                                        <span>تواصل</span>
+                                      </a>
+                                    </div>
                                   </td>
                                 </tr>
                               );
@@ -4067,6 +4167,162 @@ export default function DashboardPage() {
           </div>
         </div>
       )}
+      {/* Direct Enroll Student in Course Modal */}
+      {isDirectEnrollModalOpen && directEnrollStudent && (
+        <div className="fixed inset-0 bg-charcoal-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-ivory-100 border border-hairline rounded-2xl max-w-md w-full p-6 shadow-editorial space-y-4 font-sans text-charcoal-900">
+            <div className="flex items-center justify-between border-b border-hairline pb-3">
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-5 h-5 text-burgundy-900" />
+                <h3 className="text-base font-bold font-display">تفعيل كورس للطالب</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsDirectEnrollModalOpen(false)}
+                className="p-1 rounded text-charcoal-50 hover:text-charcoal-900"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="p-3 bg-white rounded-lg border border-hairline space-y-1 text-xs">
+              <div className="flex items-center justify-between">
+                <span className="font-bold text-charcoal-900">{directEnrollStudent.name}</span>
+                <span className="font-mono text-[10px] px-1.5 py-0.5 rounded bg-burgundy-50 text-burgundy-900 border border-burgundy-200">
+                  {directEnrollStudent.code}
+                </span>
+              </div>
+              <p className="text-[11px] text-charcoal-50 font-mono">{directEnrollStudent.email}</p>
+              <p className="text-[11px] text-charcoal-50 font-mono">{directEnrollStudent.phone}</p>
+            </div>
+
+            <form onSubmit={handleDirectEnrollSubmit} className="space-y-4">
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-charcoal-900">اختر الكورس المراد تفعيله:</label>
+                <select
+                  value={selectedCourseIdToEnroll}
+                  onChange={(e) => setSelectedCourseIdToEnroll(e.target.value)}
+                  className="w-full px-3 py-2 text-xs bg-white border border-hairline rounded text-charcoal-900 focus:outline-none focus:border-burgundy-500 font-sans"
+                >
+                  {courses.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.code} — {c.title}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-hairline">
+                <button
+                  type="button"
+                  onClick={() => setIsDirectEnrollModalOpen(false)}
+                  className="px-4 py-2 rounded border border-hairline text-charcoal-100 text-xs font-semibold hover:bg-ivory-200"
+                >
+                  إلغاء
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 rounded bg-burgundy-900 hover:bg-black text-ivory-100 text-xs font-semibold shadow-quiet flex items-center gap-1.5"
+                >
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                  <span>تفعيل الكورس فوراً</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Manual Add Student Modal */}
+      {isManualAddStudentModalOpen && (
+        <div className="fixed inset-0 bg-charcoal-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-ivory-100 border border-hairline rounded-2xl max-w-md w-full p-6 shadow-editorial space-y-4 font-sans text-charcoal-900">
+            <div className="flex items-center justify-between border-b border-hairline pb-3">
+              <div className="flex items-center gap-2">
+                <Users className="w-5 h-5 text-burgundy-900" />
+                <h3 className="text-base font-bold font-display">تسجيل طالب جديد يدوياً</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsManualAddStudentModalOpen(false)}
+                className="p-1 rounded text-charcoal-50 hover:text-charcoal-900"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleManualAddStudentSubmit} className="space-y-3.5">
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-charcoal-900">الاسم الكامل للطالب *</label>
+                <input
+                  type="text"
+                  required
+                  value={manualStudentName}
+                  onChange={(e) => setManualStudentName(e.target.value)}
+                  placeholder="مثال: أحمد محمد علي"
+                  className="w-full px-3 py-2 text-xs bg-white border border-hairline rounded text-charcoal-900 focus:outline-none focus:border-burgundy-500"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-charcoal-900">البريد الإلكتروني *</label>
+                <input
+                  type="email"
+                  required
+                  value={manualStudentEmail}
+                  onChange={(e) => setManualStudentEmail(e.target.value)}
+                  placeholder="student@example.com"
+                  className="w-full px-3 py-2 text-xs bg-white border border-hairline rounded text-charcoal-900 focus:outline-none focus:border-burgundy-500 font-mono"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-charcoal-900">رقم الهاتف (الواتساب) *</label>
+                <input
+                  type="text"
+                  required
+                  value={manualStudentPhone}
+                  onChange={(e) => setManualStudentPhone(e.target.value)}
+                  placeholder="+20 010 1234 5678"
+                  className="w-full px-3 py-2 text-xs bg-white border border-hairline rounded text-charcoal-900 focus:outline-none focus:border-burgundy-500 font-mono"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-charcoal-900">الشعبة الأكاديمية (Track)</label>
+                <select
+                  value={manualStudentTrack}
+                  onChange={(e) => setManualStudentTrack(e.target.value)}
+                  className="w-full px-3 py-2 text-xs bg-white border border-hairline rounded text-charcoal-900 focus:outline-none focus:border-burgundy-500 font-sans"
+                >
+                  <option value="ثانوية عامة (عربي)">ثانوية عامة (عربي)</option>
+                  <option value="ثانوية عامة (لغات)">ثانوية عامة (لغات)</option>
+                  <option value="IGCSE & A-Level / STEM">IGCSE & A-Level / STEM</option>
+                  <option value="كيمياء جامعية (صيدلة، علوم، طب)">كيمياء جامعية (صيدلة، علوم، طب)</option>
+                </select>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-hairline">
+                <button
+                  type="button"
+                  onClick={() => setIsManualAddStudentModalOpen(false)}
+                  className="px-4 py-2 rounded border border-hairline text-charcoal-100 text-xs font-semibold hover:bg-ivory-200"
+                >
+                  إلغاء
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 rounded bg-burgundy-900 hover:bg-black text-ivory-100 text-xs font-semibold shadow-quiet flex items-center gap-1.5"
+                >
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                  <span>حفظ وتسجيل الطالب</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* Required WhatsApp Modal for Enrolled Scholars */}
       {isWhatsAppRequiredModalOpen && currentUser && (
         <WhatsAppPromptModal

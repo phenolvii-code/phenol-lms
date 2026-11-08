@@ -467,56 +467,7 @@ export const SUBMISSIONS: StudentSubmission[] = [];
 
 export const WAITLIST_APPLICANTS: WaitlistApplication[] = [];
 
-export const ENROLLED_STUDENTS: EnrolledStudent[] = [
-  {
-    id: 'stu-101',
-    code: 'PH-4821-Y',
-    fullName: 'Youssef Mansour El-Sayed',
-    email: 'youssef.mansour@student.phenol.academy',
-    phone: '+20 101 234 5678',
-    trackCode: 'Thanaweya Amma (Arabic)',
-    enrolledAt: 'Jan 15, 2026',
-    progressPercent: 78,
-    averageGrade: 94,
-    status: 'active',
-  },
-  {
-    id: 'stu-102',
-    code: 'PH-7391-S',
-    fullName: 'Salma Khaled El-Nemr',
-    email: 'salma.k@phenol.academy',
-    phone: '+20 112 345 6789',
-    trackCode: 'Thanaweya Amma (Languages)',
-    enrolledAt: 'Jan 18, 2026',
-    progressPercent: 88,
-    averageGrade: 98,
-    status: 'active',
-  },
-  {
-    id: 'stu-103',
-    code: 'PH-9182-A',
-    fullName: 'Ahmed Hossam El-Din',
-    email: 'ahmed.hossam@student.edu',
-    phone: '+20 120 987 6543',
-    trackCode: 'IGCSE & A-Level / STEM',
-    enrolledAt: 'Feb 02, 2026',
-    progressPercent: 62,
-    averageGrade: 91,
-    status: 'active',
-  },
-  {
-    id: 'stu-104',
-    code: 'PH-6215-M',
-    fullName: 'Mariam Tarek Mostafa',
-    email: 'mariam.tarek@pharmacy.cu.edu.eg',
-    phone: '+20 109 876 5432',
-    trackCode: 'University Chemistry (Pharmacy)',
-    enrolledAt: 'Feb 10, 2026',
-    progressPercent: 45,
-    averageGrade: 89,
-    status: 'active',
-  },
-];
+export const ENROLLED_STUDENTS: EnrolledStudent[] = [];
 
 export const INITIAL_TIMELINE_POSTS: TimelinePost[] = [
   {

@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { AuthUser } from '@/types/auth';
 import { supabase } from '@/lib/supabase';
 import { getStudentAcademicCode } from '@/lib/student-code';
+import { recordRegisteredStudent } from '@/lib/enrollment-storage';
 import { PhenolLogo } from '@/components/brand/PhenolLogo';
 import { WhatsAppIcon } from '@/components/auth/AuthIcons';
 import { ShieldCheck, Phone, CheckCircle2, ArrowRight } from 'lucide-react';
@@ -77,32 +78,8 @@ export const WhatsAppPromptModal: React.FC<WhatsAppPromptModalProps> = ({
         });
       } catch (err) {}
 
-      // 4. Update enrolled students roster in local storage so Dr. Omar sees them immediately
-      try {
-        const storedRoster = localStorage.getItem('phenol_enrolled_students');
-        let roster = storedRoster ? JSON.parse(storedRoster) : [];
-        const existingIdx = roster.findIndex((s: any) => s.email === user.email);
-        const newRosterEntry = {
-          id: user.id,
-          name: user.name,
-          email: user.email,
-          phone: cleanPhone,
-          academicCode,
-          category: academicTrack,
-          enrolledAt: new Date().toISOString().split('T')[0],
-          attendanceRate: '100%',
-          homeworkSubmissionRate: '100%',
-          lastActive: 'Just now',
-          status: 'Active',
-        };
-
-        if (existingIdx >= 0) {
-          roster[existingIdx] = { ...roster[existingIdx], ...newRosterEntry };
-        } else {
-          roster.unshift(newRosterEntry);
-        }
-        localStorage.setItem('phenol_enrolled_students', JSON.stringify(roster));
-      } catch (err) {}
+      // 4. Record student in permanent roster so Dr. Omar sees them immediately
+      recordRegisteredStudent(updatedUser);
 
       onSuccess(updatedUser);
     } catch (err: any) {
