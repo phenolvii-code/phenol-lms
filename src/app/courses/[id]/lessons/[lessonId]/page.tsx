@@ -104,18 +104,21 @@ export default function LessonExperiencePage() {
   }, [lessonId]);
 
   const course = coursesList.find((c) => c.id === courseId) || coursesList[0] || CHEMISTRY_COURSES[0];
-  const lessonIndex = course.lessons.findIndex((l) => l.id === lessonId);
+  const lessons = course?.lessons || [];
+  const lessonIndex = lessons.findIndex((l) => l.id === lessonId);
   const currentLesson: ChemistryLesson =
-    lessonIndex !== -1 ? course.lessons[lessonIndex] : course.lessons[0] || {
-      id: 'default-les',
-      title: 'Introductory Module',
-      duration: '45 min',
-      type: 'video',
-      summary: 'Conceptual Chemistry Lecture',
-    };
+    lessonIndex !== -1
+      ? lessons[lessonIndex]
+      : lessons[0] || {
+          id: 'default-les',
+          title: 'Introductory Module',
+          duration: '45 min',
+          type: 'video',
+          summary: 'Conceptual Chemistry Lecture',
+        };
 
-  const prevLesson = lessonIndex > 0 ? course.lessons[lessonIndex - 1] : null;
-  const nextLesson = lessonIndex < course.lessons.length - 1 ? course.lessons[lessonIndex + 1] : null;
+  const prevLesson = lessonIndex > 0 ? lessons[lessonIndex - 1] : null;
+  const nextLesson = lessonIndex < lessons.length - 1 ? lessons[lessonIndex + 1] : null;
 
   const isCompleted = completedLessons.includes(currentLesson.id);
   const studentCode = getStudentAcademicCode(currentUser);

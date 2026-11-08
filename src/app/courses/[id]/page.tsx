@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { CHEMISTRY_COURSES } from '@/data/mock-data';
-import { getStoredCourses } from '@/lib/courses-storage';
+import { getStoredCourses, syncWithServerCourses } from '@/lib/courses-storage';
 import { checkUserCourseAccess, requestCourseEnrollment } from '@/lib/enrollment-storage';
 import { ChemistryCourse } from '@/types/lms';
 import { AuthUser } from '@/types/auth';
@@ -42,9 +42,25 @@ export default function CourseDetailsPage() {
         setEnrollmentStatus(access.status === 'ACTIVE' ? 'ACTIVE' : access.status === 'PENDING' ? 'PENDING' : 'NOT_ENROLLED');
       }
     } catch (e) {}
+
+    const handleCoursesUpdate = () => {
+      setCoursesList(getStoredCourses());
+    };
+    window.addEventListener('phenol_courses_updated', handleCoursesUpdate);
+
+    // Sync from server API
+    syncWithServerCourses().then(() => {
+      setCoursesList(getStoredCourses());
+    });
+
+    return () => {
+      window.removeEventListener('phenol_courses_updated', handleCoursesUpdate);
+    };
   }, [courseId]);
 
   const course = coursesList.find((c) => c.id === courseId) || coursesList[0] || CHEMISTRY_COURSES[0];
+  const lessons = course?.lessons || [];
+  const firstLesson = lessons[0];
 
   const handleRequestActivation = () => {
     if (!currentUser) return;
@@ -150,13 +166,19 @@ export default function CourseDetailsPage() {
             </div>
 
             {enrollmentStatus === 'ACTIVE' ? (
-              <Link
-                href={`/courses/${course.id}/lessons/${course.lessons[0].id}`}
-                className="inline-flex items-center gap-2 px-6 py-3 rounded bg-burgundy-900 hover:bg-black text-ivory-100 font-semibold text-xs sm:text-sm transition-colors shadow-quiet"
-              >
-                <Play className="w-4 h-4" />
-                <span>Begin Syllabus (المشاهدة المباشرة)</span>
-              </Link>
+              firstLesson ? (
+                <Link
+                  href={`/courses/${course.id}/lessons/${firstLesson.id}`}
+                  className="inline-flex items-center gap-2 px-6 py-3 rounded bg-burgundy-900 hover:bg-black text-ivory-100 font-semibold text-xs sm:text-sm transition-colors shadow-quiet"
+                >
+                  <Play className="w-4 h-4" />
+                  <span>Begin Syllabus (المشاهدة المباشرة)</span>
+                </Link>
+              ) : (
+                <span className="inline-flex items-center gap-2 px-6 py-3 rounded bg-ivory-300 text-charcoal-100 font-semibold text-xs sm:text-sm border border-hairline">
+                  <span>قريباً: جاري تجهيز وإضافة المحاضرات</span>
+                </span>
+              )
             ) : enrollmentStatus === 'PENDING' ? (
               <span className="inline-flex items-center gap-2 px-6 py-3 rounded bg-amber-100 text-amber-900 font-semibold text-xs sm:text-sm border border-amber-200">
                 <Clock className="w-4 h-4 text-amber-600" />
@@ -180,7 +202,7 @@ export default function CourseDetailsPage() {
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-lg sm:text-xl font-bold text-charcoal-900 font-display">
-                Curriculum Modules ({course.lessons.length} Lectures)
+                Curriculum Modules ({lessons.length} Lectures)
               </h2>
               <p className="text-xs sm:text-sm text-charcoal-100 font-sans">
                 Deductive progression dissecting chemical principles without cognitive leaps.
@@ -193,74 +215,97 @@ export default function CourseDetailsPage() {
             )}
           </div>
 
-          <div className="border border-hairline rounded bg-ivory-100 divide-y divide-hairline shadow-quiet">
-            {course.lessons.map((lesson, idx) => (
-              <div
-                key={lesson.id}
-                className="p-5 sm:p-6 hover:bg-ivory-300/40 transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-4"
-              >
-                <div className="space-y-2.5 max-w-2xl">
-                  <div className="flex items-center gap-3">
-                    <span className="font-formula text-sm font-bold text-burgundy-500">
-                      {idx + 1 < 10 ? `0${idx + 1}` : idx + 1}
-                    </span>
-
-                    <h3 className="font-bold text-base text-charcoal-900 font-display">
-                      {lesson.title}
-                    </h3>
-
-                    {lesson.type === 'lab' && (
-                      <span className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded bg-amber-50 text-amber-800 border border-amber-200">
-                        <FlaskConical className="w-3.5 h-3.5" /> Virtual Lab
+          {lessons.length > 0 ? (
+            <div className="border border-hairline rounded bg-ivory-100 divide-y divide-hairline shadow-quiet">
+              {lessons.map((lesson, idx) => (
+                <div
+                  key={lesson.id}
+                  className="p-5 sm:p-6 hover:bg-ivory-300/40 transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+                >
+                  <div className="space-y-2.5 max-w-2xl">
+                    <div className="flex items-center gap-3">
+                      <span className="font-formula text-sm font-bold text-burgundy-500">
+                        {idx + 1 < 10 ? `0${idx + 1}` : idx + 1}
                       </span>
+
+                      <h3 className="font-bold text-base text-charcoal-900 font-display">
+                        {lesson.title}
+                      </h3>
+
+                      {lesson.type === 'lab' && (
+                        <span className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded bg-amber-50 text-amber-800 border border-amber-200">
+                          <FlaskConical className="w-3.5 h-3.5" /> Virtual Lab
+                        </span>
+                      )}
+                    </div>
+
+                    <p className="text-xs sm:text-sm text-charcoal-100 font-sans leading-relaxed">
+                      {lesson.summary}
+                    </p>
+
+                    {lesson.keyFormulas && lesson.keyFormulas.length > 0 && (
+                      <div className="flex flex-wrap gap-2 pt-1">
+                        {lesson.keyFormulas.map((formula, fIdx) => (
+                          <span
+                            key={fIdx}
+                            className="font-formula text-xs text-charcoal-900 bg-ivory-300 px-2.5 py-1 rounded border border-hairline"
+                          >
+                            {formula}
+                          </span>
+                        ))}
+                      </div>
                     )}
                   </div>
 
-                  <p className="text-xs sm:text-sm text-charcoal-100 font-sans leading-relaxed">
-                    {lesson.summary}
-                  </p>
+                  <div className="flex items-center justify-between sm:justify-end gap-4 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-hairline">
+                    <span className="font-formula text-xs sm:text-sm text-charcoal-50">
+                      {lesson.duration}
+                    </span>
 
-                  {lesson.keyFormulas && lesson.keyFormulas.length > 0 && (
-                    <div className="flex flex-wrap gap-2 pt-1">
-                      {lesson.keyFormulas.map((formula, fIdx) => (
-                        <span
-                          key={fIdx}
-                          className="font-formula text-xs text-charcoal-900 bg-ivory-300 px-2.5 py-1 rounded border border-hairline"
-                        >
-                          {formula}
-                        </span>
-                      ))}
-                    </div>
-                  )}
+                    {enrollmentStatus === 'ACTIVE' ? (
+                      <Link
+                        href={`/courses/${course.id}/lessons/${lesson.id}`}
+                        className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded border border-hairline hover:border-burgundy-500 hover:text-burgundy-500 bg-ivory-100 text-xs sm:text-sm font-semibold font-sans transition-colors"
+                      >
+                        <span>Enter Lecture</span>
+                        <ArrowRight className="w-4 h-4" />
+                      </Link>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={handleRequestActivation}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded bg-ivory-200 text-charcoal-50 text-xs font-semibold font-sans cursor-pointer hover:bg-ivory-300 transition-colors"
+                      >
+                        <Lock className="w-3.5 h-3.5" />
+                        <span>يتطلب تفعيل الكورس</span>
+                      </button>
+                    )}
+                  </div>
                 </div>
-
-                <div className="flex items-center justify-between sm:justify-end gap-4 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-hairline">
-                  <span className="font-formula text-xs sm:text-sm text-charcoal-50">
-                    {lesson.duration}
-                  </span>
-
-                  {enrollmentStatus === 'ACTIVE' ? (
-                    <Link
-                      href={`/courses/${course.id}/lessons/${lesson.id}`}
-                      className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded border border-hairline hover:border-burgundy-500 hover:text-burgundy-500 bg-ivory-100 text-xs sm:text-sm font-semibold font-sans transition-colors"
-                    >
-                      <span>Enter Lecture</span>
-                      <ArrowRight className="w-4 h-4" />
-                    </Link>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={handleRequestActivation}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded bg-ivory-200 text-charcoal-50 text-xs font-semibold font-sans cursor-pointer hover:bg-ivory-300 transition-colors"
-                    >
-                      <Lock className="w-3.5 h-3.5" />
-                      <span>يتطلب تفعيل الكورس</span>
-                    </button>
-                  )}
+              ))}
+            </div>
+          ) : (
+            <div className="border border-dashed border-hairline rounded-xl bg-ivory-100 p-10 text-center space-y-3 shadow-quiet">
+              <Sparkles className="w-8 h-8 text-burgundy-500 mx-auto" />
+              <h3 className="text-base font-bold text-charcoal-900 font-display">
+                لم يتم رفع محاضرات لهذا الكورس بعد
+              </h3>
+              <p className="text-xs text-charcoal-100 font-sans max-w-md mx-auto">
+                هذا المقرر جديد وقيد التجهيز الأكاديمي. يمكنك إضافة المحاضرات والفيديوهات ومذكرات الـ PDF عبر لوحة التحكم.
+              </p>
+              {currentUser?.role === 'INSTRUCTOR' && (
+                <div className="pt-2">
+                  <Link
+                    href="/dashboard"
+                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded bg-burgundy-900 hover:bg-black text-ivory-100 text-xs font-semibold shadow-sm transition-colors"
+                  >
+                    <span>الذهاب إلى لوحة التحكم لإضافة محاضرة</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </Link>
                 </div>
-              </div>
-            ))}
-          </div>
+              )}
+            </div>
+          )}
         </div>
       </main>
     </div>
