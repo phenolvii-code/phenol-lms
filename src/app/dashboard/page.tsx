@@ -224,6 +224,36 @@ export default function DashboardPage() {
       };
       checkActiveSession();
 
+      // Listen for immediate OAuth redirect event
+      const { data: authListener } = supabase.auth.onAuthStateChange(async (_event, session) => {
+        if (session?.user) {
+          const cleanEmail = session.user.email?.toLowerCase() || '';
+          const isAdmin =
+            cleanEmail === 'phenolvii@gmail.com' ||
+            cleanEmail.includes('phenolvii') ||
+            ADMIN_EMAILS.includes(cleanEmail);
+          const userPhone = session.user.user_metadata?.phone || session.user.user_metadata?.whatsapp;
+          const googleUser: AuthUser = {
+            id: session.user.id,
+            name: isAdmin ? 'Dr. Omar Magdi' : (session.user.user_metadata?.full_name || session.user.user_metadata?.name || cleanEmail.split('@')[0]),
+            email: cleanEmail,
+            phone: userPhone,
+            role: isAdmin ? 'INSTRUCTOR' : 'STUDENT',
+            avatar: isAdmin
+              ? 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80'
+              : (session.user.user_metadata?.avatar_url || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=80'),
+            registeredAt: session.user.created_at,
+            title: isAdmin ? 'Academic Director & Senior Fellow' : undefined,
+            specialization: isAdmin ? 'Organic Reaction Mechanisms & Physical Chemistry' : undefined,
+          };
+          localStorage.setItem('phenol_auth_user', JSON.stringify(googleUser));
+          setCurrentUser(googleUser);
+          if (!isAdmin && (!userPhone || userPhone.trim().length < 6)) {
+            setIsWhatsAppRequiredModalOpen(true);
+          }
+        }
+      });
+
       const savedUser = localStorage.getItem('phenol_auth_user');
       if (savedUser) {
         const u: AuthUser = JSON.parse(savedUser);

@@ -139,10 +139,26 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     }
   };
 
-  // Google OAuth Trigger -> Opens Google Account Chooser
-  const handleGoogleAuth = () => {
+  // Google OAuth Trigger -> Connects directly to Google OAuth via Supabase
+  const handleGoogleAuth = async () => {
+    setIsLoading(true);
     setErrorMessage(null);
-    setShowGoogleChooser(true);
+    try {
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/dashboard?auth=google`,
+        },
+      });
+
+      if (error) {
+        setErrorMessage(error.message);
+        setIsLoading(false);
+      }
+    } catch (err: any) {
+      setErrorMessage(err.message || 'Google Sign-In failed');
+      setIsLoading(false);
+    }
   };
 
   // Google Account Selected -> Immediately requires WhatsApp number for students

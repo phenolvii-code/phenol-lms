@@ -87,9 +87,25 @@ export default function RegisterPage() {
     }
   };
 
-  const handleGoogleAuth = () => {
+  const handleGoogleAuth = async () => {
+    setIsLoading(true);
     setErrorMessage(null);
-    setShowGoogleChooser(true);
+    try {
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/dashboard?auth=google`,
+        },
+      });
+
+      if (error) {
+        setErrorMessage(error.message);
+        setIsLoading(false);
+      }
+    } catch (err: any) {
+      setErrorMessage(err.message || 'Google Sign-Up failed');
+      setIsLoading(false);
+    }
   };
 
   const handleGoogleAccountSelected = (account: { email: string; name: string; avatar?: string }) => {
