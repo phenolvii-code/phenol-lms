@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
@@ -10,6 +10,7 @@ import { verifyUserPassword } from '@/lib/auth-passwords';
 import { GoogleIcon } from '@/components/auth/AuthIcons';
 import { WhatsAppPromptModal } from '@/components/auth/WhatsAppPromptModal';
 import { GoogleAccountModal } from '@/components/auth/GoogleAccountModal';
+import { GOOGLE_CLIENT_ID, parseGoogleJwt } from '@/lib/google-auth';
 import { Lock, Mail, ShieldAlert, ArrowRight } from 'lucide-react';
 
 export default function LoginPage() {
@@ -97,25 +98,35 @@ export default function LoginPage() {
     }
   };
 
-  const handleGoogleAuth = async () => {
-    setIsLoading(true);
-    setErrorMessage(null);
-    try {
-      const { data, error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: `${window.location.origin}/dashboard?auth=google`,
-        },
-      });
-
-      if (error) {
-        setErrorMessage(error.message);
-        setIsLoading(false);
+  // Initialize Google One-Tap if script loaded
+  useEffect(() => {
+    if (typeof window !== 'undefined' && (window as any).google?.accounts?.id) {
+      try {
+        (window as any).google.accounts.id.initialize({
+          client_id: GOOGLE_CLIENT_ID,
+          callback: (response: any) => {
+            if (response?.credential) {
+              const payload = parseGoogleJwt(response.credential);
+              if (payload) {
+                handleGoogleAccountSelected({
+                  email: payload.email,
+                  name: payload.name,
+                  avatar: payload.picture,
+                });
+              }
+            }
+          },
+        });
+        (window as any).google.accounts.id.prompt();
+      } catch (err) {
+        // Fallback gracefully
       }
-    } catch (err: any) {
-      setErrorMessage(err.message || 'Google Sign-In failed');
-      setIsLoading(false);
     }
+  }, []);
+
+  const handleGoogleAuth = () => {
+    setErrorMessage(null);
+    setShowGoogleChooser(true);
   };
 
   const handleGoogleAccountSelected = (account: { email: string; name: string; avatar?: string }) => {

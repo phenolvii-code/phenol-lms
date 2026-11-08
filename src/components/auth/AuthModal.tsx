@@ -10,6 +10,7 @@ import { getStudentAcademicCode } from '@/lib/student-code';
 import { GoogleIcon, WhatsAppIcon } from '@/components/auth/AuthIcons';
 import { WhatsAppPromptModal } from '@/components/auth/WhatsAppPromptModal';
 import { GoogleAccountModal } from '@/components/auth/GoogleAccountModal';
+import { GOOGLE_CLIENT_ID, parseGoogleJwt } from '@/lib/google-auth';
 import {
   X,
   Lock,
@@ -139,26 +140,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     }
   };
 
-  // Google OAuth Trigger -> Connects directly to Google OAuth via Supabase
-  const handleGoogleAuth = async () => {
-    setIsLoading(true);
+  // Google Auth Trigger -> Opens branded in-app Google Chooser
+  const handleGoogleAuth = () => {
     setErrorMessage(null);
-    try {
-      const { data, error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: `${window.location.origin}/dashboard?auth=google`,
-        },
-      });
-
-      if (error) {
-        setErrorMessage(error.message);
-        setIsLoading(false);
-      }
-    } catch (err: any) {
-      setErrorMessage(err.message || 'Google Sign-In failed');
-      setIsLoading(false);
-    }
+    setShowGoogleChooser(true);
   };
 
   // Google Account Selected -> Immediately requires WhatsApp number for students

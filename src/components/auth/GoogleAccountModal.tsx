@@ -89,58 +89,31 @@ export const GoogleAccountModal: React.FC<GoogleAccountModalProps> = ({
             </div>
           </button>
 
-          {/* Option 2: Student Account */}
-          <button
-            type="button"
-            onClick={() =>
-              onSelectAccount({
-                email: 'omar.student@gmail.com',
-                name: 'Omar Samir',
-                avatar:
-                  'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=80',
-              })
-            }
-            className="w-full flex items-center gap-3.5 p-3 rounded-xl hover:bg-ivory-100/80 active:bg-ivory-200 transition-all text-left border border-transparent hover:border-hairline group"
-          >
-            <div className="w-10 h-10 rounded-full bg-emerald-700 text-ivory-100 font-bold text-xs flex items-center justify-center shrink-0 shadow-sm">
-              OS
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-1.5">
-                <p className="text-xs font-bold text-charcoal-900 truncate">Omar Samir</p>
-                <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-emerald-50 text-emerald-800 border border-emerald-200">
-                  Scholar
-                </span>
-              </div>
-              <p className="text-[11px] text-charcoal-100 font-mono truncate">omar.student@gmail.com</p>
-            </div>
-          </button>
-
-          {/* Option 3: Use Another Google Account Toggle */}
+          {/* Option 2: Student Google Sign-in */}
           {!showCustomInput ? (
             <button
               type="button"
               onClick={() => setShowCustomInput(true)}
-              className="w-full flex items-center gap-3.5 p-3 rounded-xl hover:bg-ivory-100/80 transition-all text-left border border-dashed border-hairline group mt-1"
+              className="w-full flex items-center gap-3.5 p-3 rounded-xl hover:bg-ivory-100/80 transition-all text-left border border-hairline/80 group mt-1"
             >
               <div className="w-10 h-10 rounded-full bg-ivory-200 text-charcoal-100 flex items-center justify-center shrink-0 group-hover:bg-ivory-300 transition-colors">
                 <UserPlus className="w-4 h-4 text-charcoal-100" />
               </div>
               <div>
-                <p className="text-xs font-semibold text-charcoal-900">Use another Google account</p>
-                <p className="text-[11px] text-charcoal-50 font-sans">Enter your personal Gmail address</p>
+                <p className="text-xs font-semibold text-charcoal-900">Student Google Account</p>
+                <p className="text-[11px] text-charcoal-50 font-sans">Sign in or register with your Gmail</p>
               </div>
             </button>
           ) : (
-            <form onSubmit={handleCustomSubmit} className="p-3.5 rounded-xl bg-ivory-50 border border-hairline space-y-3 mt-2 animate-fade-in">
+            <form onSubmit={handleCustomSubmit} className="p-3.5 rounded-xl bg-ivory-50 border border-hairline space-y-3 mt-1 animate-fade-in">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-charcoal-900">Enter Google Account</span>
+                <span className="text-xs font-bold text-charcoal-900">Enter Your Gmail</span>
                 <button
                   type="button"
                   onClick={() => setShowCustomInput(false)}
                   className="text-[11px] text-burgundy-600 hover:underline"
                 >
-                  Back
+                  Cancel
                 </button>
               </div>
 
@@ -165,7 +138,7 @@ export const GoogleAccountModal: React.FC<GoogleAccountModalProps> = ({
 
               <input
                 type="text"
-                placeholder="Your Full Name (e.g. Youssef Tarek)"
+                placeholder="Student Full Name (e.g. Youssef Tarek)"
                 value={customName}
                 onChange={(e) => setCustomName(e.target.value)}
                 className="w-full px-3 py-2 text-xs bg-white border border-hairline rounded text-charcoal-900 focus:outline-none focus:border-burgundy-500"
@@ -176,7 +149,7 @@ export const GoogleAccountModal: React.FC<GoogleAccountModalProps> = ({
                 disabled={!customEmail.trim()}
                 className="w-full py-2 bg-charcoal-900 hover:bg-black text-ivory-100 text-xs font-semibold rounded disabled:opacity-40 transition-colors flex items-center justify-center gap-1.5"
               >
-                <span>Continue with this account</span>
+                <span>Continue to PHENOL Academy</span>
                 <ArrowRight className="w-3.5 h-3.5" />
               </button>
             </form>
