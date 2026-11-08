@@ -79,12 +79,21 @@ export default function CourseDetailsPage() {
                 <PhenolLogo size={36} subtitle="Dr. Omar Magdi" />
               </Link>
               <div className="flex items-center gap-3">
-                <Link
-                  href="/dashboard"
-                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs sm:text-sm text-charcoal-100 hover:text-charcoal-900 border border-hairline rounded transition-colors font-sans"
-                >
-                  <span>Dashboard</span>
-                </Link>
+                {currentUser ? (
+                  <Link
+                    href="/dashboard"
+                    className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs sm:text-sm text-charcoal-100 hover:text-charcoal-900 border border-hairline rounded transition-colors font-sans"
+                  >
+                    <span>{currentUser.role === 'INSTRUCTOR' ? 'لوحة الإدارة' : 'لوحة الطالب'}</span>
+                  </Link>
+                ) : (
+                  <Link
+                    href="/login"
+                    className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs sm:text-sm text-ivory-100 bg-burgundy-900 hover:bg-black rounded transition-colors font-sans font-semibold shadow-sm"
+                  >
+                    <span>تسجيل الدخول</span>
+                  </Link>
+                )}
               </div>
             </div>
           </div>
@@ -103,13 +112,15 @@ export default function CourseDetailsPage() {
             </p>
           </div>
           <div className="flex items-center gap-3 pt-3">
-            <Link
-              href="/dashboard"
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded bg-burgundy-900 hover:bg-black text-ivory-100 text-xs font-semibold shadow-sm transition-colors"
-            >
-              <span>الذهاب إلى لوحة التحكم</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </Link>
+            {currentUser?.role === 'INSTRUCTOR' ? (
+              <Link
+                href="/dashboard"
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded bg-burgundy-900 hover:bg-black text-ivory-100 text-xs font-semibold shadow-sm transition-colors"
+              >
+                <span>الذهاب إلى لوحة التحكم</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </Link>
+            ) : null}
             <Link
               href="/"
               className="inline-flex items-center gap-2 px-5 py-2.5 rounded bg-ivory-100 border border-hairline hover:bg-ivory-50 text-charcoal-900 text-xs font-semibold transition-colors"
@@ -139,10 +150,21 @@ export default function CourseDetailsPage() {
                   Home
                 </Link>
                 <span>/</span>
-                <Link href="/dashboard" className="hover:text-charcoal-900 transition-colors">
-                  Dashboard
-                </Link>
-                <span>/</span>
+                {currentUser ? (
+                  <>
+                    <Link href="/dashboard" className="hover:text-charcoal-900 transition-colors">
+                      {currentUser.role === 'INSTRUCTOR' ? 'Dashboard' : 'My Courses'}
+                    </Link>
+                    <span>/</span>
+                  </>
+                ) : (
+                  <>
+                    <Link href="/#programs" className="hover:text-charcoal-900 transition-colors">
+                      Curriculum
+                    </Link>
+                    <span>/</span>
+                  </>
+                )}
                 <span className="font-semibold text-charcoal-900 font-formula">
                   {course.code}
                 </span>
@@ -150,12 +172,21 @@ export default function CourseDetailsPage() {
             </div>
 
             <div className="flex items-center gap-3">
-              <Link
-                href="/dashboard"
-                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs sm:text-sm text-charcoal-100 hover:text-charcoal-900 border border-hairline rounded transition-colors font-sans"
-              >
-                <span>Dashboard</span>
-              </Link>
+              {currentUser ? (
+                <Link
+                  href="/dashboard"
+                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs sm:text-sm text-charcoal-100 hover:text-charcoal-900 border border-hairline rounded transition-colors font-sans"
+                >
+                  <span>{currentUser.role === 'INSTRUCTOR' ? 'لوحة الإدارة' : 'لوحة الطالب'}</span>
+                </Link>
+              ) : (
+                <Link
+                  href="/login"
+                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs sm:text-sm text-ivory-100 bg-burgundy-900 hover:bg-black rounded transition-colors font-sans font-semibold shadow-sm"
+                >
+                  <span>تسجيل الدخول</span>
+                </Link>
+              )}
             </div>
           </div>
         </div>

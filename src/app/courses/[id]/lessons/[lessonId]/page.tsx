@@ -117,12 +117,21 @@ export default function LessonExperiencePage() {
               <Link href="/" aria-label="PHENOL Home">
                 <PhenolLogo size={34} subtitle="Dr. Omar Magdi" />
               </Link>
-              <Link
-                href="/dashboard"
-                className="px-3.5 py-1.5 rounded bg-burgundy-500 hover:bg-burgundy-800 text-ivory-100 text-xs font-semibold transition-colors shadow-quiet"
-              >
-                Dashboard
-              </Link>
+              {currentUser ? (
+                <Link
+                  href="/dashboard"
+                  className="px-3.5 py-1.5 rounded bg-burgundy-500 hover:bg-burgundy-800 text-ivory-100 text-xs font-semibold transition-colors shadow-quiet"
+                >
+                  {currentUser.role === 'INSTRUCTOR' ? 'Dashboard' : 'My Account'}
+                </Link>
+              ) : (
+                <Link
+                  href="/login"
+                  className="px-3.5 py-1.5 rounded bg-burgundy-900 hover:bg-black text-ivory-100 text-xs font-semibold transition-colors shadow-sm"
+                >
+                  تسجيل الدخول
+                </Link>
+              )}
             </div>
           </div>
         </header>
@@ -262,12 +271,21 @@ export default function LessonExperiencePage() {
                 <span>Syllabus</span>
               </Link>
 
-              <Link
-                href="/dashboard"
-                className="px-3.5 py-1.5 rounded bg-burgundy-500 hover:bg-burgundy-800 text-ivory-100 text-xs font-semibold transition-colors shadow-quiet"
-              >
-                Dashboard
-              </Link>
+              {currentUser ? (
+                <Link
+                  href="/dashboard"
+                  className="px-3.5 py-1.5 rounded bg-burgundy-500 hover:bg-burgundy-800 text-ivory-100 text-xs font-semibold transition-colors shadow-quiet"
+                >
+                  {currentUser.role === 'INSTRUCTOR' ? 'Dashboard' : 'My Account'}
+                </Link>
+              ) : (
+                <Link
+                  href="/login"
+                  className="px-3.5 py-1.5 rounded bg-burgundy-900 hover:bg-black text-ivory-100 text-xs font-semibold transition-colors shadow-sm"
+                >
+                  تسجيل الدخول
+                </Link>
+              )}
             </div>
           </div>
         </div>

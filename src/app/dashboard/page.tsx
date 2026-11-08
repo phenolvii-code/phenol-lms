@@ -299,41 +299,44 @@ export default function DashboardPage() {
 
       const savedUser = localStorage.getItem('phenol_auth_user');
       if (savedUser) {
-        const u: AuthUser = JSON.parse(savedUser);
-        if (u.role === 'STUDENT' && u.email && !ADMIN_EMAILS.includes(u.email.toLowerCase())) {
-          recordRegisteredStudent(u);
-        }
-        setCurrentUser(u);
-        setProfileName(u.name || 'Dr. Omar Magdi');
-        setProfileTitle(u.title || (u.role === 'INSTRUCTOR' ? 'Academic Director & Senior Fellow' : 'Enrolled Scholar'));
-        setProfileSpecialization(u.specialization || (u.role === 'INSTRUCTOR' ? 'Organic Reaction Mechanisms & Physical Chemistry' : 'Chemistry Major'));
-        setProfileBio(u.bio || (u.role === 'INSTRUCTOR' ? 'Specialist in organic mechanisms, reaction kinetics, and first-principles pedagogy across 4 Core Tracks.' : 'Dedicated to learning chemistry through foundational logic.'));
-        setProfileAvatar(u.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80');
-        setProfilePhone(u.phone || '');
+        try {
+          const u: AuthUser = JSON.parse(savedUser);
+          const cleanEmail = (u.email || '').toLowerCase().trim();
+          const isAdmin =
+            cleanEmail === 'phenolvii@gmail.com' ||
+            cleanEmail.includes('phenolvii') ||
+            ADMIN_EMAILS.includes(cleanEmail);
 
-        // Prompt student for WhatsApp if missing
-        if (u.role === 'STUDENT' && (!u.phone || u.phone.trim().length < 6)) {
-          setIsWhatsAppRequiredModalOpen(true);
+          // Role enforcement & anti-tampering
+          if (u.role === 'INSTRUCTOR' && !isAdmin) {
+            u.role = 'STUDENT';
+            localStorage.setItem('phenol_auth_user', JSON.stringify(u));
+          }
+
+          if (u.role === 'STUDENT' && u.email && !isAdmin) {
+            recordRegisteredStudent(u);
+          }
+          setCurrentUser(u);
+          setProfileName(u.name || (isAdmin ? 'Dr. Omar Magdi' : 'Enrolled Scholar'));
+          setProfileTitle(u.title || (isAdmin ? 'Academic Director & Senior Fellow' : 'Enrolled Scholar'));
+          setProfileSpecialization(u.specialization || (isAdmin ? 'Organic Reaction Mechanisms & Physical Chemistry' : 'Chemistry Major'));
+          setProfileBio(u.bio || (isAdmin ? 'Specialist in organic mechanisms, reaction kinetics, and first-principles pedagogy across 4 Core Tracks.' : 'Dedicated to learning chemistry through foundational logic.'));
+          setProfileAvatar(u.avatar || (isAdmin ? 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80' : 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=80'));
+          setProfilePhone(u.phone || '');
+
+          // Prompt student for WhatsApp if missing
+          if (u.role === 'STUDENT' && (!u.phone || u.phone.trim().length < 6)) {
+            setIsWhatsAppRequiredModalOpen(true);
+          }
+        } catch (e) {
+          localStorage.removeItem('phenol_auth_user');
+          router.push('/login');
+          return;
         }
       } else {
-        const defaultInstructor: AuthUser = {
-          id: 'dr-omar-magdi',
-          name: 'Dr. Omar Magdi',
-          email: 'phenolvii@gmail.com',
-          role: 'INSTRUCTOR',
-          avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80',
-          registeredAt: '2026-01-01',
-          title: 'Academic Director & Senior Fellow',
-          specialization: 'Organic Reaction Mechanisms & Physical Chemistry',
-          bio: 'Specialist in organic mechanisms, reaction kinetics, and first-principles pedagogy across 4 Core Tracks.',
-        };
-        setCurrentUser(defaultInstructor);
-        setProfileName(defaultInstructor.name);
-        setProfileTitle(defaultInstructor.title || '');
-        setProfileSpecialization(defaultInstructor.specialization || '');
-        setProfileBio(defaultInstructor.bio || '');
-        setProfileAvatar(defaultInstructor.avatar);
-        localStorage.setItem('phenol_auth_user', JSON.stringify(defaultInstructor));
+        // Strict Security Gate: Never log in unauthenticated guests as instructor!
+        router.push('/login');
+        return;
       }
 
       // 2. Custom Courses from local storage with permanent deletion persistence
@@ -449,8 +452,10 @@ export default function DashboardPage() {
   const handleLogout = () => {
     try {
       localStorage.removeItem('phenol_auth_user');
+      supabase.auth.signOut().catch(() => {});
     } catch (e) {}
-    router.push('/');
+    setCurrentUser(null);
+    router.push('/login');
   };
 
   // Open appropriate profile modal based on user role (Student vs Instructor)
@@ -1092,6 +1097,15 @@ export default function DashboardPage() {
         const trackObj = ACADEMIC_TRACKS.find((t) => t.id === trackFilter);
         return w.academicTrack.includes(trackObj?.name || trackFilter);
       });
+
+  if (!currentUser) {
+    return (
+      <div className="min-h-screen bg-ivory-200 flex flex-col items-center justify-center p-6 text-center font-sans">
+        <div className="w-10 h-10 rounded-full border-2 border-burgundy-500 border-t-transparent animate-spin mb-4" />
+        <p className="text-xs font-semibold text-charcoal-100">جاري التحقق من هوية الحساب الأكاديمي...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-ivory-200 text-charcoal-900 flex flex-col font-sans selection:bg-burgundy-500 selection:text-ivory-100">
