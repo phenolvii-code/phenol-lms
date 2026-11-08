@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { AuthUser } from '@/types/auth';
 import { PhenolLogo } from '@/components/brand/PhenolLogo';
+import { setUserPassword } from '@/lib/auth-passwords';
 import { Lock, Mail, User, Phone, ShieldAlert, ArrowRight } from 'lucide-react';
 
 export default function RegisterPage() {
@@ -30,6 +31,8 @@ export default function RegisterPage() {
     }
 
     try {
+      setUserPassword(email, password);
+
       const { data, error } = await supabase.auth.signUp({
         email,
         password,

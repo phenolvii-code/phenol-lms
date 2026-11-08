@@ -1,21 +1,18 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
-import { AuthUser, AuthModalMode } from '@/types/auth';
+import { AuthUser, AuthModalMode, ADMIN_EMAILS } from '@/types/auth';
 import { PhenolLogo } from '@/components/brand/PhenolLogo';
+import { verifyUserPassword, setUserPassword } from '@/lib/auth-passwords';
 import {
   X,
   Lock,
   Mail,
   User,
   Phone,
-  GraduationCap,
-  ArrowRight,
   ShieldAlert,
-  KeyRound,
-  CheckCircle2,
 } from 'lucide-react';
 
 interface AuthModalProps {
@@ -32,64 +29,49 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   onLoginSuccess,
 }) => {
   const router = useRouter();
-  const [mode, setMode] = useState<AuthModalMode>(initialMode);
+  const [mode, setMode] = useState<AuthModalMode>(
+    initialMode === 'INSTRUCTOR_LOGIN' ? 'LOGIN' : initialMode
+  );
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  // Student Form State
+  useEffect(() => {
+    if (isOpen) {
+      setMode(initialMode === 'INSTRUCTOR_LOGIN' ? 'LOGIN' : initialMode);
+      setErrorMessage(null);
+    }
+  }, [initialMode, isOpen]);
+
+  // Form State
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
   const [academicLevel, setAcademicLevel] = useState('High School Senior');
 
-  // Dr. Omar Secret Login Form
-  const [instructorSecretKey, setInstructorSecretKey] = useState('');
-  const [instructorEmail, setInstructorEmail] = useState('phenolvii@gmail.com');
-
   if (!isOpen) return null;
 
-  // Handle Login
-  const handleStudentLogin = async (e: React.FormEvent) => {
+  // Unified Sign In Handler (Student and Administrator)
+  const handleUnifiedLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setErrorMessage(null);
 
     const cleanEmail = email.trim().toLowerCase();
-    const isAdmin = cleanEmail.includes('phenolvii') || cleanEmail.includes('admin@phenol');
+    const isAdmin =
+      cleanEmail === 'phenolvii@gmail.com' ||
+      cleanEmail.includes('phenolvii') ||
+      cleanEmail.includes('admin@phenol') ||
+      ADMIN_EMAILS.includes(cleanEmail);
 
     try {
+      // 1. First check against Supabase
       const { data, error } = await supabase.auth.signInWithPassword({
         email: cleanEmail,
         password,
       });
 
-      if (error && error.message.includes('Invalid login credentials')) {
-        // Fallback demo credentials
-        if (password === 'phenol2026' || password === '123456' || password === 'demo' || isAdmin) {
-          const userObj: AuthUser = {
-            id: isAdmin ? 'dr-omar-magdi' : 'student-demo',
-            name: isAdmin ? 'Dr. Omar Magdi' : (cleanEmail.split('@')[0] || 'Enrolled Student'),
-            email: cleanEmail,
-            role: isAdmin ? 'INSTRUCTOR' : 'STUDENT',
-            avatar: isAdmin
-              ? 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80'
-              : 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=80',
-            registeredAt: '2026-01-01',
-            title: isAdmin ? 'Academic Director & Senior Fellow' : undefined,
-            specialization: isAdmin ? 'Organic Reaction Mechanisms & Physical Chemistry' : undefined,
-            bio: isAdmin ? 'Specialist in organic mechanisms, reaction kinetics, and first-principles pedagogy across 4 Core Tracks.' : undefined,
-          };
-          onLoginSuccess(userObj);
-          onClose();
-          router.push('/dashboard');
-          return;
-        }
-        setErrorMessage('Invalid credentials. For quick testing, you can use password: phenol2026');
-        return;
-      }
-
-      if (data?.user) {
+      if (!error && data?.user) {
         const userObj: AuthUser = {
           id: data.user.id,
           name: isAdmin ? 'Dr. Omar Magdi' : (data.user.user_metadata?.full_name || cleanEmail.split('@')[0]),
@@ -103,10 +85,36 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           title: isAdmin ? 'Academic Director & Senior Fellow' : undefined,
           specialization: isAdmin ? 'Organic Reaction Mechanisms & Physical Chemistry' : undefined,
         };
+        localStorage.setItem('phenol_auth_user', JSON.stringify(userObj));
         onLoginSuccess(userObj);
         onClose();
         router.push('/dashboard');
+        return;
       }
+
+      // 2. Verified fallback checking custom passwords or initial credentials
+      if (verifyUserPassword(cleanEmail, password)) {
+        const userObj: AuthUser = {
+          id: isAdmin ? 'dr-omar-magdi' : `student-${cleanEmail.replace(/[^a-zA-Z0-9]/g, '')}`,
+          name: isAdmin ? 'Dr. Omar Magdi' : (cleanEmail.split('@')[0] || 'Enrolled Scholar'),
+          email: cleanEmail,
+          role: isAdmin ? 'INSTRUCTOR' : 'STUDENT',
+          avatar: isAdmin
+            ? 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80'
+            : 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=80',
+          registeredAt: '2026-01-01',
+          title: isAdmin ? 'Academic Director & Senior Fellow' : undefined,
+          specialization: isAdmin ? 'Organic Reaction Mechanisms & Physical Chemistry' : undefined,
+          bio: isAdmin ? 'Specialist in organic mechanisms, reaction kinetics, and first-principles pedagogy across 4 Core Tracks.' : undefined,
+        };
+        localStorage.setItem('phenol_auth_user', JSON.stringify(userObj));
+        onLoginSuccess(userObj);
+        onClose();
+        router.push('/dashboard');
+        return;
+      }
+
+      setErrorMessage('Invalid email or password. Please verify your credentials.');
     } catch (err: any) {
       setErrorMessage(err.message || 'An error occurred during sign in');
     } finally {
@@ -114,21 +122,32 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     }
   };
 
-  // Handle Student Registration
-  const handleStudentRegister = async (e: React.FormEvent) => {
+  // Registration Handler
+  const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setErrorMessage(null);
 
-    if (!fullName || !email || !password || !phone) {
+    const cleanEmail = email.trim().toLowerCase();
+
+    if (!fullName || !cleanEmail || !password || !phone) {
       setErrorMessage('Please fill in all required fields');
       setIsLoading(false);
       return;
     }
 
+    if (password.length < 6) {
+      setErrorMessage('Password must be at least 6 characters long');
+      setIsLoading(false);
+      return;
+    }
+
     try {
+      // Save password immediately
+      setUserPassword(cleanEmail, password);
+
       const { data, error } = await supabase.auth.signUp({
-        email,
+        email: cleanEmail,
         password,
         options: {
           data: {
@@ -139,65 +158,24 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         },
       });
 
-      if (error) {
-        // Graceful fallback for demo accounts
-        const newStudent: AuthUser = {
-          id: `stu-${Date.now()}`,
-          name: fullName,
-          email: email,
-          phone: phone,
-          role: 'STUDENT',
-          avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80',
-          registeredAt: new Date().toISOString(),
-        };
-        onLoginSuccess(newStudent);
-        onClose();
-        router.push('/dashboard');
-        return;
-      }
+      const newStudent: AuthUser = {
+        id: data?.user?.id || `stu-${Date.now()}`,
+        name: fullName,
+        email: cleanEmail,
+        phone: phone,
+        role: 'STUDENT',
+        avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80',
+        registeredAt: new Date().toISOString(),
+      };
 
-      if (data?.user) {
-        const newStudent: AuthUser = {
-          id: data.user.id,
-          name: fullName,
-          email: email,
-          phone: phone,
-          role: 'STUDENT',
-          avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80',
-          registeredAt: data.user.created_at,
-        };
-        onLoginSuccess(newStudent);
-        onClose();
-        router.push('/dashboard');
-      }
+      localStorage.setItem('phenol_auth_user', JSON.stringify(newStudent));
+      onLoginSuccess(newStudent);
+      onClose();
+      router.push('/dashboard');
     } catch (err: any) {
       setErrorMessage(err.message || 'Registration failed');
     } finally {
       setIsLoading(false);
-    }
-  };
-
-  // Handle Dr. Omar Magdi Administration Login
-  const handleInstructorLogin = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (
-      instructorSecretKey === 'phenol2026' ||
-      instructorSecretKey === 'omar2026' ||
-      instructorSecretKey === 'admin'
-    ) {
-      const instructorUser: AuthUser = {
-        id: 'dr-omar-magdi',
-        name: 'Dr. Omar Magdi',
-        email: instructorEmail,
-        role: 'INSTRUCTOR',
-        avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80',
-        registeredAt: '2026-01-01',
-      };
-      onLoginSuccess(instructorUser);
-      onClose();
-      router.push('/dashboard');
-    } else {
-      setErrorMessage('Invalid administrative secret key. The authorized key is: phenol2026');
     }
   };
 
@@ -213,9 +191,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 PHENOL ACADEMY
               </span>
               <span className="text-xs text-charcoal-100 font-sans">
-                {mode === 'LOGIN' && 'Student Portal Sign In'}
-                {mode === 'REGISTER' && 'Student Cohort Registration'}
-                {mode === 'INSTRUCTOR_LOGIN' && 'Dr. Omar Magdi Administration Portal'}
+                {mode === 'LOGIN' ? 'Sign In to Your Account' : 'Scholar Cohort Registration'}
               </span>
             </div>
           </div>
@@ -270,9 +246,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             </button>
           </div>
 
-          {/* Mode 1: Student Login */}
+          {/* Unified Sign In Form */}
           {mode === 'LOGIN' && (
-            <form onSubmit={handleStudentLogin} className="space-y-4">
+            <form onSubmit={handleUnifiedLogin} className="space-y-4">
               <div>
                 <label className="block text-xs font-semibold text-charcoal-900 mb-1.5 font-sans">
                   Email Address
@@ -284,7 +260,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="student@example.com"
+                    placeholder="name@example.com"
                     className="w-full pl-9 pr-3.5 py-2.5 text-sm bg-ivory-50 border border-hairline rounded text-charcoal-900 focus:outline-none focus:border-burgundy-500"
                   />
                 </div>
@@ -305,9 +281,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                     className="w-full pl-9 pr-3.5 py-2.5 text-sm bg-ivory-50 border border-hairline rounded text-charcoal-900 focus:outline-none focus:border-burgundy-500"
                   />
                 </div>
-                <span className="text-[11px] text-charcoal-50 block mt-1">
-                  Default test password: <code className="text-burgundy-500 font-formula">phenol2026</code>
-                </span>
               </div>
 
               <button
@@ -317,26 +290,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               >
                 {isLoading ? 'Signing In...' : 'Sign In to Dashboard'}
               </button>
-
-              <div className="pt-4 border-t border-hairline text-center">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setErrorMessage(null);
-                    setMode('INSTRUCTOR_LOGIN');
-                  }}
-                  className="text-xs font-semibold text-burgundy-500 hover:text-burgundy-800 inline-flex items-center gap-1.5"
-                >
-                  <KeyRound className="w-3.5 h-3.5" />
-                  <span>Dr. Omar Magdi Administration Gateway</span>
-                </button>
-              </div>
             </form>
           )}
 
-          {/* Mode 2: Student Registration */}
+          {/* Registration Form */}
           {mode === 'REGISTER' && (
-            <form onSubmit={handleStudentRegister} className="space-y-3.5">
+            <form onSubmit={handleRegister} className="space-y-3.5">
               <div>
                 <label className="block text-xs font-semibold text-charcoal-900 mb-1 font-sans">
                   Full Name
@@ -427,72 +386,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               >
                 {isLoading ? 'Registering...' : 'Create Student Account'}
               </button>
-            </form>
-          )}
-
-          {/* Mode 3: Dr. Omar Magdi Secret Administration Login */}
-          {mode === 'INSTRUCTOR_LOGIN' && (
-            <form onSubmit={handleInstructorLogin} className="space-y-4">
-              <div className="p-3 bg-burgundy-50 border border-burgundy-200 rounded text-xs text-burgundy-900 space-y-1">
-                <span className="font-bold block">Academic Administration Gateway</span>
-                <p className="text-burgundy-800/90 text-[11px] leading-relaxed">
-                  Authorized access for Dr. Omar Magdi only. Grants management access to student rosters, submissions grading, and admissions waitlist.
-                </p>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-charcoal-900 mb-1.5 font-sans">
-                  Administrator Email
-                </label>
-                <div className="relative">
-                  <Mail className="w-4 h-4 text-charcoal-50 absolute left-3 top-3" />
-                  <input
-                    type="email"
-                    required
-                    value={instructorEmail}
-                    onChange={(e) => setInstructorEmail(e.target.value)}
-                    className="w-full pl-9 pr-3.5 py-2.5 text-sm bg-ivory-50 border border-hairline rounded text-charcoal-900 focus:outline-none focus:border-burgundy-500 font-formula text-xs"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-charcoal-900 mb-1.5 font-sans">
-                  Secret Key
-                </label>
-                <div className="relative">
-                  <KeyRound className="w-4 h-4 text-burgundy-500 absolute left-3 top-3" />
-                  <input
-                    type="password"
-                    required
-                    value={instructorSecretKey}
-                    onChange={(e) => setInstructorSecretKey(e.target.value)}
-                    placeholder="Enter secret key (phenol2026)"
-                    className="w-full pl-9 pr-3.5 py-2.5 text-sm bg-ivory-50 border border-hairline rounded text-charcoal-900 focus:outline-none focus:border-burgundy-500"
-                  />
-                </div>
-                <span className="text-[11px] text-charcoal-50 block mt-1">
-                  Authorized key: <code className="text-burgundy-500 font-formula">phenol2026</code>
-                </span>
-              </div>
-
-              <button
-                type="submit"
-                className="w-full py-2.5 rounded bg-burgundy-500 hover:bg-burgundy-800 text-ivory-100 text-sm font-semibold transition-colors shadow-quiet mt-2 flex items-center justify-center gap-2"
-              >
-                <span>Authorize & Enter Administration</span>
-                <ArrowRight className="w-4 h-4" />
-              </button>
-
-              <div className="pt-3 text-center">
-                <button
-                  type="button"
-                  onClick={() => setMode('LOGIN')}
-                  className="text-xs text-charcoal-50 hover:text-charcoal-900"
-                >
-                  Return to Student Sign In
-                </button>
-              </div>
             </form>
           )}
         </div>

@@ -1,9 +1,11 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { CHEMISTRY_COURSES } from '@/data/mock-data';
+import { getStoredCourses } from '@/lib/courses-storage';
+import { ChemistryCourse } from '@/types/lms';
 import { PhenolLogo } from '@/components/brand/PhenolLogo';
 import {
   ArrowLeft,
@@ -20,7 +22,13 @@ export default function LessonExperiencePage() {
   const courseId = params?.id as string;
   const lessonId = params?.lessonId as string;
 
-  const course = CHEMISTRY_COURSES.find((c) => c.id === courseId) || CHEMISTRY_COURSES[0];
+  const [coursesList, setCoursesList] = useState<ChemistryCourse[]>(CHEMISTRY_COURSES);
+
+  useEffect(() => {
+    setCoursesList(getStoredCourses());
+  }, []);
+
+  const course = coursesList.find((c) => c.id === courseId) || coursesList[0] || CHEMISTRY_COURSES[0];
   const lessonIndex = course.lessons.findIndex((l) => l.id === lessonId);
   const currentLesson = lessonIndex !== -1 ? course.lessons[lessonIndex] : course.lessons[0];
 

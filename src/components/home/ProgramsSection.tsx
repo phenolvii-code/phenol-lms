@@ -1,9 +1,10 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { CHEMISTRY_COURSES, ACADEMIC_TRACKS } from '@/data/mock-data';
-import { AcademicCategory } from '@/types/lms';
+import { AcademicCategory, ChemistryCourse } from '@/types/lms';
+import { getStoredCourses } from '@/lib/courses-storage';
 import { supabase } from '@/lib/supabase';
 import { ArrowRight, CheckCircle2, BookOpen, Clock, Layers } from 'lucide-react';
 
@@ -21,17 +22,33 @@ export const ProgramsSection: React.FC<ProgramsSectionProps> = ({ onOpenWaitlist
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
+  const [coursesList, setCoursesList] = useState<ChemistryCourse[]>(CHEMISTRY_COURSES);
+
+  useEffect(() => {
+    setCoursesList(getStoredCourses());
+
+    const handleUpdate = () => {
+      setCoursesList(getStoredCourses());
+    };
+    window.addEventListener('storage', handleUpdate);
+    window.addEventListener('phenol_courses_updated', handleUpdate);
+    return () => {
+      window.removeEventListener('storage', handleUpdate);
+      window.removeEventListener('phenol_courses_updated', handleUpdate);
+    };
+  }, []);
+
   // Filter courses by category
   const filteredCourses = selectedCategory === 'all'
-    ? CHEMISTRY_COURSES
-    : CHEMISTRY_COURSES.filter((c) => c.category === selectedCategory);
+    ? coursesList
+    : coursesList.filter((c) => c.category === selectedCategory);
 
   // Courses available for selected track in the form
-  const coursesForTrack = CHEMISTRY_COURSES.filter((c) => c.category === selectedTrack);
+  const coursesForTrack = coursesList.filter((c) => c.category === selectedTrack);
 
   const handleTrackChange = (newTrack: AcademicCategory) => {
     setSelectedTrack(newTrack);
-    const firstCourseInTrack = CHEMISTRY_COURSES.find((c) => c.category === newTrack);
+    const firstCourseInTrack = coursesList.find((c) => c.category === newTrack);
     if (firstCourseInTrack) {
       setTargetCourse(firstCourseInTrack.id);
     }
@@ -41,7 +58,7 @@ export const ProgramsSection: React.FC<ProgramsSectionProps> = ({ onOpenWaitlist
     e.preventDefault();
     setSubmitting(true);
 
-    const chosenCourseObj = CHEMISTRY_COURSES.find((c) => c.id === targetCourse);
+    const chosenCourseObj = coursesList.find((c) => c.id === targetCourse);
     const chosenTrackObj = ACADEMIC_TRACKS.find((t) => t.id === selectedTrack);
 
     const newApplication = {

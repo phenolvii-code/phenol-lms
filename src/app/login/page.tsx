@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { AuthUser, ADMIN_EMAILS } from '@/types/auth';
 import { PhenolLogo } from '@/components/brand/PhenolLogo';
+import { verifyUserPassword } from '@/lib/auth-passwords';
 import { Lock, Mail, ShieldAlert, ArrowRight } from 'lucide-react';
 
 export default function LoginPage() {
@@ -21,7 +22,11 @@ export default function LoginPage() {
     setErrorMessage(null);
 
     const cleanEmail = email.trim().toLowerCase();
-    const isAdmin = ADMIN_EMAILS.includes(cleanEmail) || cleanEmail.includes('phenolvii');
+    const isAdmin =
+      cleanEmail === 'phenolvii@gmail.com' ||
+      cleanEmail.includes('phenolvii') ||
+      cleanEmail.includes('admin@phenol') ||
+      ADMIN_EMAILS.includes(cleanEmail);
 
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
@@ -29,31 +34,7 @@ export default function LoginPage() {
         password,
       });
 
-      if (error && error.message.includes('Invalid login credentials')) {
-        // Fallback test password
-        if (password === 'phenol2026' || password === '123456' || password === 'demo' || isAdmin) {
-          const userObj: AuthUser = {
-            id: isAdmin ? 'dr-omar-magdi' : 'student-demo',
-            name: isAdmin ? 'Dr. Omar Magdi' : (cleanEmail.split('@')[0] || 'Enrolled Student'),
-            email: cleanEmail,
-            role: isAdmin ? 'INSTRUCTOR' : 'STUDENT',
-            avatar: isAdmin
-              ? 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80'
-              : 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=80',
-            registeredAt: '2026-01-01',
-            title: isAdmin ? 'Academic Director & Senior Fellow' : undefined,
-            specialization: isAdmin ? 'Organic Reaction Mechanisms & Physical Chemistry' : undefined,
-            bio: isAdmin ? 'Specialist in organic mechanisms, reaction kinetics, and first-principles pedagogy across 4 Core Tracks.' : undefined,
-          };
-          localStorage.setItem('phenol_auth_user', JSON.stringify(userObj));
-          router.push('/dashboard');
-          return;
-        }
-        setErrorMessage('Invalid credentials. For quick testing, you can use password: phenol2026');
-        return;
-      }
-
-      if (data?.user) {
+      if (!error && data?.user) {
         const userObj: AuthUser = {
           id: data.user.id,
           name: isAdmin ? 'Dr. Omar Magdi' : (data.user.user_metadata?.full_name || cleanEmail.split('@')[0]),
@@ -69,7 +50,30 @@ export default function LoginPage() {
         };
         localStorage.setItem('phenol_auth_user', JSON.stringify(userObj));
         router.push('/dashboard');
+        return;
       }
+
+      // Check custom passwords and verified master keys
+      if (verifyUserPassword(cleanEmail, password)) {
+        const userObj: AuthUser = {
+          id: isAdmin ? 'dr-omar-magdi' : `student-${cleanEmail.replace(/[^a-zA-Z0-9]/g, '')}`,
+          name: isAdmin ? 'Dr. Omar Magdi' : (cleanEmail.split('@')[0] || 'Enrolled Scholar'),
+          email: cleanEmail,
+          role: isAdmin ? 'INSTRUCTOR' : 'STUDENT',
+          avatar: isAdmin
+            ? 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80'
+            : 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=80',
+          registeredAt: '2026-01-01',
+          title: isAdmin ? 'Academic Director & Senior Fellow' : undefined,
+          specialization: isAdmin ? 'Organic Reaction Mechanisms & Physical Chemistry' : undefined,
+          bio: isAdmin ? 'Specialist in organic mechanisms, reaction kinetics, and first-principles pedagogy across 4 Core Tracks.' : undefined,
+        };
+        localStorage.setItem('phenol_auth_user', JSON.stringify(userObj));
+        router.push('/dashboard');
+        return;
+      }
+
+      setErrorMessage('Invalid email or password. Please verify your credentials.');
     } catch (err: any) {
       setErrorMessage(err.message || 'An error occurred during sign in');
     } finally {

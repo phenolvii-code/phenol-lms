@@ -19,7 +19,7 @@ import { PhenolLogo } from '@/components/brand/PhenolLogo';
 export default function Home() {
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
-  const [authModalMode, setAuthModalMode] = useState<AuthModalMode>('REGISTER');
+  const [authModalMode, setAuthModalMode] = useState<AuthModalMode>('LOGIN');
 
   useEffect(() => {
     try {

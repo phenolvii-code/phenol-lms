@@ -27,6 +27,8 @@ import {
 } from '@/types/lms';
 import { BookletsView } from '@/components/booklets/BookletsView';
 import { supabase } from '@/lib/supabase';
+import { getUserPassword, setUserPassword, verifyUserPassword } from '@/lib/auth-passwords';
+import { getStoredCourses, saveStoredCourses } from '@/lib/courses-storage';
 import {
   BookOpen,
   FileCheck2,
@@ -59,6 +61,8 @@ import {
   Send,
   Settings,
   Sparkles,
+  Lock,
+  KeyRound,
 } from 'lucide-react';
 
 export default function DashboardPage() {
@@ -86,12 +90,23 @@ export default function DashboardPage() {
 
   // Profile Modal State
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+  const [profileModalTab, setProfileModalTab] = useState<'info' | 'security'>('info');
   const [profileName, setProfileName] = useState('');
   const [profileTitle, setProfileTitle] = useState('');
   const [profileSpecialization, setProfileSpecialization] = useState('');
   const [profileBio, setProfileBio] = useState('');
   const [profileAvatar, setProfileAvatar] = useState('');
   const [profilePhone, setProfilePhone] = useState('');
+
+  // Password Change State
+  const [currentPasswordInput, setCurrentPasswordInput] = useState('');
+  const [newPasswordInput, setNewPasswordInput] = useState('');
+  const [confirmPasswordInput, setConfirmPasswordInput] = useState('');
+  const [passwordChangeStatus, setPasswordChangeStatus] = useState<{
+    type: 'idle' | 'success' | 'error';
+    message: string;
+  }>({ type: 'idle', message: '' });
+  const [passwordLoading, setPasswordLoading] = useState(false);
 
   // Course Builder (Create Course) Modal State
   const [isCreateCourseOpen, setIsCreateCourseOpen] = useState(false);
@@ -197,54 +212,69 @@ export default function DashboardPage() {
         localStorage.setItem('phenol_auth_user', JSON.stringify(defaultInstructor));
       }
 
-      // 2. Custom Courses from local storage
+      // 2. Custom Courses from local storage with permanent deletion persistence
       const savedCourses = localStorage.getItem('phenol_courses');
-      if (savedCourses) {
-        const parsed = JSON.parse(savedCourses);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          setCourses(parsed);
-        }
+      if (savedCourses !== null) {
+        try {
+          const parsed = JSON.parse(savedCourses);
+          if (Array.isArray(parsed)) {
+            setCourses(parsed);
+          }
+        } catch (e) {}
+      } else {
+        localStorage.setItem('phenol_courses', JSON.stringify(CHEMISTRY_COURSES));
       }
 
-      // 3. Timeline Posts from local storage
+      // 3. Timeline Posts from local storage with permanent deletion persistence
       const savedPosts = localStorage.getItem('phenol_timeline_posts');
-      if (savedPosts) {
-        const parsed = JSON.parse(savedPosts);
-        if (Array.isArray(parsed)) {
-          setPosts(parsed);
-        }
+      if (savedPosts !== null) {
+        try {
+          const parsed = JSON.parse(savedPosts);
+          if (Array.isArray(parsed)) {
+            setPosts(parsed);
+          }
+        } catch (e) {}
+      } else {
+        localStorage.setItem('phenol_timeline_posts', JSON.stringify(INITIAL_TIMELINE_POSTS));
       }
 
-      // 4. Waitlist Applications from local storage and Supabase
+      // 4. Waitlist Applications from local storage with permanent deletion persistence
       const savedWaitlist = localStorage.getItem('phenol_waitlist_applications');
-      if (savedWaitlist) {
-        const parsedWl = JSON.parse(savedWaitlist);
-        if (Array.isArray(parsedWl)) {
-          setWaitlist(parsedWl);
-        }
+      if (savedWaitlist !== null) {
+        try {
+          const parsedWl = JSON.parse(savedWaitlist);
+          if (Array.isArray(parsedWl)) {
+            setWaitlist(parsedWl);
+          }
+        } catch (e) {}
+      } else {
+        localStorage.setItem('phenol_waitlist_applications', JSON.stringify(WAITLIST_APPLICANTS));
       }
 
-      // Background sync from Supabase
+      // Background sync from Supabase (respects user deletions)
       (async () => {
         try {
           const { data, error } = await supabase.from('waitlist_applications').select('*').order('created_at', { ascending: false });
           if (!error && data && data.length > 0) {
-            const mapped: WaitlistApplication[] = data.map((d: any) => ({
-              id: d.id,
-              fullName: d.full_name || d.fullName,
-              email: d.email,
-              phone: d.phone,
-              academicTrack: d.academic_track || d.academicTrack || 'Thanaweya Amma',
-              targetCourse: d.target_course || d.targetCourse || 'Chemistry Course',
-              appliedAt: new Date(d.created_at || Date.now()).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }),
-              status: d.status || 'pending',
-              notes: d.notes,
-            }));
+            const deletedIds: string[] = JSON.parse(localStorage.getItem('phenol_deleted_waitlist_ids') || '[]');
+            const mapped: WaitlistApplication[] = data
+              .filter((d: any) => !deletedIds.includes(d.id))
+              .map((d: any) => ({
+                id: d.id,
+                fullName: d.full_name || d.fullName,
+                email: d.email,
+                phone: d.phone,
+                academicTrack: d.academic_track || d.academicTrack || 'Thanaweya Amma',
+                targetCourse: d.target_course || d.targetCourse || 'Chemistry Course',
+                appliedAt: new Date(d.created_at || Date.now()).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }),
+                status: d.status || 'pending',
+                notes: d.notes,
+              }));
             setWaitlist((prev) => {
-              const combined = [...mapped];
-              prev.forEach((localItem) => {
-                if (!combined.some((c) => c.id === localItem.id)) {
-                  combined.push(localItem);
+              const combined = [...prev];
+              mapped.forEach((remoteItem) => {
+                if (!combined.some((c) => c.id === remoteItem.id) && !deletedIds.includes(remoteItem.id)) {
+                  combined.push(remoteItem);
                 }
               });
               return combined;
@@ -257,14 +287,22 @@ export default function DashboardPage() {
 
       // 5. Submissions from local storage
       const savedSubmissions = localStorage.getItem('phenol_submissions');
-      if (savedSubmissions) {
-        setSubmissions(JSON.parse(savedSubmissions));
+      if (savedSubmissions !== null) {
+        try {
+          setSubmissions(JSON.parse(savedSubmissions));
+        } catch (e) {}
+      } else {
+        localStorage.setItem('phenol_submissions', JSON.stringify(SUBMISSIONS));
       }
 
       // 6. Enrolled students from local storage
       const savedStudents = localStorage.getItem('phenol_students');
-      if (savedStudents) {
-        setStudents(JSON.parse(savedStudents));
+      if (savedStudents !== null) {
+        try {
+          setStudents(JSON.parse(savedStudents));
+        } catch (e) {}
+      } else {
+        localStorage.setItem('phenol_students', JSON.stringify(ENROLLED_STUDENTS));
       }
     } catch (e) {
       console.error(e);
@@ -304,6 +342,72 @@ export default function DashboardPage() {
     } catch (e) {}
 
     setIsProfileModalOpen(false);
+  };
+
+  // Change Password Handler for any user profile
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!currentUser?.email) return;
+
+    setPasswordLoading(true);
+    setPasswordChangeStatus({ type: 'idle', message: '' });
+
+    const userEmail = currentUser.email.trim().toLowerCase();
+
+    // 1. Verify current password
+    if (!verifyUserPassword(userEmail, currentPasswordInput)) {
+      setPasswordChangeStatus({
+        type: 'error',
+        message: 'Current password is incorrect. Please verify your existing password.',
+      });
+      setPasswordLoading(false);
+      return;
+    }
+
+    // 2. Validate new password length
+    if (newPasswordInput.length < 6) {
+      setPasswordChangeStatus({
+        type: 'error',
+        message: 'New password must be at least 6 characters long.',
+      });
+      setPasswordLoading(false);
+      return;
+    }
+
+    // 3. Confirm matching
+    if (newPasswordInput !== confirmPasswordInput) {
+      setPasswordChangeStatus({
+        type: 'error',
+        message: 'New password and confirmation do not match.',
+      });
+      setPasswordLoading(false);
+      return;
+    }
+
+    try {
+      // 4. Save custom password
+      setUserPassword(userEmail, newPasswordInput);
+
+      // 5. Update in Supabase if active session
+      try {
+        await supabase.auth.updateUser({ password: newPasswordInput });
+      } catch (err) {}
+
+      setPasswordChangeStatus({
+        type: 'success',
+        message: 'Password updated successfully! Your new password is now active.',
+      });
+      setCurrentPasswordInput('');
+      setNewPasswordInput('');
+      setConfirmPasswordInput('');
+    } catch (err: any) {
+      setPasswordChangeStatus({
+        type: 'error',
+        message: err.message || 'Failed to update password.',
+      });
+    } finally {
+      setPasswordLoading(false);
+    }
   };
 
   // ==========================================================================
@@ -397,32 +501,36 @@ export default function DashboardPage() {
     setCommentInputs((prev) => ({ ...prev, [postId]: '' }));
   };
 
-  // Admin / Author Delete Post
+  // Admin / Author Delete Post (Permanent Deletion)
   const handleDeletePost = (postId: string) => {
-    if (!confirm('Are you sure you want to delete this post?')) return;
-    const updated = posts.filter((p) => p.id !== postId);
-    setPosts(updated);
-    try {
-      localStorage.setItem('phenol_timeline_posts', JSON.stringify(updated));
-    } catch (e) {}
+    if (typeof window !== 'undefined' && !window.confirm('Are you sure you want to delete this post?')) return;
+    setPosts((prev) => {
+      const updated = prev.filter((p) => p.id !== postId);
+      try {
+        localStorage.setItem('phenol_timeline_posts', JSON.stringify(updated));
+      } catch (e) {}
+      return updated;
+    });
   };
 
-  // Admin / Author Delete Comment
+  // Admin / Author Delete Comment (Permanent Deletion)
   const handleDeleteComment = (postId: string, commentId: string) => {
-    if (!confirm('Are you sure you want to delete this comment?')) return;
-    const updated = posts.map((p) => {
-      if (p.id === postId) {
-        return {
-          ...p,
-          comments: p.comments.filter((c) => c.id !== commentId),
-        };
-      }
-      return p;
+    if (typeof window !== 'undefined' && !window.confirm('Are you sure you want to delete this comment?')) return;
+    setPosts((prev) => {
+      const updated = prev.map((p) => {
+        if (p.id === postId) {
+          return {
+            ...p,
+            comments: p.comments.filter((c) => c.id !== commentId),
+          };
+        }
+        return p;
+      });
+      try {
+        localStorage.setItem('phenol_timeline_posts', JSON.stringify(updated));
+      } catch (e) {}
+      return updated;
     });
-    setPosts(updated);
-    try {
-      localStorage.setItem('phenol_timeline_posts', JSON.stringify(updated));
-    } catch (e) {}
   };
 
   // ==========================================================================
@@ -450,9 +558,7 @@ export default function DashboardPage() {
 
     const updated = [newCourse, ...courses];
     setCourses(updated);
-    try {
-      localStorage.setItem('phenol_courses', JSON.stringify(updated));
-    } catch (e) {}
+    saveStoredCourses(updated);
 
     setIsCreateCourseOpen(false);
     setNewCourseCode('');
@@ -500,21 +606,19 @@ export default function DashboardPage() {
     });
 
     setCourses(updated);
-    try {
-      localStorage.setItem('phenol_courses', JSON.stringify(updated));
-    } catch (e) {}
+    saveStoredCourses(updated);
 
     setIsEditCourseOpen(false);
     setEditingCourseId(null);
   };
 
   const handleDeleteCourse = (courseId: string, title: string) => {
-    if (!confirm(`Are you sure you want to permanently delete course "${title}" and all its syllabus modules?`)) return;
-    const updated = courses.filter((c) => c.id !== courseId);
-    setCourses(updated);
-    try {
-      localStorage.setItem('phenol_courses', JSON.stringify(updated));
-    } catch (e) {}
+    if (typeof window !== 'undefined' && !window.confirm(`Are you sure you want to permanently delete course "${title}" and all its syllabus modules?`)) return;
+    setCourses((prev) => {
+      const updated = prev.filter((c) => c.id !== courseId);
+      saveStoredCourses(updated);
+      return updated;
+    });
   };
 
   const handleAddLecture = (e: React.FormEvent) => {
@@ -539,9 +643,7 @@ export default function DashboardPage() {
     });
 
     setCourses(updated);
-    try {
-      localStorage.setItem('phenol_courses', JSON.stringify(updated));
-    } catch (e) {}
+    saveStoredCourses(updated);
 
     setIsAddLectureOpen(false);
     setNewLectureTitle('');
@@ -583,9 +685,7 @@ export default function DashboardPage() {
     });
 
     setCourses(updated);
-    try {
-      localStorage.setItem('phenol_courses', JSON.stringify(updated));
-    } catch (e) {}
+    saveStoredCourses(updated);
 
     setIsEditLessonOpen(false);
     setEditingLessonCourseId(null);
@@ -593,21 +693,37 @@ export default function DashboardPage() {
   };
 
   const handleDeleteLesson = (courseId: string, lessonId: string, title: string) => {
-    if (!confirm(`Remove module "${title}" from the syllabus?`)) return;
-    const updated = courses.map((course) => {
-      if (course.id === courseId) {
-        return {
-          ...course,
-          lessons: course.lessons.filter((l) => l.id !== lessonId),
-        };
-      }
-      return course;
+    if (typeof window !== 'undefined' && !window.confirm(`Remove module "${title}" from the syllabus?`)) return;
+    setCourses((prev) => {
+      const updated = prev.map((course) => {
+        if (course.id === courseId) {
+          return {
+            ...course,
+            lessons: course.lessons.filter((l) => l.id !== lessonId),
+          };
+        }
+        return course;
+      });
+      saveStoredCourses(updated);
+      return updated;
     });
+  };
 
-    setCourses(updated);
-    try {
-      localStorage.setItem('phenol_courses', JSON.stringify(updated));
-    } catch (e) {}
+  // Permanent Delete Waitlist Application
+  const handleDeleteWaitlist = (id: string, name: string) => {
+    if (typeof window !== 'undefined' && !window.confirm(`Are you sure you want to permanently delete application for "${name}"?`)) return;
+    setWaitlist((prev) => {
+      const updated = prev.filter((w) => w.id !== id);
+      try {
+        localStorage.setItem('phenol_waitlist_applications', JSON.stringify(updated));
+        const deletedIds: string[] = JSON.parse(localStorage.getItem('phenol_deleted_waitlist_ids') || '[]');
+        if (!deletedIds.includes(id)) {
+          deletedIds.push(id);
+          localStorage.setItem('phenol_deleted_waitlist_ids', JSON.stringify(deletedIds));
+        }
+      } catch (e) {}
+      return updated;
+    });
   };
 
   // ==========================================================================
@@ -1588,6 +1704,14 @@ export default function DashboardPage() {
                                         <X className="w-3.5 h-3.5" />
                                       </button>
                                     )}
+
+                                    <button
+                                      onClick={() => handleDeleteWaitlist(app.id, app.fullName)}
+                                      title="Permanently Delete Application"
+                                      className="p-1.5 rounded hover:bg-rose-100 text-rose-800 border border-rose-200 hover:border-rose-300 transition-colors"
+                                    >
+                                      <Trash2 className="w-3.5 h-3.5" />
+                                    </button>
                                   </div>
                                 </td>
                               </tr>
@@ -2389,130 +2513,262 @@ export default function DashboardPage() {
               </button>
             </div>
 
-            <form onSubmit={handleSaveProfile} className="p-6 space-y-4">
-              <div className="flex items-center gap-4 border-b border-hairline pb-4">
-                <img
-                  src={profileAvatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80'}
-                  alt="Profile Preview"
-                  className="w-16 h-16 rounded-full object-cover border-2 border-burgundy-500/30"
-                />
-                <div className="flex-1 space-y-1">
-                  <label className="block text-xs font-semibold text-charcoal-900 font-sans">
-                    Avatar Image URL (رابط الصورة الشخصية)
-                  </label>
-                  <input
-                    type="url"
-                    value={profileAvatar}
-                    onChange={(e) => setProfileAvatar(e.target.value)}
-                    placeholder="https://images.unsplash.com/..."
-                    className="w-full px-3 py-1.5 text-xs bg-ivory-50 border border-hairline rounded text-charcoal-900 focus:outline-none focus:border-burgundy-500"
+            {/* Profile Modal Tabs */}
+            <div className="flex border-b border-hairline bg-ivory-300 px-6 pt-2 gap-4 text-xs font-semibold">
+              <button
+                type="button"
+                onClick={() => setProfileModalTab('info')}
+                className={`pb-2.5 border-b-2 transition-colors ${
+                  profileModalTab === 'info'
+                    ? 'border-burgundy-500 text-burgundy-500'
+                    : 'border-transparent text-charcoal-100 hover:text-charcoal-900'
+                }`}
+              >
+                Personal Details
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setProfileModalTab('security');
+                  setPasswordChangeStatus({ type: 'idle', message: '' });
+                }}
+                className={`pb-2.5 border-b-2 transition-colors flex items-center gap-1.5 ${
+                  profileModalTab === 'security'
+                    ? 'border-burgundy-500 text-burgundy-500'
+                    : 'border-transparent text-charcoal-100 hover:text-charcoal-900'
+                }`}
+              >
+                <Lock className="w-3.5 h-3.5" />
+                <span>Security & Password (تغيير كلمة المرور)</span>
+              </button>
+            </div>
+
+            {profileModalTab === 'info' ? (
+              <form onSubmit={handleSaveProfile} className="p-6 space-y-4">
+                <div className="flex items-center gap-4 border-b border-hairline pb-4">
+                  <img
+                    src={profileAvatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80'}
+                    alt="Profile Preview"
+                    className="w-16 h-16 rounded-full object-cover border-2 border-burgundy-500/30"
                   />
-                  <div className="flex items-center gap-2 pt-1 text-[11px] text-charcoal-50">
-                    <span>Quick presets:</span>
-                    <button
-                      type="button"
-                      onClick={() => setProfileAvatar('https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80')}
-                      className="text-burgundy-500 hover:underline"
-                    >
-                      Default Fellow
-                    </button>
-                    <span>•</span>
-                    <button
-                      type="button"
-                      onClick={() => setProfileAvatar('https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300&auto=format&fit=crop&q=80')}
-                      className="text-burgundy-500 hover:underline"
-                    >
-                      Professor
-                    </button>
+                  <div className="flex-1 space-y-1">
+                    <label className="block text-xs font-semibold text-charcoal-900 font-sans">
+                      Avatar Image URL (رابط الصورة الشخصية)
+                    </label>
+                    <input
+                      type="url"
+                      value={profileAvatar}
+                      onChange={(e) => setProfileAvatar(e.target.value)}
+                      placeholder="https://images.unsplash.com/..."
+                      className="w-full px-3 py-1.5 text-xs bg-ivory-50 border border-hairline rounded text-charcoal-900 focus:outline-none focus:border-burgundy-500"
+                    />
+                    <div className="flex items-center gap-2 pt-1 text-[11px] text-charcoal-50">
+                      <span>Quick presets:</span>
+                      <button
+                        type="button"
+                        onClick={() => setProfileAvatar('https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80')}
+                        className="text-burgundy-500 hover:underline"
+                      >
+                        Default Fellow
+                      </button>
+                      <span>•</span>
+                      <button
+                        type="button"
+                        onClick={() => setProfileAvatar('https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300&auto=format&fit=crop&q=80')}
+                        className="text-burgundy-500 hover:underline"
+                      >
+                        Professor
+                      </button>
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold text-charcoal-900 font-sans mb-1">
-                    Display Name (الاسم الكامل)
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={profileName}
-                    onChange={(e) => setProfileName(e.target.value)}
-                    className="w-full px-3 py-2 text-xs bg-ivory-50 border border-hairline rounded font-bold text-charcoal-900 focus:outline-none focus:border-burgundy-500"
-                  />
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-semibold text-charcoal-900 font-sans mb-1">
+                      Display Name (الاسم الكامل)
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={profileName}
+                      onChange={(e) => setProfileName(e.target.value)}
+                      className="w-full px-3 py-2 text-xs bg-ivory-50 border border-hairline rounded font-bold text-charcoal-900 focus:outline-none focus:border-burgundy-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-charcoal-900 font-sans mb-1">
+                      Academic Title (اللقب الأكاديمي)
+                    </label>
+                    <input
+                      type="text"
+                      value={profileTitle}
+                      onChange={(e) => setProfileTitle(e.target.value)}
+                      placeholder="Academic Director & Senior Fellow"
+                      className="w-full px-3 py-2 text-xs bg-ivory-50 border border-hairline rounded text-charcoal-900 focus:outline-none focus:border-burgundy-500"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-semibold text-charcoal-900 font-sans mb-1">
+                      Specialization (التخصص العلمي)
+                    </label>
+                    <input
+                      type="text"
+                      value={profileSpecialization}
+                      onChange={(e) => setProfileSpecialization(e.target.value)}
+                      placeholder="Organic Reaction Mechanisms"
+                      className="w-full px-3 py-2 text-xs bg-ivory-50 border border-hairline rounded text-charcoal-900 focus:outline-none focus:border-burgundy-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-charcoal-900 font-sans mb-1">
+                      Phone / WhatsApp
+                    </label>
+                    <input
+                      type="tel"
+                      value={profilePhone}
+                      onChange={(e) => setProfilePhone(e.target.value)}
+                      placeholder="+20 10xxxxxxxx"
+                      className="w-full px-3 py-2 text-xs bg-ivory-50 border border-hairline rounded text-charcoal-900 focus:outline-none focus:border-burgundy-500"
+                    />
+                  </div>
                 </div>
 
                 <div>
                   <label className="block text-xs font-semibold text-charcoal-900 font-sans mb-1">
-                    Academic Title (اللقب الأكاديمي)
+                    Bio / Academic Manifesto (النبذة التعريفية)
                   </label>
-                  <input
-                    type="text"
-                    value={profileTitle}
-                    onChange={(e) => setProfileTitle(e.target.value)}
-                    placeholder="Academic Director & Senior Fellow"
-                    className="w-full px-3 py-2 text-xs bg-ivory-50 border border-hairline rounded text-charcoal-900 focus:outline-none focus:border-burgundy-500"
+                  <textarea
+                    rows={3}
+                    value={profileBio}
+                    onChange={(e) => setProfileBio(e.target.value)}
+                    placeholder="Specialist in organic mechanisms and advanced physical chemistry..."
+                    className="w-full px-3 py-2 text-xs bg-ivory-50 border border-hairline rounded text-charcoal-900 font-sans focus:outline-none focus:border-burgundy-500 leading-relaxed"
                   />
                 </div>
-              </div>
 
-              <div className="grid grid-cols-2 gap-3">
+                <div className="flex justify-end gap-2 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsProfileModalOpen(false)}
+                    className="px-4 py-2 rounded border border-hairline text-charcoal-50 text-xs font-semibold"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-5 py-2 rounded bg-burgundy-500 hover:bg-burgundy-800 text-ivory-100 text-xs font-semibold shadow-quiet"
+                  >
+                    Save Profile Changes
+                  </button>
+                </div>
+              </form>
+            ) : (
+              <form onSubmit={handleChangePassword} className="p-6 space-y-4">
+                <div className="p-3.5 bg-ivory-200 border border-hairline rounded text-xs space-y-1">
+                  <span className="font-semibold text-charcoal-900 flex items-center gap-1.5 font-formula">
+                    <KeyRound className="w-3.5 h-3.5 text-burgundy-500" />
+                    <span>Password Management (إدارة كلمة المرور)</span>
+                  </span>
+                  <p className="text-[11px] text-charcoal-100 leading-relaxed font-sans">
+                    Change your confidential login password. Any profile (student or administrator) can safely update their password at any time.
+                  </p>
+                </div>
+
+                {passwordChangeStatus.type === 'error' && (
+                  <div className="p-3 bg-rose-50 border border-rose-200 text-rose-800 text-xs rounded flex items-start gap-2">
+                    <X className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+                    <span>{passwordChangeStatus.message}</span>
+                  </div>
+                )}
+
+                {passwordChangeStatus.type === 'success' && (
+                  <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs rounded flex items-start gap-2">
+                    <Check className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                    <span>{passwordChangeStatus.message}</span>
+                  </div>
+                )}
+
                 <div>
                   <label className="block text-xs font-semibold text-charcoal-900 font-sans mb-1">
-                    Specialization (التخصص العلمي)
+                    Current Password (كلمة المرور الحالية)
                   </label>
-                  <input
-                    type="text"
-                    value={profileSpecialization}
-                    onChange={(e) => setProfileSpecialization(e.target.value)}
-                    placeholder="Organic Reaction Mechanisms"
-                    className="w-full px-3 py-2 text-xs bg-ivory-50 border border-hairline rounded text-charcoal-900 focus:outline-none focus:border-burgundy-500"
-                  />
+                  <div className="relative">
+                    <Lock className="w-4 h-4 text-charcoal-50 absolute left-3 top-2.5 pointer-events-none" />
+                    <input
+                      type="password"
+                      required
+                      value={currentPasswordInput}
+                      onChange={(e) => setCurrentPasswordInput(e.target.value)}
+                      placeholder="••••••••"
+                      className="w-full pl-9 pr-3 py-2 text-xs bg-ivory-50 border border-hairline rounded text-charcoal-900 focus:outline-none focus:border-burgundy-500"
+                    />
+                  </div>
                 </div>
 
                 <div>
                   <label className="block text-xs font-semibold text-charcoal-900 font-sans mb-1">
-                    Phone / WhatsApp
+                    New Password (كلمة المرور الجديدة)
                   </label>
-                  <input
-                    type="tel"
-                    value={profilePhone}
-                    onChange={(e) => setProfilePhone(e.target.value)}
-                    placeholder="+20 10xxxxxxxx"
-                    className="w-full px-3 py-2 text-xs bg-ivory-50 border border-hairline rounded text-charcoal-900 focus:outline-none focus:border-burgundy-500"
-                  />
+                  <div className="relative">
+                    <Lock className="w-4 h-4 text-charcoal-50 absolute left-3 top-2.5 pointer-events-none" />
+                    <input
+                      type="password"
+                      required
+                      minLength={6}
+                      value={newPasswordInput}
+                      onChange={(e) => setNewPasswordInput(e.target.value)}
+                      placeholder="Minimum 6 characters"
+                      className="w-full pl-9 pr-3 py-2 text-xs bg-ivory-50 border border-hairline rounded text-charcoal-900 focus:outline-none focus:border-burgundy-500"
+                    />
+                  </div>
                 </div>
-              </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-charcoal-900 font-sans mb-1">
-                  Bio / Academic Manifesto (النبذة التعريفية)
-                </label>
-                <textarea
-                  rows={3}
-                  value={profileBio}
-                  onChange={(e) => setProfileBio(e.target.value)}
-                  placeholder="Specialist in organic mechanisms and advanced physical chemistry..."
-                  className="w-full px-3 py-2 text-xs bg-ivory-50 border border-hairline rounded text-charcoal-900 font-sans focus:outline-none focus:border-burgundy-500 leading-relaxed"
-                />
-              </div>
+                <div>
+                  <label className="block text-xs font-semibold text-charcoal-900 font-sans mb-1">
+                    Confirm New Password (تأكيد كلمة المرور)
+                  </label>
+                  <div className="relative">
+                    <Lock className="w-4 h-4 text-charcoal-50 absolute left-3 top-2.5 pointer-events-none" />
+                    <input
+                      type="password"
+                      required
+                      minLength={6}
+                      value={confirmPasswordInput}
+                      onChange={(e) => setConfirmPasswordInput(e.target.value)}
+                      placeholder="Re-enter new password"
+                      className="w-full pl-9 pr-3 py-2 text-xs bg-ivory-50 border border-hairline rounded text-charcoal-900 focus:outline-none focus:border-burgundy-500"
+                    />
+                  </div>
+                </div>
 
-              <div className="flex justify-end gap-2 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setIsProfileModalOpen(false)}
-                  className="px-4 py-2 rounded border border-hairline text-charcoal-50 text-xs font-semibold"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-5 py-2 rounded bg-burgundy-500 hover:bg-burgundy-800 text-ivory-100 text-xs font-semibold shadow-quiet"
-                >
-                  Save Profile Changes
-                </button>
-              </div>
-            </form>
+                <div className="flex justify-end gap-2 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsProfileModalOpen(false);
+                      setPasswordChangeStatus({ type: 'idle', message: '' });
+                    }}
+                    className="px-4 py-2 rounded border border-hairline text-charcoal-50 text-xs font-semibold"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={passwordLoading}
+                    className="px-5 py-2 rounded bg-burgundy-500 hover:bg-burgundy-800 disabled:opacity-50 text-ivory-100 text-xs font-semibold shadow-quiet flex items-center gap-1.5"
+                  >
+                    <KeyRound className="w-3.5 h-3.5" />
+                    <span>{passwordLoading ? 'Updating...' : 'Update Password'}</span>
+                  </button>
+                </div>
+              </form>
+            )}
           </div>
         </div>
       )}

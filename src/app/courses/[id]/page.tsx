@@ -1,9 +1,11 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { CHEMISTRY_COURSES } from '@/data/mock-data';
+import { getStoredCourses } from '@/lib/courses-storage';
+import { ChemistryCourse } from '@/types/lms';
 import { PhenolLogo } from '@/components/brand/PhenolLogo';
 import {
   ArrowRight,
@@ -17,7 +19,13 @@ export default function CourseDetailsPage() {
   const params = useParams();
   const courseId = params?.id as string;
 
-  const course = CHEMISTRY_COURSES.find((c) => c.id === courseId) || CHEMISTRY_COURSES[0];
+  const [coursesList, setCoursesList] = useState<ChemistryCourse[]>(CHEMISTRY_COURSES);
+
+  useEffect(() => {
+    setCoursesList(getStoredCourses());
+  }, []);
+
+  const course = coursesList.find((c) => c.id === courseId) || coursesList[0] || CHEMISTRY_COURSES[0];
 
   return (
     <div className="min-h-screen bg-ivory-200 text-charcoal-900 flex flex-col font-sans selection:bg-burgundy-500 selection:text-ivory-100">
