@@ -33,6 +33,13 @@ import { getUserPassword, setUserPassword, verifyUserPassword } from '@/lib/auth
 import { getStoredCourses, saveStoredCourses, markCourseDeleted } from '@/lib/courses-storage';
 import { getStoredPosts, saveStoredPosts, markPostDeleted, syncWithServerTimeline } from '@/lib/timeline-storage';
 import { StudentProfileModal } from '@/components/profile/StudentProfileModal';
+import {
+  saveUserProfile,
+  getPersistentAvatar,
+  getPersistentProfile,
+  compressAvatarFile,
+} from '@/lib/user-profile';
+
 import { CourseStudentsModal } from '@/components/courses/CourseStudentsModal';
 import {
   CourseEnrollment,
@@ -240,23 +247,28 @@ export default function DashboardPage() {
               cleanEmail.includes('phenolvii') ||
               ADMIN_EMAILS.includes(cleanEmail);
             const userPhone = session.user.user_metadata?.phone || session.user.user_metadata?.whatsapp;
+            const customProfile = getPersistentProfile(cleanEmail);
+            const persistentAvatar = getPersistentAvatar(cleanEmail) ||
+              session.user.user_metadata?.avatar ||
+              session.user.user_metadata?.avatar_url ||
+              (isAdmin
+                ? 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80'
+                : 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=80');
+
             const googleUser: AuthUser = {
               id: session.user.id,
-              name: isAdmin ? 'Dr. Omar Magdi' : (session.user.user_metadata?.full_name || session.user.user_metadata?.name || cleanEmail.split('@')[0]),
+              name: customProfile?.name || (isAdmin ? 'Dr. Omar Magdi' : (session.user.user_metadata?.full_name || session.user.user_metadata?.name || cleanEmail.split('@')[0])),
               email: cleanEmail,
-              phone: userPhone,
+              phone: customProfile?.phone || userPhone,
               role: isAdmin ? 'INSTRUCTOR' : 'STUDENT',
-              avatar: isAdmin
-                ? 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80'
-                : (session.user.user_metadata?.avatar_url || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=80'),
+              avatar: persistentAvatar,
               registeredAt: session.user.created_at,
-              title: isAdmin ? 'Academic Director & Senior Fellow' : undefined,
-              specialization: isAdmin ? 'Organic Reaction Mechanisms & Physical Chemistry' : undefined,
+              title: customProfile?.title || (isAdmin ? 'Academic Director & Senior Fellow' : undefined),
+              specialization: customProfile?.specialization || (isAdmin ? 'Organic Reaction Mechanisms & Physical Chemistry' : undefined),
+              bio: customProfile?.bio,
+              academicTrack: customProfile?.academicTrack,
             };
-            localStorage.setItem('phenol_auth_user', JSON.stringify(googleUser));
-            if (!isAdmin) {
-              recordRegisteredStudent(googleUser);
-            }
+            saveUserProfile(googleUser);
             setCurrentUser(googleUser);
             if (!isAdmin && (!userPhone || userPhone.trim().length < 6)) {
               setIsWhatsAppRequiredModalOpen(true);
@@ -275,23 +287,28 @@ export default function DashboardPage() {
             cleanEmail.includes('phenolvii') ||
             ADMIN_EMAILS.includes(cleanEmail);
           const userPhone = session.user.user_metadata?.phone || session.user.user_metadata?.whatsapp;
+          const customProfile = getPersistentProfile(cleanEmail);
+          const persistentAvatar = getPersistentAvatar(cleanEmail) ||
+            session.user.user_metadata?.avatar ||
+            session.user.user_metadata?.avatar_url ||
+            (isAdmin
+              ? 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80'
+              : 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=80');
+
           const googleUser: AuthUser = {
             id: session.user.id,
-            name: isAdmin ? 'Dr. Omar Magdi' : (session.user.user_metadata?.full_name || session.user.user_metadata?.name || cleanEmail.split('@')[0]),
+            name: customProfile?.name || (isAdmin ? 'Dr. Omar Magdi' : (session.user.user_metadata?.full_name || session.user.user_metadata?.name || cleanEmail.split('@')[0])),
             email: cleanEmail,
-            phone: userPhone,
+            phone: customProfile?.phone || userPhone,
             role: isAdmin ? 'INSTRUCTOR' : 'STUDENT',
-            avatar: isAdmin
-              ? 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80'
-              : (session.user.user_metadata?.avatar_url || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=80'),
+            avatar: persistentAvatar,
             registeredAt: session.user.created_at,
-            title: isAdmin ? 'Academic Director & Senior Fellow' : undefined,
-            specialization: isAdmin ? 'Organic Reaction Mechanisms & Physical Chemistry' : undefined,
+            title: customProfile?.title || (isAdmin ? 'Academic Director & Senior Fellow' : undefined),
+            specialization: customProfile?.specialization || (isAdmin ? 'Organic Reaction Mechanisms & Physical Chemistry' : undefined),
+            bio: customProfile?.bio,
+            academicTrack: customProfile?.academicTrack,
           };
-          localStorage.setItem('phenol_auth_user', JSON.stringify(googleUser));
-          if (!isAdmin) {
-            recordRegisteredStudent(googleUser);
-          }
+          saveUserProfile(googleUser);
           setCurrentUser(googleUser);
           if (!isAdmin && (!userPhone || userPhone.trim().length < 6)) {
             setIsWhatsAppRequiredModalOpen(true);
@@ -318,12 +335,21 @@ export default function DashboardPage() {
           if (u.role === 'STUDENT' && u.email && !isAdmin) {
             recordRegisteredStudent(u);
           }
+          const persistentAv = getPersistentAvatar(cleanEmail, u.avatar);
+          const customProf = getPersistentProfile(cleanEmail);
+          u.avatar = persistentAv;
+          if (customProf?.title) u.title = customProf.title;
+          if (customProf?.specialization) u.specialization = customProf.specialization;
+          if (customProf?.bio) u.bio = customProf.bio;
+          if (customProf?.name) u.name = customProf.name;
+          if (customProf?.phone) u.phone = customProf.phone;
+
           setCurrentUser(u);
           setProfileName(u.name || (isAdmin ? 'Dr. Omar Magdi' : 'Enrolled Scholar'));
           setProfileTitle(u.title || (isAdmin ? 'Academic Director & Senior Fellow' : 'Enrolled Scholar'));
           setProfileSpecialization(u.specialization || (isAdmin ? 'Organic Reaction Mechanisms & Physical Chemistry' : 'Chemistry Major'));
           setProfileBio(u.bio || (isAdmin ? 'Specialist in organic mechanisms, reaction kinetics, and first-principles pedagogy across 4 Core Tracks.' : 'Dedicated to learning chemistry through foundational logic.'));
-          setProfileAvatar(u.avatar || (isAdmin ? 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80' : 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=80'));
+          setProfileAvatar(persistentAv);
           setProfilePhone(u.phone || '');
 
           // Prompt student for WhatsApp if missing
@@ -472,11 +498,9 @@ export default function DashboardPage() {
     }
   };
 
-  const handleSaveStudentProfile = (updatedUser: AuthUser) => {
+  const handleSaveStudentProfile = async (updatedUser: AuthUser) => {
     setCurrentUser(updatedUser);
-    try {
-      localStorage.setItem('phenol_auth_user', JSON.stringify(updatedUser));
-    } catch (e) {}
+    await saveUserProfile(updatedUser);
   };
 
   // Student requests course activation
@@ -538,7 +562,7 @@ export default function DashboardPage() {
   // ==========================================================================
   // PROFILE UPDATE ACTION
   // ==========================================================================
-  const handleSaveProfile = (e: React.FormEvent) => {
+  const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!currentUser) return;
 
@@ -553,10 +577,7 @@ export default function DashboardPage() {
     };
 
     setCurrentUser(updatedUser);
-    try {
-      localStorage.setItem('phenol_auth_user', JSON.stringify(updatedUser));
-    } catch (e) {}
-
+    await saveUserProfile(updatedUser);
     setIsProfileModalOpen(false);
   };
 
@@ -3181,20 +3202,20 @@ export default function DashboardPage() {
                           type="file"
                           accept="image/*"
                           className="hidden"
-                          onChange={(e) => {
+                          onChange={async (e) => {
                             const file = e.target.files?.[0];
                             if (file) {
-                              if (file.size > 2 * 1024 * 1024) {
-                                alert('Please select an image smaller than 2MB');
-                                return;
-                              }
-                              const reader = new FileReader();
-                              reader.onload = () => {
-                                if (typeof reader.result === 'string') {
-                                  setProfileAvatar(reader.result);
+                              try {
+                                const compressed = await compressAvatarFile(file);
+                                setProfileAvatar(compressed);
+                                if (currentUser) {
+                                  const quick = { ...currentUser, avatar: compressed };
+                                  setCurrentUser(quick);
+                                  await saveUserProfile(quick);
                                 }
-                              };
-                              reader.readAsDataURL(file);
+                              } catch (err) {
+                                alert('Failed to process image');
+                              }
                             }
                           }}
                         />

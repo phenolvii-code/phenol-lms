@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { AuthUser, AuthModalMode } from '@/types/auth';
+import { getPersistentAvatar } from '@/lib/user-profile';
 import { Navbar } from '@/components/layout/Navbar';
 import { AuthModal } from '@/components/auth/AuthModal';
 import { HeroSection } from '@/components/home/HeroSection';
@@ -27,11 +28,23 @@ export default function Home() {
     try {
       const saved = localStorage.getItem('phenol_auth_user');
       if (saved) {
-        setCurrentUser(JSON.parse(saved));
+        const u = JSON.parse(saved);
+        if (u?.email) {
+          u.avatar = getPersistentAvatar(u.email, u.avatar);
+        }
+        setCurrentUser(u);
       }
     } catch (e) {
       console.error(e);
     }
+
+    const handleProfileUpdated = (e: any) => {
+      if (e.detail) {
+        setCurrentUser(e.detail);
+      }
+    };
+    window.addEventListener('phenol_profile_updated', handleProfileUpdated);
+    return () => window.removeEventListener('phenol_profile_updated', handleProfileUpdated);
   }, []);
 
   const handleOpenAuth = (mode: AuthModalMode) => {

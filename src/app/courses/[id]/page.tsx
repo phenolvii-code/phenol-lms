@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { CourseShareModal } from '@/components/courses/CourseShareModal';
 import { captureIncomingReferral, getReferralCodeForUser } from '@/lib/referral-system';
+import { getPersistentAvatar } from '@/lib/user-profile';
 
 export default function CourseDetailsPage() {
   const params = useParams();
@@ -46,6 +47,9 @@ export default function CourseDetailsPage() {
     }
     if (saved) {
         const u: AuthUser = JSON.parse(saved);
+        if (u?.email) {
+          u.avatar = getPersistentAvatar(u.email, u.avatar);
+        }
         setCurrentUser(u);
         const access = checkUserCourseAccess(u, courseId);
         setEnrollmentStatus(access.status === 'ACTIVE' ? 'ACTIVE' : access.status === 'PENDING' ? 'PENDING' : 'NOT_ENROLLED');

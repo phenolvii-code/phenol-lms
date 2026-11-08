@@ -5,6 +5,7 @@ import { AuthUser } from '@/types/auth';
 import { CourseEnrollment, getStoredEnrollments } from '@/lib/enrollment-storage';
 import { verifyUserPassword, setUserPassword } from '@/lib/auth-passwords';
 import { WhatsAppIcon } from '@/components/auth/AuthIcons';
+import { compressAvatarFile, saveUserProfile } from '@/lib/user-profile';
 import {
   getReferralStats,
   generateCourseReferralLink,
@@ -103,24 +104,25 @@ export const StudentProfileModal: React.FC<StudentProfileModalProps> = ({
     setTimeout(() => setCopiedRefLink(false), 2000);
   };
 
-  const handleImageFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      if (file.size > 2 * 1024 * 1024) {
-        alert('Please choose an image file under 2 MB.');
-        return;
+      try {
+        const compressed = await compressAvatarFile(file);
+        setAvatar(compressed);
+        const quick = {
+          ...user,
+          avatar: compressed,
+        };
+        onSave(quick);
+        await saveUserProfile(quick);
+      } catch (err) {
+        alert('Failed to process image');
       }
-      const reader = new FileReader();
-      reader.onload = () => {
-        if (typeof reader.result === 'string') {
-          setAvatar(reader.result);
-        }
-      };
-      reader.readAsDataURL(file);
     }
   };
 
-  const handleSaveInfo = (e: React.FormEvent) => {
+  const handleSaveInfo = async (e: React.FormEvent) => {
     e.preventDefault();
     const updated: AuthUser = {
       ...user,
@@ -131,6 +133,7 @@ export const StudentProfileModal: React.FC<StudentProfileModalProps> = ({
       avatar: avatar.trim() || user.avatar,
     };
     onSave(updated);
+    await saveUserProfile(updated);
     onClose();
   };
 

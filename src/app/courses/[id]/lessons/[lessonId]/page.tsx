@@ -13,6 +13,7 @@ import {
 } from '@/lib/enrollment-storage';
 import { ChemistryCourse, ChemistryLesson, LectureTimestamp } from '@/types/lms';
 import { AuthUser } from '@/types/auth';
+import { getPersistentAvatar } from '@/lib/user-profile';
 import { PhenolLogo } from '@/components/brand/PhenolLogo';
 import { PhenolVideoPlayer } from '@/components/video/PhenolVideoPlayer';
 import {
@@ -71,7 +72,11 @@ export default function LessonExperiencePage() {
     try {
       const savedUser = localStorage.getItem('phenol_auth_user');
       if (savedUser) {
-        setCurrentUser(JSON.parse(savedUser));
+        const u: AuthUser = JSON.parse(savedUser);
+        if (u?.email) {
+          u.avatar = getPersistentAvatar(u.email, u.avatar);
+        }
+        setCurrentUser(u);
       }
 
       const savedCompleted = localStorage.getItem('phenol_completed_lessons');
