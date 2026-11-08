@@ -113,7 +113,7 @@ export const WhatsAppPromptModal: React.FC<WhatsAppPromptModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-charcoal-900/80 backdrop-blur-md animate-fade-in font-sans">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-charcoal-900/80 backdrop-blur-md animate-fade-in font-sans">
       <div className="relative w-full max-w-md bg-ivory-100 rounded-lg border border-hairline shadow-editorial overflow-hidden">
         {/* Header with WhatsApp green accent */}
         <div className="p-6 border-b border-hairline bg-ivory-200 flex items-center justify-between">

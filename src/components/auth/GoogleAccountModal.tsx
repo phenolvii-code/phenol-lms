@@ -38,7 +38,7 @@ export const GoogleAccountModal: React.FC<GoogleAccountModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-charcoal-900/70 backdrop-blur-sm animate-fade-in font-sans">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-charcoal-900/70 backdrop-blur-sm animate-fade-in font-sans">
       <div className="relative w-full max-w-sm bg-white rounded-2xl shadow-editorial border border-hairline overflow-hidden text-charcoal-900">
         {/* Top Google Header */}
         <div className="p-6 pb-4 border-b border-hairline/60 bg-ivory-50/50">
