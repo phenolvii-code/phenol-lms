@@ -12,6 +12,7 @@ export interface AuthUser {
   title?: string;
   bio?: string;
   specialization?: string;
+  academicCode?: string;
 }
 
 export const ADMIN_EMAILS = [

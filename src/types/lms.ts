@@ -23,6 +23,12 @@ export interface InstructorProfile {
   supervisionScope: string;
 }
 
+export interface LectureTimestamp {
+  timeSeconds: number;
+  timeLabel: string;
+  title: string;
+}
+
 export interface ChemistryLesson {
   id: string;
   title: string;
@@ -30,9 +36,12 @@ export interface ChemistryLesson {
   type: 'video' | 'lab' | 'pdf';
   completed?: boolean;
   videoUrl?: string;
+  videoProvider?: 'youtube' | 'vimeo' | 'bunny' | 'direct' | 'auto';
   summary: string;
   keyFormulas?: string[];
   pdfNotesUrl?: string;
+  pdfNotesName?: string;
+  timestamps?: LectureTimestamp[];
 }
 
 export interface ChemistryCourse {

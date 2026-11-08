@@ -76,8 +76,17 @@ export const CHEMISTRY_COURSES: ChemistryCourse[] = [
         duration: '50 دقيقة',
         type: 'video',
         completed: true,
-        summary: 'دراسة تهجين ذرة الكربون sp³ و sp² و sp وتأثير نوع الرابطة على النشاط الكيميائي والزوايا الفراغية.',
+        videoUrl: 'https://www.youtube.com/watch?v=k3rRrl9J2F4',
+        pdfNotesUrl: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
+        pdfNotesName: 'مذكرة التهجين والروابط التساهمية - د. عمر مجدي',
+        summary: 'دراسة تهجين ذرة الكربون sp³ و sp² و sp وتأثير نوع الرابطة على النشاط الكيميائي والزوايا الفراغية وتوزيع السحب الإلكترونية.',
         keyFormulas: ['تهجين الميثان: sp³ (زاوية 109.5°)', 'تهجين الإيثيلين: sp² (زاوية 120°)'],
+        timestamps: [
+          { timeSeconds: 0, timeLabel: '00:00', title: 'المقدمة: لماذا يعتبر الكربون استثنائياً في تكوين الروابط؟' },
+          { timeSeconds: 420, timeLabel: '07:00', title: 'إثارة ذرة الكربون واندماج الأوربيتالات المهجنة' },
+          { timeSeconds: 1200, timeLabel: '20:00', title: 'الفرق الهندسي بين روابط سيجما القوية وروابط باي الضعيفة' },
+          { timeSeconds: 2100, timeLabel: '35:00', title: 'حل تطبيقات ونماذج امتحانات وزارية على التهجين' },
+        ],
       },
       {
         id: 'les-ar-2',
@@ -85,8 +94,17 @@ export const CHEMISTRY_COURSES: ChemistryCourse[] = [
         duration: '55 دقيقة',
         type: 'video',
         completed: true,
+        videoUrl: 'https://www.youtube.com/watch?v=bka20Q9TN6M',
+        pdfNotesUrl: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
+        pdfNotesName: 'مذكرة مشتقات الهيدروكربونات والفينولات - د. عمر مجدي',
         summary: 'التفسير العلمي لزيادة حامضية الفينول مليون مرة عن الكحولات الأليفاتية عبر لا تمركز الشحنة السالبة على حلقة البنزين.',
         keyFormulas: ['pKa (الفينول) = 9.95 مقابل pKa (الإيثانول) = 15.9', 'C₆H₅OH + NaOH ⇌ C₆H₅O⁻Na⁺ + H₂O'],
+        timestamps: [
+          { timeSeconds: 0, timeLabel: '00:00', title: 'مقارنة الخواص الفيزيائية بين الكحولات والفينولات' },
+          { timeSeconds: 540, timeLabel: '09:00', title: 'تأثير حلقة البنزين الساحبة للإلكترونات على رابطة O-H' },
+          { timeSeconds: 1500, timeLabel: '25:00', title: 'الأشكال الرنينية لأيون الفينوكسيد وتشتيت الشحنة' },
+          { timeSeconds: 2400, timeLabel: '40:00', title: 'تفاعل الفينول مع الصودا الكاوية وعدم تفاعل الكحولات' },
+        ],
       },
       {
         id: 'les-ar-3',
@@ -94,8 +112,17 @@ export const CHEMISTRY_COURSES: ChemistryCourse[] = [
         duration: '60 دقيقة',
         type: 'video',
         completed: false,
-        summary: 'تأثير زوج الإلكترونات الحر على ذرة الأكسجين في توجيه التفاعل نحو الموضعين أورثو وبارا وتخليق حمض البكريك.',
+        videoUrl: 'https://www.youtube.com/watch?v=6N_yBq_n9Xk',
+        pdfNotesUrl: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
+        pdfNotesName: 'مذكرة الاستبدال الأروماتي وحمض البكريك - د. عمر مجدي',
+        summary: 'تأثير زوج الإلكترونات الحر على ذرة الأكسجين في توجيه التفاعل نحو الموضعين أورثو وبارا وتخليق حمض البكريك والمتفجرات.',
         keyFormulas: ['C₆H₅OH + 3 HNO₃ → 2,4,6-(NO₂)₃-C₆H₂-OH + 3 H₂O'],
+        timestamps: [
+          { timeSeconds: 0, timeLabel: '00:00', title: 'توجيه المجموعات المنشطة لحلقة البنزين (Ortho / Para)' },
+          { timeSeconds: 600, timeLabel: '10:00', title: 'ميكانزم النيترة وتكوين خليط أورثو وبارا نتروفينول' },
+          { timeSeconds: 1800, timeLabel: '30:00', title: 'النيترة التامة وتحضير حمض البكريك ثلاثي نتروفينول' },
+          { timeSeconds: 2700, timeLabel: '45:00', title: 'كشف كلوريد الحديديك وفحص ماء البروم في المعمل' },
+        ],
       },
     ],
   },
@@ -440,7 +467,56 @@ export const SUBMISSIONS: StudentSubmission[] = [];
 
 export const WAITLIST_APPLICANTS: WaitlistApplication[] = [];
 
-export const ENROLLED_STUDENTS: EnrolledStudent[] = [];
+export const ENROLLED_STUDENTS: EnrolledStudent[] = [
+  {
+    id: 'stu-101',
+    code: 'PH-4821-Y',
+    fullName: 'Youssef Mansour El-Sayed',
+    email: 'youssef.mansour@student.phenol.academy',
+    phone: '+20 101 234 5678',
+    trackCode: 'Thanaweya Amma (Arabic)',
+    enrolledAt: 'Jan 15, 2026',
+    progressPercent: 78,
+    averageGrade: 94,
+    status: 'active',
+  },
+  {
+    id: 'stu-102',
+    code: 'PH-7391-S',
+    fullName: 'Salma Khaled El-Nemr',
+    email: 'salma.k@phenol.academy',
+    phone: '+20 112 345 6789',
+    trackCode: 'Thanaweya Amma (Languages)',
+    enrolledAt: 'Jan 18, 2026',
+    progressPercent: 88,
+    averageGrade: 98,
+    status: 'active',
+  },
+  {
+    id: 'stu-103',
+    code: 'PH-9182-A',
+    fullName: 'Ahmed Hossam El-Din',
+    email: 'ahmed.hossam@student.edu',
+    phone: '+20 120 987 6543',
+    trackCode: 'IGCSE & A-Level / STEM',
+    enrolledAt: 'Feb 02, 2026',
+    progressPercent: 62,
+    averageGrade: 91,
+    status: 'active',
+  },
+  {
+    id: 'stu-104',
+    code: 'PH-6215-M',
+    fullName: 'Mariam Tarek Mostafa',
+    email: 'mariam.tarek@pharmacy.cu.edu.eg',
+    phone: '+20 109 876 5432',
+    trackCode: 'University Chemistry (Pharmacy)',
+    enrolledAt: 'Feb 10, 2026',
+    progressPercent: 45,
+    averageGrade: 89,
+    status: 'active',
+  },
+];
 
 export const INITIAL_TIMELINE_POSTS: TimelinePost[] = [
   {

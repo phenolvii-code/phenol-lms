@@ -87,6 +87,7 @@ export default function DashboardPage() {
   const [waitlist, setWaitlist] = useState<WaitlistApplication[]>(WAITLIST_APPLICANTS);
   const [students, setStudents] = useState<EnrolledStudent[]>(ENROLLED_STUDENTS);
   const [posts, setPosts] = useState<TimelinePost[]>(INITIAL_TIMELINE_POSTS);
+  const [rosterSearchQuery, setRosterSearchQuery] = useState('');
 
   // Profile Modal State
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
@@ -136,6 +137,9 @@ export default function DashboardPage() {
   const [newLectureCourse, setNewLectureCourse] = useState(CHEMISTRY_COURSES[0].id);
   const [newLectureTitle, setNewLectureTitle] = useState('');
   const [newLectureDuration, setNewLectureDuration] = useState('45 min');
+  const [newLectureVideoUrl, setNewLectureVideoUrl] = useState('');
+  const [newLecturePdfUrl, setNewLecturePdfUrl] = useState('');
+  const [newLecturePdfName, setNewLecturePdfName] = useState('');
   const [newLectureSummary, setNewLectureSummary] = useState('');
   const [newLectureFormula, setNewLectureFormula] = useState('');
 
@@ -145,6 +149,9 @@ export default function DashboardPage() {
   const [editingLessonId, setEditingLessonId] = useState<string | null>(null);
   const [editLessonTitle, setEditLessonTitle] = useState('');
   const [editLessonDuration, setEditLessonDuration] = useState('');
+  const [editLessonVideoUrl, setEditLessonVideoUrl] = useState('');
+  const [editLessonPdfUrl, setEditLessonPdfUrl] = useState('');
+  const [editLessonPdfName, setEditLessonPdfName] = useState('');
   const [editLessonSummary, setEditLessonSummary] = useState('');
   const [editLessonFormula, setEditLessonFormula] = useState('');
 
@@ -631,8 +638,16 @@ export default function DashboardPage() {
           duration: newLectureDuration,
           type: 'video',
           completed: false,
+          videoUrl: newLectureVideoUrl.trim() || undefined,
+          pdfNotesUrl: newLecturePdfUrl.trim() || undefined,
+          pdfNotesName: newLecturePdfName.trim() || undefined,
           summary: newLectureSummary || 'Module curated by Dr. Omar Magdi for deep conceptual mastery.',
           keyFormulas: newLectureFormula ? [newLectureFormula] : undefined,
+          timestamps: [
+            { timeSeconds: 0, timeLabel: '00:00', title: 'المقدمة وتأصيل المفاهيم' },
+            { timeSeconds: 600, timeLabel: '10:00', title: 'ميكانزم التفاعل والأوربيتالات' },
+            { timeSeconds: 1500, timeLabel: '25:00', title: 'تطبيقات عملية وأسئلة وزارية' },
+          ],
         };
         return {
           ...course,
@@ -647,6 +662,9 @@ export default function DashboardPage() {
 
     setIsAddLectureOpen(false);
     setNewLectureTitle('');
+    setNewLectureVideoUrl('');
+    setNewLecturePdfUrl('');
+    setNewLecturePdfName('');
     setNewLectureSummary('');
     setNewLectureFormula('');
   };
@@ -656,6 +674,9 @@ export default function DashboardPage() {
     setEditingLessonId(lesson.id);
     setEditLessonTitle(lesson.title);
     setEditLessonDuration(lesson.duration);
+    setEditLessonVideoUrl(lesson.videoUrl || '');
+    setEditLessonPdfUrl(lesson.pdfNotesUrl || '');
+    setEditLessonPdfName(lesson.pdfNotesName || '');
     setEditLessonSummary(lesson.summary);
     setEditLessonFormula(lesson.keyFormulas?.[0] || '');
     setIsEditLessonOpen(true);
@@ -673,6 +694,9 @@ export default function DashboardPage() {
               ...l,
               title: editLessonTitle,
               duration: editLessonDuration,
+              videoUrl: editLessonVideoUrl.trim() || undefined,
+              pdfNotesUrl: editLessonPdfUrl.trim() || undefined,
+              pdfNotesName: editLessonPdfName.trim() || undefined,
               summary: editLessonSummary,
               keyFormulas: editLessonFormula ? [editLessonFormula] : undefined,
             };
@@ -1843,71 +1867,113 @@ export default function DashboardPage() {
             {/* TAB 5: COHORT STUDENT ROSTER */}
             {adminTab === 'roster' && (
               <div className="space-y-6">
-                <div>
-                  <h2 className="text-xl font-bold text-charcoal-900 font-display">
-                    Enrolled Student Cohort Roster (2026/2027)
-                  </h2>
-                  <p className="text-xs text-charcoal-100 font-sans mt-0.5">
-                    Official directory of active scholars enrolled across the 4 chemistry tracks under Dr. Omar Magdi.
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div>
+                    <h2 className="text-xl font-bold text-charcoal-900 font-display">
+                      Enrolled Student Cohort Roster (2026/2027)
+                    </h2>
+                    <p className="text-xs text-charcoal-100 font-sans mt-0.5">
+                      Official directory of active scholars enrolled across the 4 chemistry tracks under Dr. Omar Magdi.
+                    </p>
+                  </div>
+
+                  {/* Forensic Code Search Input */}
+                  <div className="w-full sm:w-80 relative">
+                    <Search className="w-4 h-4 text-charcoal-50 absolute left-3 top-2.5 pointer-events-none" />
+                    <input
+                      type="text"
+                      value={rosterSearchQuery}
+                      onChange={(e) => setRosterSearchQuery(e.target.value)}
+                      placeholder="Search by Code (PH-XXXX), name, or phone..."
+                      className="w-full pl-9 pr-3 py-2 text-xs bg-ivory-100 border border-hairline rounded text-charcoal-900 font-sans focus:outline-none focus:border-burgundy-500 shadow-quiet"
+                    />
+                  </div>
+                </div>
+
+                {/* Forensic Watermark Identification Guide */}
+                <div className="p-3.5 bg-ivory-300/60 border border-hairline rounded text-xs space-y-1">
+                  <span className="font-semibold text-charcoal-900 flex items-center gap-1.5 font-formula">
+                    <ShieldCheck className="w-3.5 h-3.5 text-burgundy-500" />
+                    <span>Forensic Leak Detection Guide (كشف تسريبات الفيديو):</span>
+                  </span>
+                  <p className="text-[11px] text-charcoal-100 leading-relaxed font-sans">
+                    Every enrolled student has a unique Academic Security Code blended into their video stream (e.g. <code className="text-burgundy-500 font-bold">PH-4821-Y</code>). If an unauthorized video is leaked on social media or Telegram, search the code appearing in the video above to immediately pinpoint the student identity and phone number.
                   </p>
                 </div>
 
-                {students.length > 0 ? (
-                  <div className="border border-hairline rounded bg-ivory-100 overflow-hidden shadow-quiet">
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-left border-collapse">
-                        <thead>
-                          <tr className="border-b border-hairline bg-ivory-200/80 text-[11px] font-formula uppercase tracking-wider text-charcoal-50">
-                            <th className="py-3 px-4">Student ID</th>
-                            <th className="py-3 px-4">Full Name</th>
-                            <th className="py-3 px-4">Email</th>
-                            <th className="py-3 px-4">Enrolled Track</th>
-                            <th className="py-3 px-4">Enrolled Date</th>
-                            <th className="py-3 px-4 text-right">Status</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-hairline text-xs font-sans">
-                          {students.map((st) => (
-                            <tr key={st.id} className="hover:bg-ivory-300/30 transition-colors">
-                              <td className="py-3.5 px-4 font-formula font-semibold text-charcoal-900">
-                                {st.code}
-                              </td>
-                              <td className="py-3.5 px-4 font-bold text-charcoal-900">
-                                {st.fullName}
-                              </td>
-                              <td className="py-3.5 px-4 text-charcoal-100">
-                                {st.email}
-                              </td>
-                              <td className="py-3.5 px-4">
-                                <span className="font-formula font-bold text-burgundy-500">
-                                  {st.trackCode}
-                                </span>
-                              </td>
-                              <td className="py-3.5 px-4 font-formula text-charcoal-50">
-                                {st.enrolledAt}
-                              </td>
-                              <td className="py-3.5 px-4 text-right">
-                                <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
-                                  Active Scholar
-                                </span>
-                              </td>
+                {(() => {
+                  const filteredStudents = students.filter((st) => {
+                    if (!rosterSearchQuery.trim()) return true;
+                    const q = rosterSearchQuery.trim().toLowerCase();
+                    return (
+                      st.fullName.toLowerCase().includes(q) ||
+                      st.code.toLowerCase().includes(q) ||
+                      st.email.toLowerCase().includes(q) ||
+                      st.phone.includes(q)
+                    );
+                  });
+
+                  return filteredStudents.length > 0 ? (
+                    <div className="border border-hairline rounded bg-ivory-100 overflow-hidden shadow-quiet">
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-left border-collapse">
+                          <thead>
+                            <tr className="border-b border-hairline bg-ivory-200/80 text-[11px] font-formula uppercase tracking-wider text-charcoal-50">
+                              <th className="py-3 px-4">Forensic Code</th>
+                              <th className="py-3 px-4">Full Name</th>
+                              <th className="py-3 px-4">WhatsApp Contact</th>
+                              <th className="py-3 px-4">Enrolled Track</th>
+                              <th className="py-3 px-4">Enrolled Date</th>
+                              <th className="py-3 px-4 text-right">Status</th>
                             </tr>
-                          ))}
-                        </tbody>
-                      </table>
+                          </thead>
+                          <tbody className="divide-y divide-hairline text-xs font-sans">
+                            {filteredStudents.map((st) => (
+                              <tr key={st.id} className="hover:bg-ivory-300/30 transition-colors">
+                                <td className="py-3.5 px-4 font-mono font-bold text-burgundy-600">
+                                  <span className="bg-burgundy-50 border border-burgundy-200 px-2 py-0.5 rounded">
+                                    {st.code}
+                                  </span>
+                                </td>
+                                <td className="py-3.5 px-4 font-bold text-charcoal-900">
+                                  {st.fullName}
+                                </td>
+                                <td className="py-3.5 px-4 text-charcoal-100 font-mono text-[11px]">
+                                  {st.phone}
+                                </td>
+                                <td className="py-3.5 px-4">
+                                  <span className="font-formula font-bold text-burgundy-500">
+                                    {st.trackCode}
+                                  </span>
+                                </td>
+                                <td className="py-3.5 px-4 font-formula text-charcoal-50">
+                                  {st.enrolledAt}
+                                </td>
+                                <td className="py-3.5 px-4 text-right">
+                                  <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                                    Active Scholar
+                                  </span>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
                     </div>
-                  </div>
-                ) : (
-                  <div className="border border-dashed border-hairline rounded bg-ivory-100 p-12 text-center space-y-3">
-                    <Users className="w-10 h-10 text-charcoal-50 mx-auto" />
-                    <h3 className="text-base font-bold text-charcoal-900 font-display">
-                      No Enrolled Students Yet
-                    </h3>
-                    <p className="text-xs text-charcoal-100 font-sans max-w-md mx-auto">
-                      Once waitlist applications are approved on the Admissions desk, candidates will automatically be added to this active cohort roster.
-                    </p>
-                  </div>
-                )}
+                  ) : (
+                    <div className="border border-dashed border-hairline rounded bg-ivory-100 p-12 text-center space-y-3">
+                      <Users className="w-10 h-10 text-charcoal-50 mx-auto" />
+                      <h3 className="text-base font-bold text-charcoal-900 font-display">
+                        {rosterSearchQuery ? 'No Scholars Match this Code or Query' : 'No Enrolled Students Yet'}
+                      </h3>
+                      <p className="text-xs text-charcoal-100 font-sans max-w-md mx-auto">
+                        {rosterSearchQuery
+                          ? 'Try searching with partial numbers or student name.'
+                          : 'Once waitlist applications are approved on the Admissions desk, candidates will automatically be added to this active cohort roster.'}
+                      </p>
+                    </div>
+                  );
+                })()}
               </div>
             )}
           </div>
@@ -3139,6 +3205,35 @@ export default function DashboardPage() {
                 />
               </div>
 
+              <div>
+                <label className="block text-xs font-semibold text-charcoal-900 font-sans mb-1">
+                  Video URL (رابط يوتيوب غير مدرج أو رابط مباشر)
+                </label>
+                <input
+                  type="url"
+                  value={newLectureVideoUrl}
+                  onChange={(e) => setNewLectureVideoUrl(e.target.value)}
+                  placeholder="https://www.youtube.com/watch?v=... or direct MP4/Vimeo"
+                  className="w-full px-3 py-2 text-xs bg-ivory-50 border border-hairline rounded font-mono text-charcoal-900 focus:outline-none focus:border-burgundy-500"
+                />
+                <span className="text-[10px] text-charcoal-50 block mt-1">
+                  Protected automatically by PHENOL custom player skin & blended student forensic watermark.
+                </span>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-charcoal-900 font-sans mb-1">
+                  Companion PDF Handout URL (رابط مذكرة المحاضرة PDF)
+                </label>
+                <input
+                  type="url"
+                  value={newLecturePdfUrl}
+                  onChange={(e) => setNewLecturePdfUrl(e.target.value)}
+                  placeholder="https://.../lecture-notes.pdf"
+                  className="w-full px-3 py-2 text-xs bg-ivory-50 border border-hairline rounded text-charcoal-900 font-sans focus:outline-none focus:border-burgundy-500"
+                />
+              </div>
+
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-semibold text-charcoal-900 font-sans mb-1">
@@ -3234,6 +3329,32 @@ export default function DashboardPage() {
                   required
                   value={editLessonTitle}
                   onChange={(e) => setEditLessonTitle(e.target.value)}
+                  className="w-full px-3 py-2 text-xs bg-ivory-50 border border-hairline rounded text-charcoal-900 font-sans focus:outline-none focus:border-burgundy-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-charcoal-900 font-sans mb-1">
+                  Video URL (رابط يوتيوب غير مدرج أو رابط مباشر)
+                </label>
+                <input
+                  type="url"
+                  value={editLessonVideoUrl}
+                  onChange={(e) => setEditLessonVideoUrl(e.target.value)}
+                  placeholder="https://www.youtube.com/watch?v=... or direct MP4/Vimeo"
+                  className="w-full px-3 py-2 text-xs bg-ivory-50 border border-hairline rounded font-mono text-charcoal-900 focus:outline-none focus:border-burgundy-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-charcoal-900 font-sans mb-1">
+                  Companion PDF Handout URL (رابط مذكرة المحاضرة PDF)
+                </label>
+                <input
+                  type="url"
+                  value={editLessonPdfUrl}
+                  onChange={(e) => setEditLessonPdfUrl(e.target.value)}
+                  placeholder="https://.../lecture-notes.pdf"
                   className="w-full px-3 py-2 text-xs bg-ivory-50 border border-hairline rounded text-charcoal-900 font-sans focus:outline-none focus:border-burgundy-500"
                 />
               </div>
