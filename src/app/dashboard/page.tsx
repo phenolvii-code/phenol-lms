@@ -2479,10 +2479,32 @@ export default function DashboardPage() {
                 </p>
               </div>
 
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2.5">
+                <a
+                  href="https://wa.me/201029208993"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 px-3 py-2 rounded border border-hairline bg-ivory-100 hover:bg-emerald-50 hover:border-emerald-300 text-charcoal-900 text-xs font-semibold transition-colors shadow-quiet"
+                  title="Direct WhatsApp with Dr. Omar Magdi (+201029208993)"
+                >
+                  <WhatsAppIcon className="w-3.5 h-3.5 fill-emerald-600" />
+                  <span className="hidden md:inline">WhatsApp</span>
+                </a>
+
+                <a
+                  href="https://t.me/Feynmanvii"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 px-3 py-2 rounded border border-hairline bg-ivory-100 hover:bg-sky-50 hover:border-sky-300 text-charcoal-900 text-xs font-semibold transition-colors shadow-quiet"
+                  title="Telegram with Dr. Omar Magdi (@Feynmanvii)"
+                >
+                  <Send className="w-3.5 h-3.5 text-sky-600" />
+                  <span className="hidden md:inline">Telegram</span>
+                </a>
+
                 <button
                   onClick={() => setIsSubmitModalOpen(true)}
-                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded bg-burgundy-500 hover:bg-burgundy-800 text-ivory-100 text-xs font-semibold transition-colors shadow-quiet"
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded bg-burgundy-500 hover:bg-burgundy-800 text-ivory-100 text-xs font-semibold transition-colors shadow-quiet"
                 >
                   <FileText className="w-3.5 h-3.5" />
                   <span>Submit Problem Set</span>

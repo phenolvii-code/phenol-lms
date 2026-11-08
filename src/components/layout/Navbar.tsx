@@ -44,6 +44,7 @@ export const Navbar: React.FC<NavbarProps> = ({
     { label: 'Analytical Matrix', href: '/#comparison' },
     { label: 'Courses', href: '/#programs' },
     { label: 'About Dr. Omar', href: '/#about' },
+    { label: 'Contact', href: '/#contact' },
   ];
 
   const handleNavClick = (href: string) => {

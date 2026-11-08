@@ -13,8 +13,11 @@ import { ProblemSolvingSection } from '@/components/home/ProblemSolvingSection';
 import { ProgramsSection } from '@/components/home/ProgramsSection';
 import { ResourcesSection } from '@/components/home/ResourcesSection';
 import { AboutSection } from '@/components/home/AboutSection';
+import { ContactSection } from '@/components/home/ContactSection';
 import { FinalCtaSection } from '@/components/home/FinalCtaSection';
 import { PhenolLogo } from '@/components/brand/PhenolLogo';
+import { Mail, Send, Youtube, Facebook } from 'lucide-react';
+import { WhatsAppIcon } from '@/components/auth/AuthIcons';
 
 export default function Home() {
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
@@ -90,7 +93,10 @@ export default function Home() {
         {/* Section 08: About Dr. Omar Magdi */}
         <AboutSection />
 
-        {/* Section 09: Final CTA */}
+        {/* Section 09: Direct Academic Office & Communication Channels */}
+        <ContactSection />
+
+        {/* Section 10: Final CTA */}
         <FinalCtaSection onStart={() => handleOpenAuth('REGISTER')} />
       </main>
 
@@ -119,7 +125,57 @@ export default function Home() {
               <Link href="/#about" className="hover:text-burgundy-500 transition-colors">
                 About Dr. Omar
               </Link>
+              <Link href="/#contact" className="hover:text-burgundy-500 transition-colors font-semibold text-charcoal-900">
+                Contact & Office
+              </Link>
             </nav>
+
+            {/* Direct Verified Social & Contact Links */}
+            <div className="flex items-center gap-3">
+              <a
+                href="https://wa.me/201029208993"
+                target="_blank"
+                rel="noopener noreferrer"
+                title="Direct WhatsApp (+201029208993)"
+                className="w-8 h-8 rounded-full border border-hairline bg-ivory-200 flex items-center justify-center text-charcoal-100 hover:text-emerald-600 hover:border-emerald-300 transition-colors"
+              >
+                <WhatsAppIcon className="w-4 h-4 fill-current" />
+              </a>
+              <a
+                href="https://t.me/Feynmanvii"
+                target="_blank"
+                rel="noopener noreferrer"
+                title="Telegram (@Feynmanvii)"
+                className="w-8 h-8 rounded-full border border-hairline bg-ivory-200 flex items-center justify-center text-charcoal-100 hover:text-sky-600 hover:border-sky-300 transition-colors"
+              >
+                <Send className="w-4 h-4" />
+              </a>
+              <a
+                href="mailto:phenolvii@gmail.com"
+                title="Email (phenolvii@gmail.com)"
+                className="w-8 h-8 rounded-full border border-hairline bg-ivory-200 flex items-center justify-center text-charcoal-100 hover:text-burgundy-500 hover:border-burgundy-300 transition-colors"
+              >
+                <Mail className="w-4 h-4" />
+              </a>
+              <a
+                href="https://www.facebook.com/phenolVII"
+                target="_blank"
+                rel="noopener noreferrer"
+                title="Facebook (phenolVII)"
+                className="w-8 h-8 rounded-full border border-hairline bg-ivory-200 flex items-center justify-center text-charcoal-100 hover:text-blue-600 hover:border-blue-300 transition-colors"
+              >
+                <Facebook className="w-4 h-4" />
+              </a>
+              <a
+                href="https://youtube.com/@phenoltalks"
+                target="_blank"
+                rel="noopener noreferrer"
+                title="YouTube (@phenoltalks)"
+                className="w-8 h-8 rounded-full border border-hairline bg-ivory-200 flex items-center justify-center text-charcoal-100 hover:text-rose-600 hover:border-rose-300 transition-colors"
+              >
+                <Youtube className="w-4 h-4" />
+              </a>
+            </div>
           </div>
 
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left text-xs sm:text-sm text-charcoal-100">
