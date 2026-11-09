@@ -1,10 +1,11 @@
 /**
  * PHENOL ACADEMY - Persistent Course Storage
- * Keeps courses synchronized across Dashboard, Landing Catalog, and Course Details.
- * Automatically purges legacy dummy courses and guarantees permanent deletion persistence.
+ * Synchronizes courses and lessons directly with Supabase Postgres database.
+ * Falls back to localStorage for instant UI rendering and offline resilience.
  */
 
-import { ChemistryCourse } from '@/types/lms';
+import { ChemistryCourse, ChemistryLesson } from '@/types/lms';
+import { supabase } from '@/lib/supabase';
 
 const DUMMY_COURSE_IDS = [
   'chem-ar-301',
@@ -43,12 +44,14 @@ export const markCourseDeleted = (courseId: string): void => {
       current.push(courseId);
       localStorage.setItem('phenol_deleted_course_ids', JSON.stringify(current));
     }
-    // Also notify server
-    fetch('/api/courses', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ deletedId: courseId }),
-    }).catch(() => {});
+    // Delete from Supabase database
+    supabase
+      .from('courses')
+      .delete()
+      .eq('id', courseId)
+      .then(({ error }) => {
+        if (error) console.warn('Supabase course deletion note:', error.message);
+      });
   } catch (e) {}
 };
 
@@ -73,7 +76,7 @@ export const getStoredCourses = (): ChemistryCourse[] => {
   return [];
 };
 
-export const saveStoredCourses = (courses: ChemistryCourse[]): void => {
+export const saveStoredCourses = async (courses: ChemistryCourse[]): Promise<void> => {
   if (typeof window === 'undefined') return;
   try {
     const deletedIds = getDeletedCourseIds();
@@ -81,12 +84,53 @@ export const saveStoredCourses = (courses: ChemistryCourse[]): void => {
     localStorage.setItem('phenol_courses', JSON.stringify(clean));
     window.dispatchEvent(new Event('phenol_courses_updated'));
 
-    // Sync to server API in background
-    fetch('/api/courses', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ courses: clean }),
-    }).catch(() => {});
+    // Asynchronously persist every course and its lessons to Supabase
+    for (const c of clean) {
+      const { error: courseErr } = await supabase.from('courses').upsert({
+        id: c.id,
+        code: c.code,
+        title: c.title,
+        sub_title: c.subTitle || null,
+        description: c.description || '',
+        category: c.category,
+        category_name: c.categoryName || 'Academic Program',
+        level: c.level || 'Academic Year 2026/2027',
+        molecular_formula: c.molecularFormula || null,
+        thumbnail: c.thumbnail || null,
+        total_hours: c.totalHours || null,
+        color_accent: c.colorAccent || '#641C32',
+        accent_bg: c.accentBg || 'bg-burgundy-950',
+      });
+
+      if (courseErr) {
+        console.warn('Notice syncing course to Supabase:', courseErr.message);
+      }
+
+      // Sync lessons if any
+      if (Array.isArray(c.lessons) && c.lessons.length > 0) {
+        for (let idx = 0; idx < c.lessons.length; idx++) {
+          const l = c.lessons[idx];
+          await supabase.from('lessons').upsert({
+            id: l.id,
+            course_id: c.id,
+            title: l.title,
+            duration: l.duration || '45 min',
+            type: l.type || 'video',
+            summary: l.summary || null,
+            key_formulas: l.keyFormulas || null,
+            sort_order: idx,
+          });
+
+          if (l.videoUrl || l.pdfNotesUrl) {
+            await supabase.from('lesson_assets').upsert({
+              lesson_id: l.id,
+              video_url: l.videoUrl || null,
+              pdf_notes_path: l.pdfNotesUrl || null,
+            });
+          }
+        }
+      }
+    }
   } catch (e) {
     console.error('Error saving stored courses:', e);
   }
@@ -95,42 +139,64 @@ export const saveStoredCourses = (courses: ChemistryCourse[]): void => {
 export const syncWithServerCourses = async (): Promise<ChemistryCourse[]> => {
   if (typeof window === 'undefined') return [];
   try {
-    const res = await fetch('/api/courses');
-    if (!res.ok) return getStoredCourses();
-    const data = await res.json();
+    const deletedIds = getDeletedCourseIds();
 
-    if (Array.isArray(data.deletedIds)) {
-      const currentDeleted = getDeletedCourseIds();
-      const combinedDeleted = Array.from(new Set([...currentDeleted, ...data.deletedIds]));
-      localStorage.setItem('phenol_deleted_course_ids', JSON.stringify(combinedDeleted));
+    // Query Supabase public.courses directly
+    const { data: supaCourses, error } = await supabase
+      .from('courses')
+      .select('*, lessons(*)');
+
+    if (!error && Array.isArray(supaCourses) && supaCourses.length > 0) {
+      const mappedCourses: ChemistryCourse[] = supaCourses
+        .filter((sc) => !deletedIds.includes(sc.id))
+        .map((sc) => {
+          const lessonsList: ChemistryLesson[] = Array.isArray(sc.lessons)
+            ? sc.lessons
+                .sort((a: any, b: any) => (a.sort_order || 0) - (b.sort_order || 0))
+                .map((l: any) => ({
+                  id: l.id,
+                  title: l.title,
+                  duration: l.duration || '45 min',
+                  type: l.type || 'video',
+                  completed: false,
+                  summary: l.summary || undefined,
+                  keyFormulas: l.key_formulas || undefined,
+                  videoUrl: l.video_url || undefined,
+                  pdfNotesUrl: l.pdf_notes_url || undefined,
+                  timestamps: [
+                    { timeSeconds: 0, timeLabel: '00:00', title: 'Introduction & Foundations' },
+                    { timeSeconds: 600, timeLabel: '10:00', title: 'Mechanism Analysis' },
+                    { timeSeconds: 1500, timeLabel: '25:00', title: 'Diagnostic Applications' },
+                  ],
+                }))
+            : [];
+
+          return {
+            id: sc.id,
+            code: sc.code,
+            title: sc.title,
+            subTitle: sc.sub_title || undefined,
+            description: sc.description || '',
+            category: sc.category as any,
+            categoryName: sc.category_name,
+            level: sc.level,
+            molecularFormula: sc.molecular_formula || undefined,
+            thumbnail: sc.thumbnail || 'https://images.unsplash.com/photo-1532187863486-abf9dbad1b69?w=800&auto=format&fit=crop&q=80',
+            totalHours: sc.total_hours || undefined,
+            colorAccent: sc.color_accent || '#641C32',
+            accentBg: sc.accent_bg || 'bg-burgundy-950',
+            lessons: lessonsList,
+          };
+        });
+
+      if (mappedCourses.length > 0) {
+        localStorage.setItem('phenol_courses', JSON.stringify(mappedCourses));
+        window.dispatchEvent(new Event('phenol_courses_updated'));
+        return mappedCourses;
+      }
     }
-
-    if (Array.isArray(data.courses)) {
-      const deletedIds = getDeletedCourseIds();
-      const serverClean = data.courses.filter(
-        (c: ChemistryCourse) => !deletedIds.includes(c.id)
-      );
-      const localClean = getStoredCourses();
-
-      const courseMap = new Map<string, ChemistryCourse>();
-      localClean.forEach((c) => courseMap.set(c.id, c));
-      serverClean.forEach((sc: ChemistryCourse) => {
-        const existing = courseMap.get(sc.id);
-        if (!existing) {
-          courseMap.set(sc.id, sc);
-        } else {
-          const exLessons = existing.lessons || [];
-          const scLessons = sc.lessons || [];
-          if (scLessons.length > exLessons.length) {
-            courseMap.set(sc.id, { ...existing, lessons: scLessons });
-          }
-        }
-      });
-      const merged = Array.from(courseMap.values()).filter((c) => !deletedIds.includes(c.id));
-      localStorage.setItem('phenol_courses', JSON.stringify(merged));
-      window.dispatchEvent(new Event('phenol_courses_updated'));
-      return merged;
-    }
-  } catch (e) {}
+  } catch (e) {
+    console.warn('syncWithServerCourses error:', e);
+  }
   return getStoredCourses();
 };

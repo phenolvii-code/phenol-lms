@@ -16,6 +16,8 @@ import { AuthUser } from '@/types/auth';
 import { getPersistentAvatar } from '@/lib/user-profile';
 import { PhenolLogo } from '@/components/brand/PhenolLogo';
 import { PhenolVideoPlayer } from '@/components/video/PhenolVideoPlayer';
+import { getLessonMedia } from '@/lib/data/courses';
+import { useSessionEnforcer } from '@/lib/auth/session-tracker';
 import {
   ArrowLeft,
   ChevronLeft,
@@ -61,10 +63,14 @@ export default function LessonExperiencePage() {
   // Lesson Q&A State
   const [lessonComments, setLessonComments] = useState<LessonComment[]>([]);
   const [newQuestionText, setNewQuestionText] = useState('');
+  const [gatedMedia, setGatedMedia] = useState<{ video_url?: string; pdf_notes_path?: string } | null>(null);
+
+  useSessionEnforcer();
 
   // Load Course and User State
   useEffect(() => {
     setCoursesList(getStoredCourses());
+    if (lessonId) { getLessonMedia(lessonId).then((m) => { if (m) setGatedMedia(m); }); }
     syncWithServerCourses().then(() => {
       setCoursesList(getStoredCourses());
     });
@@ -355,10 +361,12 @@ export default function LessonExperiencePage() {
               return (
                 <div className="space-y-3">
                   <PhenolVideoPlayer
-                    videoUrl={currentLesson.videoUrl || 'https://www.youtube.com/watch?v=k3rRrl9J2F4'}
+                    videoUrl={gatedMedia?.video_url || currentLesson.videoUrl || 'https://www.youtube.com/watch?v=k3rRrl9J2F4'}
                     title={currentLesson.title}
                     duration={currentLesson.duration}
                     studentCode={studentCode}
+                    studentName={currentUser?.name}
+                    studentPhone={currentUser?.phone || currentUser?.whatsapp}
                     timestamps={timestamps}
                     onCompleted={() => {
                       if (!completedLessons.includes(currentLesson.id)) {
