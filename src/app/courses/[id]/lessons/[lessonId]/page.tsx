@@ -18,6 +18,8 @@ import { PhenolLogo } from '@/components/brand/PhenolLogo';
 import { PhenolVideoPlayer } from '@/components/video/PhenolVideoPlayer';
 import { getLessonMedia } from '@/lib/data/courses';
 import { useSessionEnforcer } from '@/lib/auth/session-tracker';
+import { recordLessonProgress, listCourseProgress } from '@/lib/data/progress';
+import { fetchLessonComments, postLessonComment } from '@/lib/data/comments';
 import {
   ArrowLeft,
   ChevronLeft,
@@ -83,6 +85,31 @@ export default function LessonExperiencePage() {
           u.avatar = getPersistentAvatar(u.email, u.avatar);
         }
         setCurrentUser(u);
+      }
+
+      if (courseId) {
+        listCourseProgress(courseId).then((records) => {
+          if (Array.isArray(records) && records.length > 0) {
+            setCompletedLessons(records.map((r) => r.lesson_id));
+          }
+        });
+      }
+
+      if (lessonId) {
+        fetchLessonComments(lessonId).then((dbComments) => {
+          if (Array.isArray(dbComments) && dbComments.length > 0) {
+            setLessonComments(
+              dbComments.map((c) => ({
+                id: c.id,
+                authorName: c.author_name || 'Enrolled Scholar',
+                authorCode: c.author_code || 'PH-SCHOLAR',
+                authorRole: c.author_role || 'STUDENT',
+                content: c.content,
+                timestamp: new Date(c.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+              }))
+            );
+          }
+        });
       }
 
       const savedCompleted = localStorage.getItem('phenol_completed_lessons');
@@ -198,6 +225,9 @@ export default function LessonExperiencePage() {
       updated = [...completedLessons, currentLesson.id];
     }
     setCompletedLessons(updated);
+    if (!isCompleted && courseId && currentLesson?.id) {
+      recordLessonProgress(courseId, currentLesson.id).catch(() => {});
+    }
     try {
       localStorage.setItem('phenol_completed_lessons', JSON.stringify(updated));
       if (currentUser?.email) {
@@ -228,6 +258,9 @@ export default function LessonExperiencePage() {
 
     const updated = [...lessonComments, newComment];
     setLessonComments(updated);
+    if (courseId && lessonId) {
+      postLessonComment(courseId, lessonId, newQuestionText.trim()).catch(() => {});
+    }
     try {
       localStorage.setItem(`phenol_qa_${lessonId}`, JSON.stringify(updated));
     } catch (e) {}
