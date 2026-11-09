@@ -331,8 +331,10 @@ do $$ declare t text; begin
         'lesson_assets','lesson_progress','lesson_comments','student_submissions',
         'waitlist_applications','referrals','user_sessions','media_access_log','profiles']
   loop
-    execute format('drop policy if exists "admin all" on public.%I', t);
-    execute format('create policy "admin all" on public.%I for all using (public.is_admin()) with check (public.is_admin())', t);
+    if exists (select 1 from information_schema.tables where table_schema = 'public' and table_name = t) then
+      execute format('drop policy if exists "admin all" on public.%I', t);
+      execute format('create policy "admin all" on public.%I for all using (public.is_admin()) with check (public.is_admin())', t);
+    end if;
   end loop;
 end $$;
 
