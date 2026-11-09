@@ -352,77 +352,36 @@ export default function CoursesPage() {
           )}
         </div>
 
-        {/* Admissions & Registration Registrar Form */}
-        <div className="p-8 sm:p-10 rounded-2xl bg-ivory-100 border border-hairline shadow-editorial space-y-6">
-          <div className="max-w-2xl space-y-2">
+        {/* Page End Call-to-Action: Direct Sign Up & Sign In */}
+        <div className="p-8 sm:p-12 rounded-2xl bg-ivory-100 border border-hairline shadow-editorial text-center space-y-6">
+          <div className="max-w-2xl mx-auto space-y-2">
             <span className="text-xs font-formula text-burgundy-500 font-bold uppercase tracking-wider block">
-              ADMISSIONS & DIRECT INQUIRY
+              START YOUR ACADEMIC ENROLLMENT
             </span>
             <h2 className="text-2xl sm:text-3xl font-bold font-display text-charcoal-900">
-              Apply for Upcoming Cohort or Inquire About a Course
+              Ready to Master Chemistry with Dr. Omar Magdi?
             </h2>
             <p className="text-xs sm:text-sm text-charcoal-100 font-sans leading-relaxed">
-              Submit your inquiry and our academic office will reach out directly on WhatsApp with enrollment steps, placement diagnostics, and schedule details.
+              Create your student account to access full lecture archives, companion PDF booklets, and guided problem sets.
             </p>
           </div>
 
-          {submitted ? (
-            <div className="p-5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs sm:text-sm flex items-center gap-3">
-              <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
-              <span>Thank you! Your academic inquiry has been registered. Our admissions team will reach out to you shortly via WhatsApp.</span>
-            </div>
-          ) : (
-            <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
-              <div>
-                <label className="block text-xs font-semibold text-charcoal-900 mb-1">Full Student Name *</label>
-                <input
-                  type="text"
-                  required
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  placeholder="e.g. Ahmed Omar"
-                  className="w-full px-3.5 py-2 text-xs bg-white border border-hairline rounded text-charcoal-900 focus:outline-none focus:border-burgundy-500"
-                />
-              </div>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-2 max-w-md sm:max-w-none mx-auto">
+            <Link
+              href="/register"
+              className="w-full sm:w-auto min-w-[190px] inline-flex items-center justify-center gap-2.5 px-8 py-4 rounded-lg bg-burgundy-500 hover:bg-burgundy-900 active:scale-[0.98] text-ivory-100 font-sans font-bold text-base sm:text-lg transition-all duration-200 shadow-lg hover:shadow-xl hover:-translate-y-0.5 cursor-pointer ring-2 ring-burgundy-500/20"
+            >
+              <span>Sign Up</span>
+              <ArrowRight className="w-5 h-5" />
+            </Link>
 
-              <div>
-                <label className="block text-xs font-semibold text-charcoal-900 mb-1">WhatsApp Number *</label>
-                <input
-                  type="tel"
-                  required
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  placeholder="+20 10xxxxxxxx"
-                  className="w-full px-3.5 py-2 text-xs bg-white border border-hairline rounded font-mono text-charcoal-900 focus:outline-none focus:border-burgundy-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-charcoal-900 mb-1">Target Program</label>
-                <select
-                  value={selectedTrack}
-                  onChange={(e) => handleTrackChange(e.target.value as AcademicCategory)}
-                  className="w-full px-3.5 py-2 text-xs bg-white border border-hairline rounded text-charcoal-900 focus:outline-none focus:border-burgundy-500"
-                >
-                  {ACADEMIC_TRACKS.map((t) => (
-                    <option key={t.id} value={t.id}>
-                      {t.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <button
-                  type="submit"
-                  disabled={submitting}
-                  className="w-full py-2.5 px-4 rounded bg-burgundy-900 hover:bg-black text-ivory-100 text-xs font-semibold transition-colors shadow-quiet"
-                >
-                  {submitting ? 'Submitting...' : 'Submit Academic Inquiry'}
-                </button>
-              </div>
-            </form>
-          )}
+            <Link
+              href="/login"
+              className="w-full sm:w-auto min-w-[190px] inline-flex items-center justify-center gap-2 px-8 py-4 rounded-lg bg-ivory-100 hover:bg-ivory-300 active:scale-[0.98] border-2 border-burgundy-500 text-burgundy-500 hover:text-burgundy-900 font-sans font-bold text-base sm:text-lg transition-all duration-200 shadow-md hover:shadow-lg hover:-translate-y-0.5 cursor-pointer"
+            >
+              <span>Sign In</span>
+            </Link>
+          </div>
         </div>
 
       </main>

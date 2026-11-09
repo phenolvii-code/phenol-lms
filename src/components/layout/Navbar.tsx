@@ -101,35 +101,27 @@ export const Navbar: React.FC<NavbarProps> = ({
               <>
                 {/* Desktop Actions */}
                 <div className="hidden lg:flex items-center gap-3">
-                  <a
-                    href="/#admission"
-                    onClick={() => handleNavClick('/#admission')}
-                    className="px-3 py-1.5 text-xs font-semibold text-burgundy-500 hover:text-burgundy-800 border border-burgundy-500/25 hover:border-burgundy-500/50 rounded transition-colors"
-                  >
-                    Waitlist
-                  </a>
-
                   <button
                     onClick={() => (onOpenAuthModal ? onOpenAuthModal('LOGIN') : null)}
-                    className="px-3.5 py-2 text-sm font-medium text-charcoal-100 hover:text-charcoal-900 transition-colors"
+                    className="px-4 py-2 text-sm font-bold text-charcoal-900 hover:text-burgundy-900 rounded-lg hover:bg-ivory-300 transition-colors cursor-pointer"
                   >
                     Sign In
                   </button>
 
                   <button
                     onClick={() => (onOpenAuthModal ? onOpenAuthModal('REGISTER') : null)}
-                    className="px-4 py-2 rounded bg-burgundy-500 hover:bg-burgundy-800 text-ivory-100 font-sans text-xs sm:text-sm font-semibold tracking-wide transition-colors shadow-quiet"
+                    className="px-6 py-2.5 rounded-lg bg-burgundy-500 hover:bg-burgundy-900 active:scale-[0.98] text-ivory-100 font-sans text-sm font-bold tracking-wide transition-all duration-200 shadow-md hover:shadow-lg ring-2 ring-burgundy-500/20 cursor-pointer"
                   >
-                    Enroll Now
+                    Sign Up
                   </button>
                 </div>
 
                 {/* Mobile Single CTA */}
                 <button
                   onClick={() => (onOpenAuthModal ? onOpenAuthModal('REGISTER') : null)}
-                  className="lg:hidden px-3.5 py-1.5 rounded bg-burgundy-500 text-ivory-100 font-sans text-xs font-semibold transition-colors"
+                  className="lg:hidden px-4 py-1.5 rounded-lg bg-burgundy-500 hover:bg-burgundy-900 active:scale-[0.98] text-ivory-100 font-sans text-xs font-bold transition-all shadow-sm"
                 >
-                  Enroll
+                  Sign Up
                 </button>
               </>
             ) : (
@@ -202,14 +194,6 @@ export const Navbar: React.FC<NavbarProps> = ({
                 <ChevronRight className="w-4 h-4 text-charcoal-50" />
               </Link>
             ))}
-            <a
-              href="/#admission"
-              onClick={() => handleNavClick('/#admission')}
-              className="flex items-center justify-between py-2 text-sm font-medium text-burgundy-500 border-b border-hairline/60"
-            >
-              <span>Waitlist (2026/2027)</span>
-              <ChevronRight className="w-4 h-4 text-burgundy-500" />
-            </a>
           </nav>
 
           {!currentUser ? (
@@ -217,20 +201,20 @@ export const Navbar: React.FC<NavbarProps> = ({
               <button
                 onClick={() => {
                   setMobileMenuOpen(false);
-                  if (onOpenAuthModal) onOpenAuthModal('LOGIN');
+                  if (onOpenAuthModal) onOpenAuthModal('REGISTER');
                 }}
-                className="w-full py-2.5 text-center text-sm font-semibold rounded border border-hairline bg-ivory-200 text-charcoal-900"
+                className="w-full py-3 text-center text-sm font-bold rounded-lg bg-burgundy-500 hover:bg-burgundy-900 active:scale-[0.98] text-ivory-100 shadow-md transition-all"
               >
-                Student Sign In
+                Sign Up
               </button>
               <button
                 onClick={() => {
                   setMobileMenuOpen(false);
-                  if (onOpenAuthModal) onOpenAuthModal('REGISTER');
+                  if (onOpenAuthModal) onOpenAuthModal('LOGIN');
                 }}
-                className="w-full py-2.5 text-center text-sm font-semibold rounded bg-burgundy-500 text-ivory-100 shadow-quiet"
+                className="w-full py-2.5 text-center text-sm font-bold rounded-lg border-2 border-burgundy-500 text-burgundy-500 bg-ivory-100 hover:bg-ivory-300 transition-colors"
               >
-                Apply for Admission
+                Sign In
               </button>
               <button
                 onClick={() => {

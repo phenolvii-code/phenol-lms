@@ -41,7 +41,10 @@ export default function Home() {
       {/* Main Content Sections with Harmonious Vertical Rhythm */}
       <main className="flex-1">
         {/* Section 01: Hero */}
-        <HeroSection onStartJourney={() => handleOpenAuth('REGISTER')} />
+        <HeroSection
+          onSignUp={() => handleOpenAuth('REGISTER')}
+          onSignIn={() => handleOpenAuth('LOGIN')}
+        />
 
         {/* Section 02: Philosophy */}
         <PhilosophySection />
@@ -65,7 +68,10 @@ export default function Home() {
         <AboutSection />
 
         {/* Section 09: Final CTA */}
-        <FinalCtaSection onStart={() => handleOpenAuth('REGISTER')} />
+        <FinalCtaSection
+          onSignUp={() => handleOpenAuth('REGISTER')}
+          onSignIn={() => handleOpenAuth('LOGIN')}
+        />
       </main>
 
       {/* Minimalist Editorial Colophon / Footer */}
@@ -87,9 +93,7 @@ export default function Home() {
               <Link href="/#programs" className="hover:text-burgundy-500 transition-colors">
                 Courses
               </Link>
-              <Link href="/#admission" className="hover:text-burgundy-500 transition-colors">
-                Admissions
-              </Link>
+
               <Link href="/#about" className="hover:text-burgundy-500 transition-colors">
                 About Dr. Omar
               </Link>
