@@ -47,9 +47,15 @@ where r.ctid in (
 );
 
 do $$ begin
-  alter table public.registered_students
-  add constraint registered_students_code_key unique (academic_code);
-exception when duplicate_object then null; end $$;
+  if not exists (
+    select 1 from pg_constraint where conname = 'registered_students_code_key'
+  ) and not exists (
+    select 1 from pg_class where relname = 'registered_students_code_key'
+  ) then
+    alter table public.registered_students
+    add constraint registered_students_code_key unique (academic_code);
+  end if;
+end $$;
 
 -- 3) referrals
 create table if not exists public.referrals (
@@ -107,9 +113,15 @@ for each row execute function public.handle_new_auth_user();
 
 -- 5) enrollments: unique per student/course; writes ONLY via RPC or admin
 do $$ begin
-  alter table public.course_enrollments
-  add constraint course_enrollments_student_course_key unique (student_id, course_id);
-exception when duplicate_object or unique_violation then null; end $$;
+  if not exists (
+    select 1 from pg_constraint where conname = 'course_enrollments_student_course_key'
+  ) and not exists (
+    select 1 from pg_class where relname = 'course_enrollments_student_course_key'
+  ) then
+    alter table public.course_enrollments
+    add constraint course_enrollments_student_course_key unique (student_id, course_id);
+  end if;
+end $$;
 
 create or replace function public.request_enrollment(p_course_id text)
 returns public.course_enrollments
@@ -394,3 +406,7 @@ drop policy if exists "notes admin write" on storage.objects;
 create policy "notes admin write" on storage.objects for all
 using (bucket_id = 'lecture-notes' and public.is_admin())
 with check (bucket_id = 'lecture-notes' and public.is_admin());
+
+-- 11) Set initial instructor role for Dr. Omar Magdi
+update public.profiles set role='instructor'
+where id = (select id from auth.users where lower(trim(email))='phenolvii@gmail.com');
