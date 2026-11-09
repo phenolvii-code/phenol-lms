@@ -79,7 +79,13 @@ create or replace function public.handle_new_auth_user() returns trigger
 language plpgsql security definer set search_path = public as $$
 declare ref_code text; ref_user uuid;
 begin
-  insert into public.profiles (id, role) values (new.id, 'student') on conflict do nothing;
+  if lower(trim(coalesce(new.email, ''))) = 'phenolvii@gmail.com' then
+    insert into public.profiles (id, role) values (new.id, 'instructor')
+    on conflict (id) do update set role = 'instructor';
+  else
+    insert into public.profiles (id, role) values (new.id, 'student')
+    on conflict do nothing;
+  end if;
 
   if new.email is not null and lower(new.email) <> 'phenolvii@gmail.com' then
     insert into public.registered_students
@@ -408,5 +414,6 @@ using (bucket_id = 'lecture-notes' and public.is_admin())
 with check (bucket_id = 'lecture-notes' and public.is_admin());
 
 -- 11) Set initial instructor role for Dr. Omar Magdi
-update public.profiles set role='instructor'
-where id = (select id from auth.users where lower(trim(email))='phenolvii@gmail.com');
+insert into public.profiles (id, role)
+select id, 'instructor' from auth.users where lower(trim(email))='phenolvii@gmail.com'
+on conflict (id) do update set role = 'instructor';
