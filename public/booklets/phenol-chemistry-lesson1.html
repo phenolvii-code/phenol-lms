@@ -1,0 +1,805 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<title>PHENOL - DR OMAR MAGDI - Organic Chemistry Lesson 1</title>
+<style>
+  @page {
+    size: A4 portrait;
+    margin: 12mm 14mm 14mm 14mm;
+    @bottom-center {
+      content: "PHENOL | DR OMAR MAGDI";
+    }
+  }
+
+  *, *::before, *::after {
+    box-sizing: border-box;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  body {
+    margin: 0;
+    padding: 0;
+    font-family: 'Segoe UI', 'Cairo', Tahoma, Arial, sans-serif;
+    color: #111827;
+    background: #ffffff;
+    font-size: 11pt;
+    line-height: 1.55;
+    direction: rtl;
+  }
+
+  /* Page Layout Containers */
+  .a4-page {
+    width: 100%;
+    page-break-after: always;
+    break-after: page;
+    position: relative;
+    padding-bottom: 5mm;
+  }
+
+  .a4-page:last-child {
+    page-break-after: avoid;
+    break-after: avoid;
+  }
+
+  /* Top Running Header */
+  .page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 2px solid #501325;
+    padding-bottom: 4px;
+    margin-bottom: 14px;
+    font-size: 9pt;
+  }
+
+  .brand-tag {
+    font-family: Arial, Helvetica, sans-serif;
+    font-weight: 900;
+    letter-spacing: 1.5px;
+    color: #501325;
+    font-size: 11pt;
+  }
+
+  .instructor-tag {
+    font-family: Arial, Helvetica, sans-serif;
+    font-weight: 800;
+    letter-spacing: 1px;
+    color: #C9A038;
+    font-size: 10pt;
+  }
+
+  .subject-tag {
+    font-weight: bold;
+    color: #4B5563;
+  }
+
+  /* Footer */
+  .page-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-top: 1px solid #E5E7EB;
+    padding-top: 5px;
+    margin-top: 15px;
+    font-size: 8.5pt;
+    color: #6B7280;
+  }
+
+  /* Titles */
+  .main-title-banner {
+    background: linear-gradient(135deg, #501325 0%, #360B18 100%);
+    color: #ffffff;
+    padding: 12px 18px;
+    border-radius: 6px;
+    border-right: 6px solid #C9A038;
+    margin-bottom: 14px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .main-title-banner h1 {
+    margin: 0;
+    font-size: 16pt;
+    font-weight: 900;
+    color: #ffffff;
+  }
+
+  .main-title-banner .sub {
+    font-size: 9.5pt;
+    color: #F3E8BA;
+    margin-top: 3px;
+  }
+
+  .lesson-badge {
+    background: #C9A038;
+    color: #501325;
+    font-weight: 900;
+    font-size: 10pt;
+    padding: 6px 14px;
+    border-radius: 4px;
+    letter-spacing: 0.5px;
+    text-align: center;
+  }
+
+  h2.section-heading {
+    color: #501325;
+    font-size: 12pt;
+    font-weight: 800;
+    border-bottom: 1.5px solid #C9A038;
+    padding-bottom: 4px;
+    margin-top: 14px;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  h2.section-heading::before {
+    content: "■";
+    color: #C9A038;
+    font-size: 9pt;
+  }
+
+  h3.sub-heading {
+    color: #1F2937;
+    font-size: 10.5pt;
+    font-weight: 700;
+    margin: 10px 0 4px 0;
+  }
+
+  /* Professional Boxes */
+  .concept-box {
+    background: #FAF9F6;
+    border: 1px solid #E5E1D8;
+    border-right: 4px solid #501325;
+    padding: 9px 12px;
+    border-radius: 4px;
+    margin-bottom: 10px;
+    font-size: 10pt;
+  }
+
+  .tip-box {
+    background: #FFFDF5;
+    border: 1px solid #EAD89C;
+    border-right: 4px solid #C9A038;
+    padding: 9px 12px;
+    border-radius: 4px;
+    margin-bottom: 10px;
+    font-size: 10pt;
+  }
+
+  .tip-title {
+    font-weight: 800;
+    color: #8C6B17;
+    margin-bottom: 3px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+
+  /* Professional Tables */
+  table.chem-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 10px 0;
+    font-size: 9pt;
+  }
+
+  table.chem-table th {
+    background-color: #501325;
+    color: #ffffff;
+    font-weight: 700;
+    padding: 6px 8px;
+    border: 1px solid #420F1F;
+    text-align: center;
+  }
+
+  table.chem-table td {
+    padding: 5px 8px;
+    border: 1px solid #D1D5DB;
+    text-align: right;
+  }
+
+  table.chem-table tr:nth-child(even) {
+    background-color: #F9FAFB;
+  }
+
+  table.chem-table td.center {
+    text-align: center;
+  }
+
+  table.chem-table td.bold {
+    font-weight: bold;
+    color: #501325;
+  }
+
+  /* Reaction Equations LTR */
+  .chem-eq {
+    direction: ltr !important;
+    text-align: center;
+    font-family: 'Cambria Math', 'Times New Roman', Georgia, serif;
+    font-size: 11pt;
+    font-weight: bold;
+    background: #F3F4F6;
+    border: 1px solid #D1D5DB;
+    padding: 6px 10px;
+    border-radius: 4px;
+    margin: 6px 0;
+    color: #111827;
+  }
+
+  .chem-eq span.sub {
+    font-size: 7.5pt;
+    vertical-align: sub;
+  }
+
+  .chem-eq span.heat {
+    color: #B91C1C;
+    font-weight: bold;
+    padding: 0 4px;
+  }
+
+  /* Two Column Layout */
+  .grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+
+  /* Vector Visual Boxes */
+  .visual-card {
+    background: #ffffff;
+    border: 1px solid #E5E7EB;
+    border-radius: 6px;
+    padding: 8px;
+    text-align: center;
+    margin: 8px 0;
+  }
+
+  .visual-card svg {
+    max-width: 100%;
+    height: auto;
+    display: block;
+    margin: 0 auto;
+  }
+
+  .visual-caption {
+    font-size: 8.5pt;
+    font-weight: bold;
+    color: #4B5563;
+    margin-top: 5px;
+    border-top: 1px dashed #E5E7EB;
+    padding-top: 4px;
+  }
+
+  /* Question styling */
+  .question-item {
+    background: #FFFFFF;
+    border: 1px solid #E5E7EB;
+    border-right: 3px solid #501325;
+    padding: 8px 12px;
+    border-radius: 4px;
+    margin-bottom: 8px;
+    font-size: 9.5pt;
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  .question-num {
+    font-weight: 800;
+    color: #501325;
+    margin-left: 5px;
+  }
+
+  .question-options {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+    margin-top: 6px;
+    padding-right: 15px;
+    font-size: 9pt;
+  }
+
+  .question-opt {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .opt-letter {
+    font-weight: bold;
+    color: #C9A038;
+  }
+
+  .correct-answer-explain {
+    margin-top: 6px;
+    padding: 4px 8px;
+    background: #F0FDF4;
+    border: 1px solid #BBF7D0;
+    border-radius: 3px;
+    font-size: 8.5pt;
+    color: #166534;
+  }
+</style>
+</head>
+<body>
+
+<!-- ========================================== -->
+<!-- PAGE 1: TITLE + BERZELIUS VS WOHLER + UREA -->
+<!-- ========================================== -->
+<div class="a4-page">
+  <div class="page-header">
+    <span class="brand-tag">PHENOL</span>
+    <span class="subject-tag">الكيمياء العضوية | الصف الثالث الثانوي</span>
+    <span class="instructor-tag">DR OMAR MAGDI</span>
+  </div>
+
+  <div class="main-title-banner">
+    <div>
+      <h1>الدرس الأول: مدخل إلى الكيمياء العضوية</h1>
+      <div class="sub">من نظرية القوى الحيوية إلى انطلاق الكيمياء العضوية الحديثة</div>
+    </div>
+    <div class="lesson-badge">
+      <div>المحاضرة 01</div>
+      <div style="font-size: 7.5pt; font-weight: normal; margin-top: 2px;">تأسيس وتطبيقات</div>
+    </div>
+  </div>
+
+  <h2 class="section-heading">1. التطور التاريخي لمفهوم المادة العضوية</h2>
+  
+  <div class="concept-box">
+    <strong>قسم العالم السويدي برزيليوس (1806) المركبات إلى نوعين:</strong>
+    <ul style="margin: 4px 0 4px 18px; padding: 0;">
+      <li><strong>مركبات عضوية:</strong> تستخلص من أصل نباتي أو حيواني فقط.</li>
+      <li><strong>مركبات غير عضوية:</strong> تأتي من مصادر معدنية من القشرة الأرضية.</li>
+    </ul>
+    <strong>نظرية القوى الحيوية (Vital Force Theory):</strong> تنص على أن المركبات العضوية تتكون <em>داخل خلايا الكائنات الحية فقط</em> بتأثير قوى حيوية غامضة، ولا يمكن تحضيرها إطلاقاً في المختبرات.
+  </div>
+
+  <h2 class="section-heading">2. الضربة القاضية لنظرية القوى الحيوية (تجربة فوهلر 1828)</h2>
+  <p style="margin: 4px 0 8px 0; font-size: 10pt;">
+    وجه العالم الألماني <strong>فريدريك فوهلر (Wöhler)</strong> ضربة قاضية لنظرية برزيليوس عندما نجح في <strong>تحضير اليوريا (البولينا)</strong> وهو مركب عضوي يتكون في بول الثدييات، عن طريق تسخين محلول مائي لمركبين غير عضويين:
+  </p>
+
+  <div class="chem-eq">
+    NH<sub>4</sub>Cl + AgCNO &nbsp;&longrightarrow;&nbsp; AgCl &darr; (White ppt) + NH<sub>4</sub>CNO
+  </div>
+  <div style="text-align: center; font-size: 8.5pt; color: #4B5563; margin-bottom: 6px;">
+    (كلوريد أمونيوم + سيانات فضة &larr; راسب أبيض من كلوريد الفضة + محلول سيانات أمونيوم)
+  </div>
+
+  <div class="chem-eq">
+    NH<sub>4</sub>CNO &nbsp;&nbsp;<span class="heat">&Delta; (تسخين)</span>&nbsp;&nbsp;&longrightarrow;&nbsp;&nbsp; H<sub>2</sub>N &mdash; C(=O) &mdash; NH<sub>2</sub> &nbsp;(اليوريا)
+  </div>
+  <div style="text-align: center; font-size: 8.5pt; color: #4B5563; margin-bottom: 10px;">
+    (إعادة ترتيب للذرات بالتسخين لتحويل سيانات الأمونيوم غير العضوية إلى اليوريا العضوية)
+  </div>
+
+  <div class="grid-2">
+    <!-- Urea Vector Structure -->
+    <div class="visual-card">
+      <svg width="220" height="110" viewBox="0 0 220 110" xmlns="http://www.w3.org/2000/svg" direction="ltr">
+        <!-- Central Carbon -->
+        <circle cx="110" cy="65" r="4" fill="#501325"/>
+        <text x="110" y="69" font-family="Arial" font-size="14" font-weight="bold" fill="#501325" text-anchor="middle">C</text>
+        
+        <!-- Double Bond C=O -->
+        <line x1="107" y1="52" x2="107" y2="24" stroke="#501325" stroke-width="2.5"/>
+        <line x1="113" y1="52" x2="113" y2="24" stroke="#501325" stroke-width="2.5"/>
+        <text x="110" y="18" font-family="Arial" font-size="15" font-weight="bold" fill="#B91C1C" text-anchor="middle">O</text>
+        
+        <!-- Left Bond to NH2 -->
+        <line x1="98" y1="74" x2="68" y2="92" stroke="#501325" stroke-width="2.5"/>
+        <text x="45" y="98" font-family="Arial" font-size="14" font-weight="bold" fill="#1D4ED8" text-anchor="middle">H<tspan font-size="10" dy="3">2</tspan><tspan dy="-3">N</tspan></text>
+        
+        <!-- Right Bond to NH2 -->
+        <line x1="122" y1="74" x2="152" y2="92" stroke="#501325" stroke-width="2.5"/>
+        <text x="175" y="98" font-family="Arial" font-size="14" font-weight="bold" fill="#1D4ED8" text-anchor="middle">NH<tspan font-size="10" dy="3">2</tspan></text>
+      </svg>
+      <div class="visual-caption">الصيغة البنائية لليوريا (Urea) - زوايا 120° مستوية</div>
+    </div>
+
+    <!-- Key Takeaway -->
+    <div class="tip-box" style="margin: 8px 0; height: calc(100% - 16px); display: flex; flex-direction: column; justify-content: center;">
+      <div class="tip-title">⚡ فنيات امتحان الثانوية العامة:</div>
+      <p style="margin: 0; font-size: 9pt; line-height: 1.5;">
+        • بعد تجربة فوهلر، أصبحت المادة العضوية تُعرّف <strong>ببنيتها التركيبية</strong> (Structure) وليس بمصدرها.<br>
+        • كلوريد الفضة راسب أبيض يذوب في محلول النشادر المركز.<br>
+        • سيانات الأمونيوم واليوريا لهما <strong>نفس الصيغة الجزيئية CH<sub>4</sub>N<sub>2</sub>O</strong> ولكنهما يختلفان في الصيغة البنائية والخواص (أول أيزومرمزم مدروس).
+      </p>
+    </div>
+  </div>
+
+  <div class="page-footer">
+    <span>PHENOL EDUCATION SYSTEM</span>
+    <span>صفحة (1) من (4)</span>
+    <span>DR OMAR MAGDI</span>
+  </div>
+</div>
+
+<!-- ========================================== -->
+<!-- PAGE 2: COMPARISON TABLE + CARBON BONDS    -->
+<!-- ========================================== -->
+<div class="a4-page">
+  <div class="page-header">
+    <span class="brand-tag">PHENOL</span>
+    <span class="subject-tag">مقارنة المركبات العضوية وغير العضوية | سلاسل الكربون</span>
+    <span class="instructor-tag">DR OMAR MAGDI</span>
+  </div>
+
+  <h2 class="section-heading" style="margin-top: 0;">3. مقارنة دقيقة بين المركبات العضوية وغير العضوية</h2>
+
+  <table class="chem-table">
+    <thead>
+      <tr>
+        <th style="width: 18%;">وجه المقارنة</th>
+        <th style="width: 41%;">المركبات العضوية (Organic)</th>
+        <th style="width: 41%;">المركبات غير العضوية (Inorganic)</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td class="bold">1. التركيب الكيميائي</td>
+        <td>يشترط احتواؤها على عنصر <strong>الكربون (C)</strong> بصفة أساسية.</td>
+        <td>قد تحتوي على الكربون أو أي عنصر آخر من الجدول الدوري.</td>
+      </tr>
+      <tr>
+        <td class="bold">2. نوع الروابط</td>
+        <td>غالباً روابط <strong>تساهمية</strong> (Covalent).</td>
+        <td>غالباً روابط <strong>أيونية</strong> (وتساهمية في بعضها).</td>
+      </tr>
+      <tr>
+        <td class="bold">3. درجة الانصهار والغليان</td>
+        <td><strong>منخفضة</strong> لضعف قوى التجاذب بين الجزيئات.</td>
+        <td><strong>مرتفعة</strong> لقوة الروابط الأيونية وشبكتها البلورية.</td>
+      </tr>
+      <tr>
+        <td class="bold">4. الرائحة</td>
+        <td>غالباً لها <strong>روائح مميزة ونفاذة</strong>.</td>
+        <td>عديمة الرائحة غالباً (باستثناء بعض الغازات).</td>
+      </tr>
+      <tr>
+        <td class="bold">5. قابلية الاشتعال</td>
+        <td>تشتعل وينتج دائماً غاز <strong>CO<sub>2</sub></strong> وبخار ماء <strong>H<sub>2</sub>O</strong>.</td>
+        <td>غير قابلة للاشتعال غالباً، وإذا اشتعلت تعطي غازات أخرى.</td>
+      </tr>
+      <tr>
+        <td class="bold">6. الذوبان</td>
+        <td>لا تذوب في الماء غالباً، وتذوب في <strong>المذيبات غير القطبية</strong> (كالبنزين).</td>
+        <td>تذوب في <strong>الماء</strong> غالباً، ولا تذوب في المذيبات العضوية.</td>
+      </tr>
+      <tr>
+        <td class="bold">7. التوصيل الكهربي</td>
+        <td><strong>مواد لا إلكتروليتية</strong> (لا تتأين، فلا توصل التيار).</td>
+        <td><strong>مواد إلكتروليتية</strong> (تتأين غالباً وتوصل التيار الكهربي).</td>
+      </tr>
+      <tr>
+        <td class="bold">8. سرعة التفاعلات</td>
+        <td><strong>بطيئة</strong> لأنها تتم بين جزيئات وروابط تساهمية.</td>
+        <td><strong>سريعة ولحظية</strong> لأنها تتم بين أيونات.</td>
+      </tr>
+      <tr>
+        <td class="bold">9. البلمرة والمشابهة</td>
+        <td>تتميز بقدرتها الفائقة على <strong>البلمرة والمشابهة الجزيئية</strong>.</td>
+        <td>تنعدم فيها ظاهرة البلمرة والمشابهة الجزيئية غالباً.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2 class="section-heading">4. سر وفرة المركبات العضوية (أكثر من 10 ملايين مركب)</h2>
+  <div class="concept-box" style="margin-bottom: 8px;">
+    <strong>النسبة بين المركبات العضوية وغير العضوية تتجاوز (20 : 1).</strong> ويرجع هذا التنوع الهائل إلى قدرة ذرات <strong>الكربون الرباعية التكافؤ</strong> على الارتباط مع نفسها أو مع غيرها بطرق متعددة:
+  </div>
+
+  <div class="visual-card" style="padding: 10px;">
+    <svg width="520" height="125" viewBox="0 0 520 125" xmlns="http://www.w3.org/2000/svg" direction="ltr">
+      <!-- Straight Chain -->
+      <g transform="translate(10, 10)">
+        <text x="55" y="15" font-family="Arial" font-size="11" font-weight="bold" fill="#501325" text-anchor="middle">سلسلة مستمرة</text>
+        <line x1="15" y1="45" x2="95" y2="45" stroke="#C9A038" stroke-width="2"/>
+        <circle cx="15" cy="45" r="9" fill="#501325"/>
+        <text x="15" y="49" font-family="Arial" font-size="10" font-weight="bold" fill="#fff" text-anchor="middle">C</text>
+        <circle cx="42" cy="45" r="9" fill="#501325"/>
+        <text x="42" y="49" font-family="Arial" font-size="10" font-weight="bold" fill="#fff" text-anchor="middle">C</text>
+        <circle cx="68" cy="45" r="9" fill="#501325"/>
+        <text x="68" y="49" font-family="Arial" font-size="10" font-weight="bold" fill="#fff" text-anchor="middle">C</text>
+        <circle cx="95" cy="45" r="9" fill="#501325"/>
+        <text x="95" y="49" font-family="Arial" font-size="10" font-weight="bold" fill="#fff" text-anchor="middle">C</text>
+        <text x="55" y="75" font-family="Arial" font-size="9" fill="#6B7280" text-anchor="middle">بيوتان عالي</text>
+      </g>
+
+      <!-- Branched Chain -->
+      <g transform="translate(140, 10)">
+        <text x="55" y="15" font-family="Arial" font-size="11" font-weight="bold" fill="#501325" text-anchor="middle">سلسلة متفرعة</text>
+        <line x1="20" y1="45" x2="90" y2="45" stroke="#C9A038" stroke-width="2"/>
+        <line x1="55" y1="45" x2="55" y2="78" stroke="#C9A038" stroke-width="2"/>
+        <circle cx="20" cy="45" r="9" fill="#501325"/>
+        <text x="20" y="49" font-family="Arial" font-size="10" font-weight="bold" fill="#fff" text-anchor="middle">C</text>
+        <circle cx="55" cy="45" r="9" fill="#501325"/>
+        <text x="55" y="49" font-family="Arial" font-size="10" font-weight="bold" fill="#fff" text-anchor="middle">C</text>
+        <circle cx="90" cy="45" r="9" fill="#501325"/>
+        <text x="90" y="49" font-family="Arial" font-size="10" font-weight="bold" fill="#fff" text-anchor="middle">C</text>
+        <circle cx="55" cy="78" r="9" fill="#C9A038"/>
+        <text x="55" y="82" font-family="Arial" font-size="10" font-weight="bold" fill="#501325" text-anchor="middle">C</text>
+        <text x="55" y="105" font-family="Arial" font-size="9" fill="#6B7280" text-anchor="middle">2-ميثيل بروبان</text>
+      </g>
+
+      <!-- Homocyclic Ring -->
+      <g transform="translate(280, 10)">
+        <text x="55" y="15" font-family="Arial" font-size="11" font-weight="bold" fill="#501325" text-anchor="middle">حلقة متجانسة</text>
+        <polygon points="55,30 85,48 85,78 55,95 25,78 25,48" fill="none" stroke="#501325" stroke-width="2.5"/>
+        <text x="55" y="65" font-family="Arial" font-size="10" font-weight="bold" fill="#501325" text-anchor="middle">C<tspan font-size="7">6</tspan>H<tspan font-size="7">12</tspan></text>
+        <text x="55" y="112" font-family="Arial" font-size="9" fill="#6B7280" text-anchor="middle">جميع أركانها كربون</text>
+      </g>
+
+      <!-- Heterocyclic Ring -->
+      <g transform="translate(410, 10)">
+        <text x="50" y="15" font-family="Arial" font-size="11" font-weight="bold" fill="#501325" text-anchor="middle">حلقة غير متجانسة</text>
+        <polygon points="50,30 80,48 80,78 50,95 20,78 20,48" fill="none" stroke="#501325" stroke-width="2"/>
+        <circle cx="50" cy="30" r="10" fill="#B91C1C"/>
+        <text x="50" y="34" font-family="Arial" font-size="10" font-weight="bold" fill="#fff" text-anchor="middle">N</text>
+        <text x="50" y="66" font-family="Arial" font-size="10" font-weight="bold" fill="#501325" text-anchor="middle">C<tspan font-size="7">5</tspan>H<tspan font-size="7">5</tspan>N</text>
+        <text x="50" y="112" font-family="Arial" font-size="9" fill="#B91C1C" text-anchor="middle">بها ذرة غريبة (N)</text>
+      </g>
+    </svg>
+    <div class="visual-caption">أنماط تشكل هياكل الكربون: روابط أحادية (=) وثنائية (=) وثلاثية (&equiv;) وسلاسل وحلقات</div>
+  </div>
+
+  <div class="page-footer">
+    <span>PHENOL EDUCATION SYSTEM</span>
+    <span>صفحة (2) من (4)</span>
+    <span>DR OMAR MAGDI</span>
+  </div>
+</div>
+
+<!-- ========================================== -->
+<!-- PAGE 3: ISOMERISM & DETECTION EXPERIMENT   -->
+<!-- ========================================== -->
+<div class="a4-page">
+  <div class="page-header">
+    <span class="brand-tag">PHENOL</span>
+    <span class="subject-tag">الأيزومرمزم | تجربة الكشف عن C و H المعملية</span>
+    <span class="instructor-tag">DR OMAR MAGDI</span>
+  </div>
+
+  <h2 class="section-heading" style="margin-top: 0;">5. المشابهة الجزيئية (الأيزومرمزم - Isomerism)</h2>
+  <div class="concept-box" style="margin-bottom: 6px;">
+    <strong>التعريف:</strong> ظاهرة وجود عدة مركبات عضوية تشترك في <strong>صيغة جزيئية واحدة</strong> ولكنها تختلف في <strong>صيغتها البنائية</strong> وبالتالي تختلف في <strong>خواصها الفيزيائية والكيميائية</strong>.
+  </div>
+
+  <table class="chem-table" style="margin: 6px 0;">
+    <thead>
+      <tr>
+        <th style="width: 24%;">الصيغة الجزيئية: C<sub>2</sub>H<sub>6</sub>O</th>
+        <th style="width: 38%;">الكحول الإيثيلي (Ethanol)</th>
+        <th style="width: 38%;">إثير ثنائي الميثيل (Dimethyl ether)</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td class="bold">الصيغة البنائية</td>
+        <td class="center" style="direction: ltr; font-family: monospace; font-size: 10pt; font-weight: bold;">
+          CH<sub>3</sub> &mdash; CH<sub>2</sub> &mdash; OH
+        </td>
+        <td class="center" style="direction: ltr; font-family: monospace; font-size: 10pt; font-weight: bold;">
+          CH<sub>3</sub> &mdash; O &mdash; CH<sub>3</sub>
+        </td>
+      </tr>
+      <tr>
+        <td class="bold">المجموعة الوظيفية</td>
+        <td>مجموعة الهيدروكسيل <strong>(&mdash;OH)</strong></td>
+        <td>مجموعة الإثير <strong>(&mdash;O&mdash;)</strong></td>
+      </tr>
+      <tr>
+        <td class="bold">التفاعل مع فلز الصوديوم (Na)</td>
+        <td style="color: #166534; font-weight: bold;">يتفاعل ويتصاعد غاز الهيدروجين H<sub>2</sub> يشتعل بفرقعة</td>
+        <td style="color: #B91C1C; font-weight: bold;">لا يتفاعل لعدم وجود هيدروجين قطبي نشط</td>
+      </tr>
+      <tr>
+        <td class="bold">درجة الغليان</td>
+        <td>مرتفعة (<strong>78.5 &deg;C</strong>) لوجود روابط هيدروجينية</td>
+        <td>منخفضة جداً (<strong>-29.5 &deg;C</strong>) لعدم تكوين روابط هيدروجينية</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2 class="section-heading">6. التجربة المعملية: الكشف عن عنصري الكربون والهيدروجين</h2>
+  
+  <!-- Complete Laboratory Apparatus SVG -->
+  <div class="visual-card" style="margin: 6px 0; padding: 6px;">
+    <svg width="540" height="155" viewBox="0 0 540 155" xmlns="http://www.w3.org/2000/svg" direction="ltr">
+      <!-- Background / Base line -->
+      <line x1="20" y1="140" x2="520" y2="140" stroke="#9CA3AF" stroke-width="2"/>
+      
+      <!-- Stand and Clamp (Left) -->
+      <rect x="50" y="30" width="8" height="110" fill="#4B5563"/>
+      <rect x="35" y="136" width="38" height="6" fill="#374151"/>
+      <line x1="58" y1="65" x2="85" y2="65" stroke="#374151" stroke-width="4"/>
+      
+      <!-- Bunsen Burner -->
+      <rect x="90" y="110" width="22" height="30" fill="#6B7280"/>
+      <path d="M92 110 Q101 80 101 75 Q101 80 110 110 Z" fill="#F59E0B" opacity="0.9"/>
+      <path d="M96 110 Q101 90 101 82 Q101 90 106 110 Z" fill="#3B82F6" opacity="0.85"/>
+      <text x="101" y="148" font-family="Arial" font-size="8.5" fill="#374151" text-anchor="middle" font-weight="bold">لهب بنزن</text>
+
+      <!-- Boiling Tube (Hard Glass, inclined) -->
+      <g transform="translate(80, 50) rotate(15)">
+        <rect x="0" y="0" width="110" height="24" rx="12" fill="#E0F2FE" stroke="#0284C7" stroke-width="1.8" opacity="0.8"/>
+        <!-- Reaction contents (Organic matter + CuO) -->
+        <path d="M8 3 Q50 3 95 3 L95 21 Q50 21 8 21 Z" fill="#1F2937" opacity="0.9"/>
+        <!-- Copper oxide black grains -->
+        <circle cx="20" cy="12" r="2" fill="#000"/>
+        <circle cx="35" cy="8" r="2.5" fill="#000"/>
+        <circle cx="55" cy="14" r="2" fill="#000"/>
+        <circle cx="75" cy="10" r="2.5" fill="#000"/>
+        <circle cx="85" cy="15" r="2" fill="#000"/>
+      </g>
+      <text x="120" y="38" font-family="Arial" font-size="9" fill="#1F2937" font-weight="bold" text-anchor="middle">مادة عضوية + CuO أسود</text>
+
+      <!-- Glass Delivery Tube to U-Tube -->
+      <path d="M192 78 L250 78 L250 88" fill="none" stroke="#0284C7" stroke-width="3.5" stroke-linecap="round"/>
+
+      <!-- Bulb / U-Tube containing CuSO4 -->
+      <g transform="translate(235, 78)">
+        <rect x="0" y="10" width="30" height="40" rx="6" fill="#F0FDF4" stroke="#0284C7" stroke-width="1.8"/>
+        <!-- Blue CuSO4 5H2O -->
+        <rect x="3" y="32" width="24" height="15" rx="3" fill="#2563EB" opacity="0.85"/>
+        <text x="15" y="26" font-family="Arial" font-size="7.5" fill="#1E40AF" font-weight="bold" text-anchor="middle">CuSO<tspan font-size="5.5">4</tspan></text>
+      </g>
+      <text x="250" y="142" font-family="Arial" font-size="8.5" fill="#1D4ED8" font-weight="bold" text-anchor="middle">كبريتات نحاس لا مائية (تزرق)</text>
+
+      <!-- Delivery Tube to Lime Water -->
+      <path d="M265 88 L340 88 L340 105" fill="none" stroke="#0284C7" stroke-width="3" stroke-linecap="round"/>
+
+      <!-- Test tube with Lime Water -->
+      <g transform="translate(325, 95)">
+        <rect x="0" y="0" width="30" height="42" rx="6" fill="#FEF3C7" stroke="#0284C7" stroke-width="1.8"/>
+        <!-- Turbid milky liquid CaCO3 -->
+        <rect x="3" y="15" width="24" height="24" rx="3" fill="#E5E7EB" opacity="0.95"/>
+        <!-- White turbidity specks -->
+        <circle cx="8" cy="24" r="1.5" fill="#fff"/>
+        <circle cx="16" cy="30" r="1.5" fill="#fff"/>
+        <circle cx="22" cy="22" r="1.5" fill="#fff"/>
+      </g>
+      <text x="340" y="148" font-family="Arial" font-size="8.5" fill="#92400E" font-weight="bold" text-anchor="middle">ماء جير رائق (يتعكر)</text>
+
+      <!-- Results Indicator Box -->
+      <g transform="translate(390, 35)">
+        <rect x="0" y="0" width="140" height="85" rx="5" fill="#FDFBF7" stroke="#C9A038" stroke-width="1.5"/>
+        <text x="70" y="18" font-family="Arial" font-size="9" font-weight="bold" fill="#501325" text-anchor="middle">نتايج التجربة المعملية</text>
+        <line x1="10" y1="24" x2="130" y2="24" stroke="#C9A038" stroke-width="1"/>
+        <text x="130" y="42" font-family="Arial" font-size="8" fill="#1E40AF" text-anchor="end">1. زُرقة كبريتات النحاس:</text>
+        <text x="130" y="55" font-family="Arial" font-size="7.5" fill="#374151" text-anchor="end">&larr; تدل على خروج H<tspan font-size="6">2</tspan>O (وجود H)</text>
+        <text x="130" y="70" font-family="Arial" font-size="8" fill="#92400E" text-anchor="end">2. تعكر ماء الجير الرائق:</text>
+        <text x="130" y="81" font-family="Arial" font-size="7.5" fill="#374151" text-anchor="end">&larr; تدل على خروج CO<tspan font-size="6">2</tspan> (وجود C)</text>
+      </g>
+    </svg>
+    <div class="visual-caption">الجهاز القياسي للكشف عن عنصري الكربون والهيدروجين في المواد العضوية</div>
+  </div>
+
+  <div class="grid-2" style="margin-top: 4px;">
+    <div>
+      <div style="font-size: 8.5pt; font-weight: bold; color: #501325; margin-bottom: 2px;">أ) الكشف عن الهيدروجين (تكون الماء):</div>
+      <div class="chem-eq" style="font-size: 9pt; padding: 4px;">
+        2H + CuO &nbsp;&longrightarrow;&nbsp; Cu + H<sub>2</sub>O
+      </div>
+      <div class="chem-eq" style="font-size: 8.5pt; padding: 3px; color: #1E40AF;">
+        CuSO<sub>4</sub> (أبيض) + 5H<sub>2</sub>O &nbsp;&rarr;&nbsp; CuSO<sub>4</sub>&bull;5H<sub>2</sub>O (أزرق)
+      </div>
+    </div>
+    <div>
+      <div style="font-size: 8.5pt; font-weight: bold; color: #501325; margin-bottom: 2px;">ب) الكشف عن الكربون (تعكر ماء الجير):</div>
+      <div class="chem-eq" style="font-size: 9pt; padding: 4px;">
+        C + 2CuO &nbsp;&longrightarrow;&nbsp; 2Cu + CO<sub>2</sub> &uarr;
+      </div>
+      <div class="chem-eq" style="font-size: 8.5pt; padding: 3px; color: #92400E;">
+        CO<sub>2</sub> + Ca(OH)<sub>2</sub> &nbsp;&rarr;&nbsp; CaCO<sub>3</sub> &darr; (راسب معكر) + H<sub>2</sub>O
+      </div>
+    </div>
+  </div>
+
+  <div class="page-footer">
+    <span>PHENOL EDUCATION SYSTEM</span>
+    <span>صفحة (3) من (4)</span>
+    <span>DR OMAR MAGDI</span>
+  </div>
+</div>
+
+<!-- ========================================== -->
+<!-- PAGE 4: EXAM PRO-TIPS & TABLET QUESTIONS   -->
+<!-- ========================================== -->
+<div class="a4-page">
+  <div class="page-header">
+    <span class="brand-tag">PHENOL</span>
+    <span class="subject-tag">تريكات الامتحان ونواتج التعلم الحديثة</span>
+    <span class="instructor-tag">DR OMAR MAGDI</span>
+  </div>
+
+  <h2 class="section-heading" style="margin-top: 0;">7. فنيات وتريكات الامتحان (Exams Pro-Tips)</h2>
+  
+  <div class="tip-box" style="margin-bottom: 8px;">
+    <div class="tip-title">🎯 نقاط لا يخلو منها امتحان الثانوية العامة:</div>
+    <ul style="margin: 4px 0 0 16px; padding: 0; font-size: 9pt; line-height: 1.55;">
+      <li><strong>دور أكسيد النحاس الأسود (CuO):</strong> يعمل كـ <em>عامل مؤكسد</em> للمادة العضوية، حيث يُختزل هو إلى فلز النحاس الأحمر (Cu)؛ فيقل وزنه وتكتسب أنبوبة كبريتات النحاس وزناً مساوياً لكتلة الماء الناتج، وتكتسب أنبوبة ماء الجير وزناً مساوياً لكتلة CO<sub>2</sub>.</li>
+      <li><strong>إذا تم استبدال ماء الجير بـ هيدروكسيد الصوديوم (NaOH):</strong> يمتص غاز CO<sub>2</sub> ويتكون كربونات صوديوم تذوب في الماء <em>فلا يحدث تعكر</em> بالرغم من خروج الغاز.</li>
+      <li><strong>إذا مر غاز CO<sub>2</sub> لفترة طويلة (Long time) في ماء الجير:</strong> يزول التعكر بسبب تحول كربونات الكالسيوم غير الذائبة إلى بيكربونات كالسيوم ذائبة: <br>
+      <code style="direction: ltr; display: inline-block;">CaCO<sub>3</sub> + H<sub>2</sub>O + CO<sub>2</sub> &longrightarrow; Ca(HCO<sub>3</sub>)<sub>2</sub></code></li>
+    </ul>
+  </div>
+
+  <h2 class="section-heading">8. بنك أسئلة نواتج التعلم الحديثة (نظام التابلت)</h2>
+
+  <!-- Question 1 -->
+  <div class="question-item">
+    <div>
+      <span class="question-num">س1:</span>
+      عند تسخين خليط من مادة عضوية مع أكسيد النحاس (II) الأسود، حدثت التغيرات التالية:
+    </div>
+    <div class="question-options">
+      <div class="question-opt"><span class="opt-letter">(أ)</span> يزداد وزن أنبوبة التفاعل.</div>
+      <div class="question-opt"><span class="opt-letter">(ب)</span> يختزل أكسيد النحاس ويتكون راسب أحمر.</div>
+      <div class="question-opt"><span class="opt-letter">(ج)</span> يتأكسد الهيدروجين ويتكون راسب أبيض.</div>
+      <div class="question-opt"><span class="opt-letter">(د)</span> لا يتغير لون كبريتات النحاس المائية.</div>
+    </div>
+    <div class="correct-answer-explain">
+      <strong>الإجابة الصحيحة: (ب)</strong> &mdash; لأن CuO يمنح الأكسجين للكربون والهيدروجين (يتأكسدان) بينما يُختزل هو إلى فلز النحاس الأحمر Cu ويقل وزنه.
+    </div>
+  </div>
+
+  <!-- Question 2 -->
+  <div class="question-item">
+    <div>
+      <span class="question-num">س2:</span>
+      المركبان (اليوريا) و (سيانات الأمونيوم) يتفقان في جميع ما يلي <strong>ما عدا</strong>:
+    </div>
+    <div class="question-options">
+      <div class="question-opt"><span class="opt-letter">(أ)</span> الكتلة المولية.</div>
+      <div class="question-opt"><span class="opt-letter">(ب)</span> النسبة المئوية الكتلية للعناصر.</div>
+      <div class="question-opt"><span class="opt-letter">(ج)</span> درجة الانصهار وقابلية الذوبان.</div>
+      <div class="question-opt"><span class="opt-letter">(د)</span> عدد ونوع الذرات المكونة للجزيء.</div>
+    </div>
+    <div class="correct-answer-explain">
+      <strong>الإجابة الصحيحة: (ج)</strong> &mdash; لأنهما أيزومران يتفقان في الصيغة الجزيئية والكتلة المولية والنسب المئوية، ولكنهما يختلفان في الخواص الفيزيائية والكيميائية والصيغة البنائية.
+    </div>
+  </div>
+
+  <!-- Question 3 -->
+  <div class="question-item">
+    <div>
+      <span class="question-num">س3:</span>
+      الصيغة الجزيئية C<sub>2</sub>H<sub>6</sub>O تعبر عن مركبين أحدهما يتفاعل مع الصوديوم والآخر لا يتفاعل. يرجع عدم تفاعل المركب الثاني إلى:
+    </div>
+    <div class="question-options">
+      <div class="question-opt"><span class="opt-letter">(أ)</span> عدم احتوائه على ذرات أكسجين.</div>
+      <div class="question-opt"><span class="opt-letter">(ب)</span> كبر كتلته الجزيئية مقارنة بالأول.</div>
+      <div class="question-opt"><span class="opt-letter">(ج)</span> وقوع ذرة الأكسجين بين ذرتي كربون فلا يوجد هيدروجين قطبي نشط.</div>
+      <div class="question-opt"><span class="opt-letter">(د)</span> وجود روابط هيدروجينية قوية بين جزيئاته.</div>
+    </div>
+    <div class="correct-answer-explain">
+      <strong>الإجابة الصحيحة: (ج)</strong> &mdash; إثير ثنائي الميثيل صيغته CH<sub>3</sub>&mdash;O&mdash;CH<sub>3</sub> وترتبط فيه الأكسجين بالكربون برابطتين غير قطبيتين فلا يحل الصوديوم محل أي ذرة.
+    </div>
+  </div>
+
+  <div style="background: #501325; color: #FAF7EE; border-radius: 6px; padding: 10px 14px; margin-top: 10px; display: flex; justify-content: space-between; align-items: center;">
+    <div>
+      <div style="font-family: Arial; font-weight: 900; letter-spacing: 1.5px; font-size: 11pt; color: #C9A038;">PHENOL</div>
+      <div style="font-size: 8.5pt; color: #E5E7EB; margin-top: 2px;">سلسلة التميز في الكيمياء &mdash; الصف الثالث الثانوي</div>
+    </div>
+    <div style="text-align: left; font-family: Arial;">
+      <div style="font-weight: 800; font-size: 10pt; color: #ffffff;">DR OMAR MAGDI</div>
+      <div style="font-size: 7.5pt; color: #C9A038; letter-spacing: 1px;">ALL RIGHTS RESERVED &bull; 2026</div>
+    </div>
+  </div>
+
+  <div class="page-footer">
+    <span>PHENOL EDUCATION SYSTEM</span>
+    <span>صفحة (4) من (4)</span>
+    <span>DR OMAR MAGDI</span>
+  </div>
+</div>
+
+</body>
+</html>

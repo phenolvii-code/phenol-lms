@@ -1,0 +1,764 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PHENOL ACADEMY // مذكرة الكيمياء العضوية - المحاضرة (1)</title>
+  <style>
+    /* Reset & Master Design System (Phenol Luxury Editorial) */
+    * {
+      box-sizing: border-box;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+    :root {
+      --burgundy-dark: #2A0814;
+      --burgundy-base: #501325;
+      --burgundy-rich: #6E1A33;
+      --burgundy-light: #9B284B;
+      --gold-dark: #8C6A15;
+      --gold-base: #C9A038;
+      --gold-bright: #E5C158;
+      --gold-soft: #FBF4DD;
+      --paper-bg: #FDFBF7;
+      --paper-card: #FFFFFF;
+      --ink-black: #141214;
+      --ink-charcoal: #2E2B2D;
+      --ink-muted: #6B6568;
+      --border-soft: #E8E2D8;
+    }
+
+    body {
+      margin: 0;
+      padding: 30px 15px;
+      background: #232226;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Tahoma, Arial, sans-serif;
+      color: var(--ink-charcoal);
+      line-height: 1.7;
+    }
+
+    .dossier-container {
+      max-width: 920px;
+      margin: 0 auto;
+    }
+
+    /* Magazine Page Sheet */
+    .magazine-page {
+      background: var(--paper-bg);
+      border-radius: 18px;
+      margin-bottom: 35px;
+      padding: 40px 45px;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4), 0 1px 3px rgba(0, 0, 0, 0.2);
+      border: 1px solid #3d3b40;
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* Top Accent Line */
+    .magazine-page::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 6px;
+      background: linear-gradient(90deg, var(--burgundy-base), var(--gold-base), var(--burgundy-base));
+    }
+
+    /* Running Header */
+    .running-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 15px;
+      border-bottom: 1.5px solid var(--border-soft);
+      margin-bottom: 25px;
+    }
+
+    .brand-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--burgundy-dark);
+      color: var(--gold-bright);
+      padding: 5px 12px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+    }
+
+    /* Section Headers */
+    .section-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      font-weight: 800;
+      color: var(--gold-dark);
+      background: var(--gold-soft);
+      border: 1px solid rgba(201, 160, 56, 0.35);
+      padding: 3px 10px;
+      border-radius: 6px;
+      margin-bottom: 6px;
+      text-transform: uppercase;
+    }
+
+    .section-title {
+      font-size: 21px;
+      font-weight: 900;
+      color: var(--burgundy-dark);
+      margin: 0 0 12px 0;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .section-title::after {
+      content: "";
+      flex: 1;
+      height: 1px;
+      background: linear-gradient(90deg, var(--border-soft), transparent);
+    }
+
+    /* Editorial Callout Cards */
+    .story-card {
+      background: var(--paper-card);
+      border: 1px solid var(--border-soft);
+      border-radius: 12px;
+      padding: 20px;
+      margin: 15px 0;
+      position: relative;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+    }
+
+    .story-card.gold-trim {
+      border-right: 4px solid var(--gold-base);
+    }
+
+    .story-card.burgundy-trim {
+      border-right: 4px solid var(--burgundy-base);
+      background: #FDF9FA;
+    }
+
+    /* Chemical Equations Ribbon */
+    .equation-strip {
+      direction: ltr !important;
+      background: linear-gradient(135deg, #1C191B 0%, #2A1720 100%);
+      color: #FFF8EA;
+      border-radius: 10px;
+      padding: 14px 20px;
+      margin: 12px 0;
+      font-family: "Consolas", "Courier New", monospace;
+      font-size: 14px;
+      font-weight: 700;
+      text-align: center;
+      box-shadow: inset 0 1px 3px rgba(0,0,0,0.5), 0 3px 10px rgba(80, 19, 37, 0.15);
+      border: 1px solid rgba(201, 160, 56, 0.3);
+    }
+
+    .equation-caption {
+      text-align: center;
+      font-size: 11.5px;
+      color: var(--ink-muted);
+      margin-top: -4px;
+      margin-bottom: 10px;
+      font-weight: 600;
+    }
+
+    /* Comparison Table (Magazine Quality) */
+    .magazine-table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      margin: 18px 0;
+      border-radius: 10px;
+      overflow: hidden;
+      border: 1px solid var(--border-soft);
+      font-size: 12.5px;
+    }
+
+    .magazine-table th {
+      background: var(--burgundy-dark);
+      color: #FFFFFF;
+      padding: 12px 14px;
+      font-weight: 800;
+      text-align: right;
+    }
+
+    .magazine-table th:first-child {
+      background: #1F050E;
+    }
+
+    .magazine-table td {
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--border-soft);
+      background: #FFFFFF;
+    }
+
+    .magazine-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    .magazine-table tr:nth-child(even) td {
+      background: #F9F7F3;
+    }
+
+    /* Dr. Omar's Signature Exam Nuggets */
+    .pro-tip-box {
+      background: linear-gradient(135deg, #FFFDF7 0%, #FFF9EB 100%);
+      border: 1.5px solid var(--gold-base);
+      border-radius: 12px;
+      padding: 18px 22px;
+      margin: 20px 0;
+      position: relative;
+    }
+
+    .pro-tip-badge {
+      position: absolute;
+      top: -12px;
+      right: 20px;
+      background: var(--burgundy-base);
+      color: var(--gold-bright);
+      font-size: 11px;
+      font-weight: 800;
+      padding: 3px 12px;
+      border-radius: 14px;
+      border: 1px solid var(--gold-bright);
+    }
+
+    /* Print settings */
+    @media print {
+      body {
+        background: transparent !important;
+        padding: 0 !important;
+      }
+      .no-print {
+        display: none !important;
+      }
+      .magazine-page {
+        margin: 0 !important;
+        border-radius: 0 !important;
+        box-shadow: none !important;
+        border: none !important;
+        padding: 25mm 20mm !important;
+        page-break-after: always !important;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Screen Action Bar -->
+  <div class="dossier-container no-print" style="margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; background: #1C191B; padding: 12px 20px; border-radius: 12px; border: 1px solid rgba(201, 160, 56, 0.4);">
+    <div style="display: flex; align-items: center; gap: 12px;">
+      <span style="background: var(--burgundy-base); color: var(--gold-bright); width: 34px; height: 34px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 17px;">Ψ</span>
+      <div>
+        <div style="color: #FFF; font-weight: 800; font-size: 13.5px;">سلسلة الفينول في الكيمياء العضوية • د. عمر مجدي</div>
+        <div style="color: var(--gold-bright); font-size: 11px;">إصدار الثانوية العامة الحديث 2026/2027 • الدوسيه الأكاديمي الرقمي</div>
+      </div>
+    </div>
+    <button onclick="window.print()" style="background: linear-gradient(135deg, var(--gold-base), var(--gold-dark)); color: #1A0E05; border: none; padding: 8px 18px; border-radius: 8px; font-weight: 800; font-size: 12px; cursor: pointer; display: flex; align-items: center; gap: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.3);">
+      <span>طباعة الدوسيه الفاخر (PDF)</span>
+    </button>
+  </div>
+
+  <div class="dossier-container">
+
+    <!-- ==================================================================== -->
+    <!-- الصفحة الأولى: الافتتاحية، زلزال 1828 (فوهلر)، والمصفوفة البنائية للكربون -->
+    <!-- ==================================================================== -->
+    <article class="magazine-page">
+      <!-- Running Header -->
+      <div class="running-header">
+        <div class="brand-pill">
+          <span>PHENOL ACADEMY</span>
+          <span style="color: rgba(255,255,255,0.4);">|</span>
+          <span style="color: #FFFFFF;">الكيمياء العضوية 3ث</span>
+        </div>
+        <div style="font-size: 11.5px; font-weight: 800; color: var(--burgundy-base);">
+          المحاضرة (01) • الجذور التاريخية وتأسيس الروابط
+        </div>
+        <div style="font-size: 11.5px; color: var(--ink-muted); font-weight: 600;">
+          إشراف: <strong style="color: var(--ink-black);">د. عمر مجدي</strong>
+        </div>
+      </div>
+
+      <!-- Hero Dossier Banner -->
+      <div style="background: linear-gradient(135deg, var(--burgundy-dark) 0%, var(--burgundy-base) 100%); color: #FFF; border-radius: 14px; padding: 24px 28px; margin-bottom: 25px; position: relative; overflow: hidden; border: 1px solid rgba(201, 160, 56, 0.3);">
+        <div style="position: absolute; left: -20px; bottom: -30px; font-size: 120px; font-weight: 900; color: rgba(255,255,255,0.04); font-family: 'Consolas', monospace; pointer-events-none;">
+          C₆H₅OH
+        </div>
+        <div style="color: var(--gold-bright); font-size: 11.5px; font-weight: 800; letter-spacing: 1px; margin-bottom: 5px;">
+          THE FOUNDATIONAL DOSSIER // الباب الخامس
+        </div>
+        <h1 style="font-size: 26px; font-weight: 900; margin: 0 0 8px 0; color: #FFFFFF;">
+          مدخل الكيمياء العضوية وسقوط نظرية القوى الحيوية
+        </h1>
+        <p style="margin: 0; font-size: 13px; color: #EAD8DE; max-width: 680px; line-height: 1.6;">
+          كيف تحولت الكيمياء العضوية من فكرة الماورائيات إلى علم تشييد الجزيئات؟ دراسة تفصيلية لتجربة فوهلر، أسرار ذرة الكربون الأربعة، ونظرية الأيزومريزم.
+        </p>
+      </div>
+
+      <!-- Section 1 -->
+      <div class="section-badge">المبحث الأول • التاريخ الفلسفي للكيمياء</div>
+      <h2 class="section-title">زلزال 1828: هدم خرافة برزيليوس وتخليق أول جزيء عضوي</h2>
+
+      <p style="font-size: 13.5px; text-align: justify; margin-bottom: 14px;">
+        في مطلع القرن التاسع عشر (1806 م)، قسم العالم السويدي <strong>برزيليوس (Berzelius)</strong> المركبات إلى شطرين: مركبات غير عضوية تأتي من باطن الأرض، ومركبات عضوية لا تتكون إلا <em>داخل أجساد الكائنات الحية</em> مدعياً استحالة تحضيرها معملياً فيما عُرف بـ <strong>«نظرية القوى الحيوية»</strong>. ظل هذا الاعتقاد حاجزاً شلّ تقدم الكيمياء قرابة 22 عاماً حتى حطمه الشاب الألماني <strong>فريدريك فوهلر (Friedrich Wöhler)</strong> عام 1828 م.
+      </p>
+
+      <!-- The 2-Step Alchemy Box -->
+      <div class="story-card burgundy-trim">
+        <div style="font-weight: 800; color: var(--burgundy-dark); font-size: 13.5px; margin-bottom: 8px;">
+          المسار التفاعلي لتجربة فوهلر (من الأملاح المعدنية إلى اليوريا):
+        </div>
+        
+        <div class="equation-strip">
+          1) NH₄Cl (aq) + AgCNO (aq) ──► AgCl (s)↓ + NH₄CNO (aq)
+        </div>
+        <div class="equation-caption">
+          تفاعل ترسيب مزدوج: كلوريد الأمونيوم + سيانات الفضة ──► راسب أبيض من كلوريد الفضة + محلول سيانات الأمونيوم
+        </div>
+
+        <div class="equation-strip" style="background: linear-gradient(135deg, #380E1C 0%, #501325 100%); border-color: var(--gold-bright);">
+          2) NH₄CNO (aq) ────( Heat Δ )────► H₂N ── CO ── NH₂
+        </div>
+        <div class="equation-caption">
+          إعادة الترتيب الذري بالحرارة: سيانات الأمونيوم (غير عضوي) ──► اليوريا / البولينا (عضوي نقي)
+        </div>
+
+        <!-- High-End ChemDraw Vector Graphic for Urea -->
+        <div style="background: #FFFFFF; border: 1px solid var(--border-soft); border-radius: 10px; padding: 12px; margin-top: 10px;">
+          <div style="text-align: center; font-size: 11px; font-weight: 800; color: var(--burgundy-base); margin-bottom: 6px;">
+            الصيغة البنائية لمركب اليوريا (الكربونيل المركزي ومجموعتا الأمين):
+          </div>
+          <svg viewBox="0 0 460 90" style="width: 100%; max-width: 360px; height: auto; margin: 0 auto; display: block; direction: ltr !important;" xmlns="http://www.w3.org/2000/svg">
+            <!-- Central C Carbonyl -->
+            <circle cx="230" cy="50" r="14" fill="#2E2B2D" />
+            <text x="230" y="55" font-family="'Segoe UI', sans-serif" font-size="14" font-weight="900" fill="#FFFFFF" text-anchor="middle">C</text>
+            
+            <!-- Carbonyl O upward -->
+            <line x1="226" y1="36" x2="226" y2="18" stroke="#D32F2F" stroke-width="2.5" />
+            <line x1="234" y1="36" x2="234" y2="18" stroke="#D32F2F" stroke-width="2.5" />
+            <circle cx="230" cy="12" r="11" fill="#D32F2F" />
+            <text x="230" y="16" font-family="'Segoe UI', sans-serif" font-size="12" font-weight="900" fill="#FFFFFF" text-anchor="middle">O</text>
+
+            <!-- Left N Group -->
+            <line x1="218" y1="56" x2="180" y2="68" stroke="#1976D2" stroke-width="2.5" />
+            <rect x="130" y="58" width="48" height="22" rx="6" fill="#1976D2" />
+            <text x="154" y="73" font-family="Consolas, monospace" font-size="12" font-weight="800" fill="#FFFFFF" text-anchor="middle">H₂N</text>
+
+            <!-- Right N Group -->
+            <line x1="242" y1="56" x2="280" y2="68" stroke="#1976D2" stroke-width="2.5" />
+            <rect x="282" y="58" width="48" height="22" rx="6" fill="#1976D2" />
+            <text x="306" y="73" font-family="Consolas, monospace" font-size="12" font-weight="800" fill="#FFFFFF" text-anchor="middle">NH₂</text>
+          </svg>
+        </div>
+      </div>
+
+      <!-- Section 2 -->
+      <div class="section-badge" style="margin-top: 20px;">المبحث الثاني • عبقرية البناء الكربوني</div>
+      <h2 class="section-title">لماذا الكربون سيد العناصر؟ سر الـ 10 ملايين مركب</h2>
+
+      <p style="font-size: 13.5px; text-align: justify; margin-bottom: 12px;">
+        السر وراء تخطي المركبات العضوية حاجز 10 ملايين جزيء يعود للقدرة الاستثنائية لذرة الكربون الرباعية <span style="font-family: Consolas; font-weight: bold;">(₆C)</span> على تشييد هياكل معقدة لا تضاهيها ذرة أخرى:
+      </p>
+
+      <!-- Carbon Architecture Visual Grid (Vector Art) -->
+      <div style="background: #FFFFFF; border: 1px solid var(--border-soft); border-radius: 12px; padding: 14px; margin: 15px 0;">
+        <svg viewBox="0 0 760 115" style="width: 100%; height: auto; display: block; direction: ltr !important;" xmlns="http://www.w3.org/2000/svg">
+          <!-- 1. Bonds Panel -->
+          <g transform="translate(10, 5)">
+            <rect x="0" y="0" width="165" height="105" rx="8" fill="#FBF9F5" stroke="#E5DEC9" />
+            <text x="82" y="20" font-family="'Segoe UI', sans-serif" font-size="11.5" font-weight="bold" fill="#501325" text-anchor="middle">1. تنوع رتب الروابط</text>
+            <text x="15" y="45" font-family="'Segoe UI', sans-serif" font-size="10.5" fill="#555">أحادية (σ):</text>
+            <text x="85" y="45" font-family="Consolas" font-size="12" font-weight="bold" fill="#111">C ── C</text>
+            <text x="15" y="68" font-family="'Segoe UI', sans-serif" font-size="10.5" fill="#555">ثنائية (σ + π):</text>
+            <text x="85" y="68" font-family="Consolas" font-size="12" font-weight="bold" fill="#C9A038">C ══ C</text>
+            <text x="15" y="92" font-family="'Segoe UI', sans-serif" font-size="10.5" fill="#555">ثلاثية (σ + 2π):</text>
+            <text x="85" y="92" font-family="Consolas" font-size="12" font-weight="bold" fill="#9B284B">C ≡ C</text>
+          </g>
+
+          <!-- 2. Continuous Chain -->
+          <g transform="translate(195, 5)">
+            <rect x="0" y="0" width="175" height="105" rx="8" fill="#FBF9F5" stroke="#E5DEC9" />
+            <text x="87" y="20" font-family="'Segoe UI', sans-serif" font-size="11.5" font-weight="bold" fill="#501325" text-anchor="middle">2. سلسلة مستمرة (خطي)</text>
+            <!-- 4 Carbons with sleek bonds -->
+            <circle cx="35" cy="55" r="9" fill="#2E2B2D" /><text x="35" y="59" fill="#FFF" font-size="10" font-weight="bold" text-anchor="middle">C</text>
+            <line x1="44" y1="55" x2="66" y2="55" stroke="#2E2B2D" stroke-width="2" />
+            <circle cx="75" cy="55" r="9" fill="#2E2B2D" /><text x="75" y="59" fill="#FFF" font-size="10" font-weight="bold" text-anchor="middle">C</text>
+            <line x1="84" y1="55" x2="106" y2="55" stroke="#2E2B2D" stroke-width="2" />
+            <circle cx="115" cy="55" r="9" fill="#2E2B2D" /><text x="115" y="59" fill="#FFF" font-size="10" font-weight="bold" text-anchor="middle">C</text>
+            <line x1="124" y1="55" x2="146" y2="55" stroke="#2E2B2D" stroke-width="2" />
+            <circle cx="155" cy="55" r="9" fill="#2E2B2D" /><text x="155" y="59" fill="#FFF" font-size="10" font-weight="bold" text-anchor="middle">C</text>
+            <text x="87" y="85" font-family="'Segoe UI', sans-serif" font-size="10" font-weight="bold" fill="#2E7D32" text-anchor="middle">البيوتان العادي (n-Butane)</text>
+          </g>
+
+          <!-- 3. Branched Chain -->
+          <g transform="translate(390, 5)">
+            <rect x="0" y="0" width="175" height="105" rx="8" fill="#FBF9F5" stroke="#E5DEC9" />
+            <text x="87" y="20" font-family="'Segoe UI', sans-serif" font-size="11.5" font-weight="bold" fill="#501325" text-anchor="middle">3. سلسلة متفرعة (Iso)</text>
+            <circle cx="45" cy="45" r="9" fill="#2E2B2D" /><text x="45" y="49" fill="#FFF" font-size="10" font-weight="bold" text-anchor="middle">C</text>
+            <line x1="54" y1="45" x2="78" y2="45" stroke="#2E2B2D" stroke-width="2" />
+            <circle cx="87" cy="45" r="9" fill="#2E2B2D" /><text x="87" y="49" fill="#FFF" font-size="10" font-weight="bold" text-anchor="middle">C</text>
+            <line x1="96" y1="45" x2="120" y2="45" stroke="#2E2B2D" stroke-width="2" />
+            <circle cx="129" cy="45" r="9" fill="#2E2B2D" /><text x="129" y="49" fill="#FFF" font-size="10" font-weight="bold" text-anchor="middle">C</text>
+            <!-- Branch Down -->
+            <line x1="87" y1="54" x2="87" y2="70" stroke="#C62828" stroke-width="2" />
+            <circle cx="87" cy="78" r="8" fill="#C62828" /><text x="87" y="82" fill="#FFF" font-size="9" font-weight="bold" text-anchor="middle">C</text>
+            <text x="87" y="98" font-family="'Segoe UI', sans-serif" font-size="9.5" font-weight="bold" fill="#C62828" text-anchor="middle">2-ميثيل بروبان (تفرع)</text>
+          </g>
+
+          <!-- 4. Cyclic Rings -->
+          <g transform="translate(585, 5)">
+            <rect x="0" y="0" width="165" height="105" rx="8" fill="#FBF9F5" stroke="#E5DEC9" />
+            <text x="82" y="20" font-family="'Segoe UI', sans-serif" font-size="11.5" font-weight="bold" fill="#501325" text-anchor="middle">4. حلقات متجانسة وغير متجانسة</text>
+            <!-- Homocyclic Hexane -->
+            <polygon points="40,35 60,46 60,68 40,79 20,68 20,46" fill="none" stroke="#2E2B2D" stroke-width="2.2" />
+            <text x="40" y="95" font-family="'Segoe UI', sans-serif" font-size="9" font-weight="bold" fill="#2E2B2D" text-anchor="middle">متجانسة (كلها C)</text>
+            <!-- Heterocyclic Pyridine -->
+            <polygon points="125,35 145,46 145,68 125,79 105,68 105,46" fill="none" stroke="#2E2B2D" stroke-width="2.2" />
+            <circle cx="125" cy="79" r="6" fill="#D32F2F" />
+            <text x="125" y="82.5" fill="#FFF" font-size="8" font-weight="bold" text-anchor="middle">N</text>
+            <text x="125" y="95" font-family="'Segoe UI', sans-serif" font-size="9" font-weight="bold" fill="#D32F2F" text-anchor="middle">غير متجانسة (بها N)</text>
+          </g>
+        </svg>
+      </div>
+    </article>
+
+
+    <!-- ==================================================================== -->
+    <!-- الصفحة الثانية: المختبر الرقمي (جهاز تجربة C & H) والمقارنة الشاملة -->
+    <!-- ==================================================================== -->
+    <article class="magazine-page">
+      <!-- Running Header -->
+      <div class="running-header">
+        <div class="brand-pill">
+          <span>PHENOL ACADEMY</span>
+          <span style="color: rgba(255,255,255,0.4);">|</span>
+          <span style="color: #FFFFFF;">المختبر التحليلي</span>
+        </div>
+        <div style="font-size: 11.5px; font-weight: 800; color: var(--burgundy-base);">
+          المحاضرة (01) • الكشف المعملي وجدول المقارنات
+        </div>
+        <div style="font-size: 11.5px; color: var(--ink-muted); font-weight: 600;">
+          إشراف: <strong style="color: var(--ink-black);">د. عمر مجدي</strong>
+        </div>
+      </div>
+
+      <!-- Section 3 -->
+      <div class="section-badge">المبحث الثالث • المختبر التجريبي المتقدم</div>
+      <h2 class="section-title">التجربة المعملية: كيف نثبت أن العضوية كيمياء الكربون والهيدروجين؟</h2>
+
+      <p style="font-size: 13.5px; text-align: justify; margin-bottom: 12px;">
+        نضع عينة عضوية مجهولة (شمع، قماش، جلد) في أنبوبة اختبار صلبة ونسخنها بشدة مع <strong>أكسيد النحاس الأسود (CuO)</strong> كعامل مؤكسد نشط، ثم نمرر الأبخرة والغازات عبر محطتي فحص حاسمتين:
+      </p>
+
+      <!-- MASTER LAB APPARATUS ILLUSTRATION (HIGH-END MODERN VECTOR ART) -->
+      <div style="background: #FFFFFF; border: 1.5px solid var(--border-soft); border-radius: 14px; padding: 18px 12px; margin: 15px 0; box-shadow: 0 4px 15px rgba(0,0,0,0.04);">
+        <div style="text-align: center; font-size: 12px; font-weight: 800; color: var(--burgundy-dark); margin-bottom: 8px;">
+          رسم تخطيطي تفصيلي: جهاز الكشف عن عنصري الكربون والهيدروجين في المعمل
+        </div>
+
+        <svg viewBox="0 0 820 250" style="width: 100%; height: auto; display: block; margin: 0 auto; direction: ltr !important;" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="realFlame" x1="0%" y1="100%" x2="0%" y2="0%">
+              <stop offset="0%" stop-color="#0D47A1" />
+              <stop offset="35%" stop-color="#00BCD4" />
+              <stop offset="70%" stop-color="#FF9800" />
+              <stop offset="100%" stop-color="#FFEB3B" />
+            </linearGradient>
+            <linearGradient id="glassBody" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stop-color="#E2E8F0" stop-opacity="0.8" />
+              <stop offset="50%" stop-color="#FFFFFF" stop-opacity="0.3" />
+              <stop offset="100%" stop-color="#94A3B8" stop-opacity="0.7" />
+            </linearGradient>
+            <radialGradient id="blueCrystals" cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stop-color="#38BDF8" />
+              <stop offset="70%" stop-color="#0284C7" />
+              <stop offset="100%" stop-color="#0369A1" />
+            </radialGradient>
+          </defs>
+
+          <!-- LAB STAND (METALLIC) -->
+          <rect x="40" y="215" width="130" height="14" rx="3" fill="#334155" />
+          <rect x="75" y="30" width="7" height="185" fill="#64748B" />
+          <rect x="75" y="85" width="45" height="7" fill="#475569" />
+          <rect x="115" y="75" width="7" height="28" fill="#1E293B" />
+
+          <!-- BUNSEN BURNER -->
+          <rect x="145" y="200" width="42" height="15" rx="3" fill="#475569" />
+          <rect x="162" y="155" width="8" height="45" fill="#94A3B8" />
+          <!-- Flame with inner and outer cone -->
+          <path d="M 166 155 Q 155 125 166 95 Q 177 125 166 155 Z" fill="url(#realFlame)" />
+
+          <!-- HORIZONTAL PYREX TEST TUBE -->
+          <g transform="rotate(-6 120 90)">
+            <rect x="120" y="80" width="165" height="25" rx="12" fill="url(#glassBody)" stroke="#475569" stroke-width="2" />
+            <!-- Black reaction mixture (Organic + CuO) -->
+            <path d="M 125 90 Q 140 85 170 87 Q 195 90 205 102 L 125 102 Z" fill="#0F172A" />
+            <circle cx="145" cy="94" r="1.5" fill="#475569" /><circle cx="165" cy="96" r="1.5" fill="#475569" />
+            <!-- Rubber Stopper -->
+            <rect x="280" y="81" width="14" height="23" fill="#78350F" rx="2" />
+          </g>
+
+          <!-- Glass Delivery Tube -->
+          <path d="M 290 86 L 360 86 Q 375 86 375 105 L 375 120" fill="none" stroke="#64748B" stroke-width="5" />
+          <path d="M 290 86 L 360 86 Q 375 86 375 105 L 375 120" fill="none" stroke="#FFFFFF" stroke-width="2" />
+
+          <!-- ANHYDROUS COPPER SULFATE BULB (U-TUBE BULB) -->
+          <ellipse cx="440" cy="120" rx="42" ry="20" fill="url(#glassBody)" stroke="#475569" stroke-width="1.8" />
+          <!-- Vivid Hydrated Blue Crystals -->
+          <ellipse cx="440" cy="123" rx="30" ry="12" fill="url(#blueCrystals)" />
+          
+          <!-- Tube to Lime Water -->
+          <path d="M 375 120 L 398 120" fill="none" stroke="#64748B" stroke-width="5" />
+          <path d="M 482 120 L 560 120 Q 575 120 575 140 L 575 200" fill="none" stroke="#64748B" stroke-width="5" />
+          <path d="M 482 120 L 560 120 Q 575 120 575 140 L 575 200" fill="none" stroke="#FFFFFF" stroke-width="2" />
+
+          <!-- RECEPTION BEAKER (LIME WATER) -->
+          <g transform="translate(540, 140)">
+            <rect x="12" y="15" width="68" height="75" rx="3" fill="url(#glassBody)" stroke="#334155" stroke-width="2" />
+            <!-- Milky Turbid Solution -->
+            <rect x="14" y="38" width="64" height="50" fill="#E2E8F0" opacity="0.95" />
+            <!-- Turbidity particles -->
+            <circle cx="35" cy="55" r="2" fill="#94A3B8" /><circle cx="55" cy="65" r="2.5" fill="#94A3B8" /><circle cx="42" cy="78" r="3" fill="#94A3B8" />
+            <circle cx="28" cy="70" r="1.5" fill="#94A3B8" /><circle cx="60" cy="48" r="2" fill="#94A3B8" />
+          </g>
+
+          <!-- MODERN ELEGANT LABELS (POINTERS & BADGES) -->
+          <!-- Label 1: Mixture -->
+          <path d="M 170 75 L 170 35 L 205 35" fill="none" stroke="#501325" stroke-width="1.5" />
+          <circle cx="170" cy="75" r="3" fill="#501325" />
+          <rect x="208" y="22" width="190" height="26" rx="6" fill="#FDF4F6" stroke="#501325" />
+          <text x="215" y="39" font-family="'Segoe UI', sans-serif" font-size="11" font-weight="bold" fill="#501325">مادة عضوية + CuO (مؤكسد أسود)</text>
+
+          <!-- Label 2: CuSO4 Bulb -->
+          <path d="M 440 98 L 440 45 L 480 45" fill="none" stroke="#0284C7" stroke-width="1.5" />
+          <circle cx="440" cy="98" r="3" fill="#0284C7" />
+          <rect x="483" y="32" width="220" height="26" rx="6" fill="#F0F9FF" stroke="#0284C7" />
+          <text x="490" y="49" font-family="'Segoe UI', sans-serif" font-size="11" font-weight="bold" fill="#0284C7">كبريتات نحاس لا مائية بيضاء ──► زرقاء</text>
+
+          <!-- Label 3: Lime Water -->
+          <path d="M 615 180 L 645 180" fill="none" stroke="#8C6A15" stroke-width="1.5" />
+          <circle cx="615" cy="180" r="3" fill="#8C6A15" />
+          <rect x="648" y="167" width="160" height="26" rx="6" fill="#FFFDF5" stroke="#8C6A15" />
+          <text x="655" y="184" font-family="'Segoe UI', sans-serif" font-size="11" font-weight="bold" fill="#8C6A15">ماء جير رائق يتعكر (CO₂)</text>
+        </svg>
+      </div>
+
+      <!-- Chemical Logic Strip for the Experiment -->
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin: 15px 0;">
+        <div style="background: #F0F9FF; border: 1px solid #BAE6FD; border-radius: 10px; padding: 12px;">
+          <div style="font-weight: 800; font-size: 12px; color: #0369A1; margin-bottom: 4px;">دليل وجود الهيدروجين (H):</div>
+          <div style="direction: ltr; font-family: Consolas; font-weight: bold; font-size: 12px; color: #0C4A6E; text-align: center; background: #FFF; padding: 6px; border-radius: 6px; border: 1px solid #E0F2FE;">
+            2H + CuO ──► Cu (أحمر) + H₂O (بخار)
+          </div>
+          <div style="font-size: 11.5px; color: #0284C7; margin-top: 5px;">
+            يمتص الملح بخار الماء فيتحول لونه من <strong>الأبيض إلى الأزرق</strong>.
+          </div>
+        </div>
+
+        <div style="background: #FFFBEB; border: 1px solid #FDE68A; border-radius: 10px; padding: 12px;">
+          <div style="font-weight: 800; font-size: 12px; color: #B45309; margin-bottom: 4px;">دليل وجود الكربون (C):</div>
+          <div style="direction: ltr; font-family: Consolas; font-weight: bold; font-size: 12px; color: #78350F; text-align: center; background: #FFF; padding: 6px; border-radius: 6px; border: 1px solid #FEF3C7;">
+            C + 2CuO ──► 2Cu (أحمر) + CO₂ (غاز)
+          </div>
+          <div style="font-size: 11.5px; color: #B45309; margin-top: 5px;">
+            يتصاعد $CO_2$ فيعكر ماء الجير بتكوين راسب كربونات الكالسيوم $CaCO_3$.
+          </div>
+        </div>
+      </div>
+
+      <!-- Section 4: Comparison Matrix -->
+      <div class="section-badge" style="margin-top: 15px;">المبحث الرابع • مصفوفة المقارنة الفاصلة</div>
+      <h2 class="section-title">المقارنة الدستورية: المركبات العضوية مقابل غير العضوية</h2>
+
+      <table class="magazine-table">
+        <thead>
+          <tr>
+            <th style="width: 22%;">معيار التمييز</th>
+            <th style="width: 39%;">المركبات العضوية (Organic)</th>
+            <th style="width: 39%;">المركبات غير العضوية (Inorganic)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>العمود الفقري</strong></td>
+            <td>يشترط احتواؤها على عنصر <strong>الكربون (C)</strong>.</td>
+            <td>تحتوي على أي عنصر بالجدول الدوري.</td>
+          </tr>
+          <tr>
+            <td><strong>طبيعة الروابط</strong></td>
+            <td>روابط <strong>تساهمية</strong> (غير قطبية أو ضعيفة القطبية).</td>
+            <td>روابط <strong>أيونية غالباً</strong> أو تساهمية شديدة القطبية.</td>
+          </tr>
+          <tr>
+            <td><strong>الذوبان والامتزاج</strong></td>
+            <td>تذوب في المذيبات العضوية (كالبنزين) وتشح في الماء.</td>
+            <td>تذوب في الماء بسهولة لتأينها وتجاذبها مع قطبيته.</td>
+          </tr>
+          <tr>
+            <td><strong>الانصهار والغليان</strong></td>
+            <td><strong>منخفضة نسبياً</strong> (لضعف قوى فاندرفالز بين الجزيئات).</td>
+            <td><strong>مرتفعة جداً</strong> (لقوة الشبكة البلورية الأيونية).</td>
+          </tr>
+          <tr>
+            <td><strong>التوصيل الكهربي</strong></td>
+            <td><strong>لا إلكتروليتية</strong> (عديمة التأين ولا تنقل التيار).</td>
+            <td><strong>إلكتروليتية</strong> (تتأين وتوصل بكفاءة عالية).</td>
+          </tr>
+          <tr>
+            <td><strong>سرعة التفاعلات</strong></td>
+            <td><strong>بطيئة نسبياً</strong> (تتم بين جزيئات وتحتاج حرارة).</td>
+            <td><strong>لحظية وسريعة</strong> (تتم مباشرة بين الأيونات الحرة).</td>
+          </tr>
+          <tr>
+            <td><strong>ظاهرة الأيزومريزم</strong></td>
+            <td><strong>شائعة وواسعة الانتشار</strong> (السر في تنوعها).</td>
+            <td><strong>شديدة الندرة</strong> وتنعدم غالباً.</td>
+          </tr>
+        </tbody>
+      </table>
+    </article>
+
+
+    <!-- ==================================================================== -->
+    <!-- الصفحة الثالثة: مبارزة الأيزومريزم (C2H6O) وترسانة امتحانات الجمهورية -->
+    <!-- ==================================================================== -->
+    <article class="magazine-page">
+      <!-- Running Header -->
+      <div class="running-header">
+        <div class="brand-pill">
+          <span>PHENOL ACADEMY</span>
+          <span style="color: rgba(255,255,255,0.4);">|</span>
+          <span style="color: #FFFFFF;">الأيزومريزم والامتحانات</span>
+        </div>
+        <div style="font-size: 11.5px; font-weight: 800; color: var(--burgundy-base);">
+          المحاضرة (01) • شفرة الأيزومريزم وترسانة الامتحانات
+        </div>
+        <div style="font-size: 11.5px; color: var(--ink-muted); font-weight: 600;">
+          إشراف: <strong style="color: var(--ink-black);">د. عمر مجدي</strong>
+        </div>
+      </div>
+
+      <!-- Section 5 -->
+      <div class="section-badge">المبحث الخامس • شفرة الأيزومريزم (Isomerism)</div>
+      <h2 class="section-title">المبارزة الجزيئية: أيزومرا الصيغة C₂H₆O (الكحول vs الإيثر)</h2>
+
+      <p style="font-size: 13.5px; text-align: justify; margin-bottom: 12px;">
+        الصيغة الجزيئية المجردة تشبه اسم العائلة؛ تخبرنا بعدد الذرات ولكنها تفشل في تمييز الكيان الفعلي. انظر كيف تصنع رابطة واحدة فارقاً هائلاً في السلوك الكيميائي والفيزيائي:
+      </p>
+
+      <!-- SIDE-BY-SIDE MOLECULAR DUEL (VECTOR KEKULE DIAGRAM) -->
+      <div style="background: #FFFFFF; border: 1px solid var(--border-soft); border-radius: 14px; padding: 16px; margin: 15px 0;">
+        <svg viewBox="0 0 740 180" style="width: 100%; height: auto; display: block; direction: ltr !important;" xmlns="http://www.w3.org/2000/svg">
+          <!-- CARD 1: ETHANOL -->
+          <g transform="translate(10, 10)">
+            <rect x="0" y="0" width="345" height="160" rx="10" fill="#F8FAFC" stroke="#CBD5E1" stroke-width="1.5" />
+            <rect x="0" y="0" width="345" height="30" rx="10" fill="#0284C7" />
+            <text x="172" y="20" font-family="'Segoe UI', sans-serif" font-size="12.5" font-weight="bold" fill="#FFFFFF" text-anchor="middle">1. الكحول الإيثيلي (Ethanol - C₂H₅OH)</text>
+            
+            <!-- Kekule Structure with Polar O-H highlighted -->
+            <g transform="translate(70, 55)" font-family="Consolas, monospace" font-size="15" font-weight="bold">
+              <text x="35" y="25" fill="#1E293B">C</text>
+              <line x1="22" y1="20" x2="33" y2="20" stroke="#334155" stroke-width="2" /><text x="10" y="25" fill="#64748B">H</text>
+              <line x1="41" y1="10" x2="41" y2="-2" stroke="#334155" stroke-width="2" /><text x="36" y="-6" fill="#64748B">H</text>
+              <line x1="41" y1="30" x2="41" y2="42" stroke="#334155" stroke-width="2" /><text x="36" y="54" fill="#64748B">H</text>
+
+              <!-- C-C -->
+              <line x1="50" y1="20" x2="75" y2="20" stroke="#334155" stroke-width="2" />
+
+              <text x="80" y="25" fill="#1E293B">C</text>
+              <line x1="86" y1="10" x2="86" y2="-2" stroke="#334155" stroke-width="2" /><text x="81" y="-6" fill="#64748B">H</text>
+              <line x1="86" y1="30" x2="86" y2="42" stroke="#334155" stroke-width="2" /><text x="81" y="54" fill="#64748B">H</text>
+
+              <!-- Polar O-H highlighted in Glowing Cyan -->
+              <line x1="95" y1="20" x2="120" y2="20" stroke="#0284C7" stroke-width="2.5" />
+              <rect x="122" y="5" width="55" height="28" rx="6" fill="#E0F2FE" stroke="#0284C7" />
+              <text x="132" y="24" fill="#0369A1">O</text>
+              <line x1="145" y1="20" x2="158" y2="20" stroke="#0369A1" stroke-width="2" />
+              <text x="162" y="24" fill="#0369A1">H</text>
+            </g>
+
+            <!-- Metrics -->
+            <text x="25" y="125" font-family="'Segoe UI', sans-serif" font-size="11" fill="#475569">درجة الغليان:</text>
+            <text x="90" y="125" font-family="Consolas" font-size="12" font-weight="bold" fill="#0369A1">78.5 °C (سائل يغلي متأخراً)</text>
+            <text x="25" y="145" font-family="'Segoe UI', sans-serif" font-size="11" fill="#475569">التفاعل مع Na:</text>
+            <text x="105" y="145" font-family="'Segoe UI', sans-serif" font-size="11" font-weight="bold" fill="#15803D">يتفاعل بعنف ويتصاعد H₂ بفرقعة ✓</text>
+          </g>
+
+          <!-- CARD 2: DIMETHYL ETHER -->
+          <g transform="translate(385, 10)">
+            <rect x="0" y="0" width="345" height="160" rx="10" fill="#FFFDFD" stroke="#FECDD3" stroke-width="1.5" />
+            <rect x="0" y="0" width="345" height="30" rx="10" fill="#E11D48" />
+            <text x="172" y="20" font-family="'Segoe UI', sans-serif" font-size="12.5" font-weight="bold" fill="#FFFFFF" text-anchor="middle">2. إثير ثنائي الميثيل (Dimethyl Ether - CH₃OCH₃)</text>
+
+            <!-- Kekule Structure showing central O -->
+            <g transform="translate(65, 55)" font-family="Consolas, monospace" font-size="15" font-weight="bold">
+              <text x="35" y="25" fill="#1E293B">C</text>
+              <line x1="22" y1="20" x2="33" y2="20" stroke="#334155" stroke-width="2" /><text x="10" y="25" fill="#64748B">H</text>
+              <line x1="41" y1="10" x2="41" y2="-2" stroke="#334155" stroke-width="2" /><text x="36" y="-6" fill="#64748B">H</text>
+              <line x1="41" y1="30" x2="41" y2="42" stroke="#334155" stroke-width="2" /><text x="36" y="54" fill="#64748B">H</text>
+
+              <!-- Central Oxygen Bridge -->
+              <line x1="50" y1="20" x2="80" y2="20" stroke="#E11D48" stroke-width="2.5" />
+              <rect x="82" y="7" width="28" height="25" rx="6" fill="#FFE4E6" stroke="#E11D48" />
+              <text x="91" y="24" fill="#BE123C">O</text>
+              <line x1="112" y1="20" x2="142" y2="20" stroke="#E11D48" stroke-width="2.5" />
+
+              <text x="146" y="25" fill="#1E293B">C</text>
+              <line x1="158" y1="20" x2="170" y2="20" stroke="#334155" stroke-width="2" /><text x="174" y="25" fill="#64748B">H</text>
+              <line x1="152" y1="10" x2="152" y2="-2" stroke="#334155" stroke-width="2" /><text x="147" y="-6" fill="#64748B">H</text>
+              <line x1="152" y1="30" x2="152" y2="42" stroke="#334155" stroke-width="2" /><text x="147" y="54" fill="#64748B">H</text>
+            </g>
+
+            <!-- Metrics -->
+            <text x="25" y="125" font-family="'Segoe UI', sans-serif" font-size="11" fill="#475569">درجة الغليان:</text>
+            <text x="90" y="125" font-family="Consolas" font-size="12" font-weight="bold" fill="#BE123C">-29.5 °C (غاز متطاير فوراً)</text>
+            <text x="25" y="145" font-family="'Segoe UI', sans-serif" font-size="11" fill="#475569">التفاعل مع Na:</text>
+            <text x="105" y="145" font-family="'Segoe UI', sans-serif" font-size="11" font-weight="bold" fill="#BE123C">خامل كلياً (لا يحدث تفاعل) ✗</text>
+          </g>
+        </svg>
+      </div>
+
+      <!-- Section 6: Pro Exam Tips -->
+      <div class="pro-tip-box">
+        <div class="pro-tip-badge">كبسولات د. عمر الامتحانية // EXAM WEAPONS</div>
+        <div style="font-weight: 800; color: var(--burgundy-dark); font-size: 13.5px; margin-bottom: 8px;">
+          فخاخ وأسرار وزارية لا تغفل عنها (تحليل امتحانات 2021 — 2025):
+        </div>
+        <ul style="margin: 0; padding-right: 20px; font-size: 12.5px; line-height: 1.8;">
+          <li>
+            <strong>فخ الاستثناءات:</strong> ليس كل مركب يحتوي على كربون يعتبر عضوي! أكاسيد الكربون (<span style="font-family: Consolas;">CO, CO₂</span>)، وأملاح الكربونات والبيكربونات (<span style="font-family: Consolas;">CO₃²⁻, HCO₃⁻</span>)، والسيانيد والسيانات (<span style="font-family: Consolas;">CN⁻, CNO⁻</span>) هي مركبات <strong>غير عضوية تماماً</strong>.
+          </li>
+          <li>
+            <strong>ميزان الكتل في تجربة الكشف:</strong> تزداد كتلة كبريتات النحاس لامتصاصها بخار الماء $H_2O$، وتزداد كتلة ماء الجير لامتصاصه غاز $CO_2$، بينما <strong>تقل كتلة أنبوبة التفاعل</strong> بالضرورة لفقدها هذين العنصرين.
+          </li>
+          <li>
+            <strong>خدعة ماء الجير الممتد:</strong> إذا استمر إمرار $CO_2$ لفترة طويلة (Long Time) <strong>يزول التعكر الأبيض</strong> لتحول كربونات الكالسيوم الراسبة إلى بيكربونات الكالسيوم الذائبة في الماء:
+            <span style="direction: ltr; display: inline-block; font-family: Consolas; font-weight: bold;">CaCO₃ + H₂O + CO₂ ──► Ca(HCO₃)₂ (aq)</span>.
+          </li>
+        </ul>
+      </div>
+
+      <!-- Diagnostic Final Question -->
+      <div style="background: var(--burgundy-dark); color: #FFF; border-radius: 12px; padding: 18px 22px; margin-top: 20px; border: 1px solid var(--gold-bright);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+          <span style="color: var(--gold-bright); font-size: 11px; font-weight: 800;">تحدي النخبة الأكاديمي // MASTERY CHALLENGE</span>
+          <span style="font-family: Consolas; font-size: 11px; background: rgba(255,255,255,0.15); padding: 2px 8px; rounded: 4px;">Q-PHENOL-01</span>
+        </div>
+        <div style="font-size: 13px; font-weight: 600; line-height: 1.6;">
+          «عند حرق 0.2 جرام من هيدروكربون مجهول مع وفرة من أكسيد النحاس الأسود (CuO)، زادت كتلة أنبوبة كبريتات النحاس اللامائية بمقدار 0.18 جرام، وزادت كتلة وعاء ماء الجير بمقدار 0.44 جرام».
+        </div>
+        <div style="font-size: 12px; color: var(--gold-soft); margin-top: 6px;">
+          <strong>المطلوب:</strong> استنتج الصيغة الجزيئية الأولية للمركب، واذكر ما إذا كان يمكن أن ينتمي للألكانات أم الألكينات مع التفسير الرياضي الدقيق.
+        </div>
+      </div>
+    </article>
+
+  </div>
+
+</body>
+</html>
