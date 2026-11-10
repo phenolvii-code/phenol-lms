@@ -20,6 +20,20 @@ export default function ResetPasswordPage() {
   } | null>(null);
 
   useEffect(() => {
+    // Check URL hash for direct error parameters from Supabase
+    if (typeof window !== 'undefined') {
+      const hash = window.location.hash;
+      if (hash.includes('otp_expired') || hash.includes('invalid+or+has+expired')) {
+        setStatusMessage({
+          type: 'error',
+          text: 'This password reset link has expired or has already been used. Please request a new reset link.',
+        });
+        setIsVerifying(false);
+        setHasValidSession(false);
+        return;
+      }
+    }
+
     // Check if recovery session is active
     const checkRecoverySession = async () => {
       try {

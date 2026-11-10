@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { AuthModalMode } from '@/types/auth';
 import { useCurrentUser } from '@/lib/auth/useCurrentUser';
 import { Navbar } from '@/components/layout/Navbar';
@@ -20,9 +21,24 @@ import { Mail, Send, Youtube, Facebook } from 'lucide-react';
 import { WhatsAppIcon } from '@/components/auth/AuthIcons';
 
 export default function Home() {
+  const router = useRouter();
   const { user: currentUser, signOut } = useCurrentUser();
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [authModalMode, setAuthModalMode] = useState<AuthModalMode>('LOGIN');
+
+  // Automatically catch and route password recovery callbacks
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const hash = window.location.hash;
+      if (
+        hash.includes('type=recovery') ||
+        hash.includes('otp_expired') ||
+        hash.includes('error_code=')
+      ) {
+        router.push(`/reset-password${hash}`);
+      }
+    }
+  }, [router]);
 
   const handleOpenAuth = (mode: AuthModalMode) => {
     setAuthModalMode(mode);
