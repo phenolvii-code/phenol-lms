@@ -7,7 +7,7 @@ import { CHEMISTRY_COURSES } from '@/data/mock-data';
 import { getStoredCourses, syncWithServerCourses } from '@/lib/courses-storage';
 import { requestEnrollment, listMyEnrollments } from '@/lib/data/enrollments';
 import { useCurrentUser } from '@/lib/auth/useCurrentUser';
-import { ChemistryCourse } from '@/types/lms';
+import { ChemistryCourse, ChemistryQuiz } from '@/types/lms';
 import { PhenolLogo } from '@/components/brand/PhenolLogo';
 import {
   ArrowRight,
@@ -19,9 +19,15 @@ import {
   CheckCircle2,
   Sparkles,
   Share2,
+  Award,
+  BookOpen,
+  FileQuestion,
 } from 'lucide-react';
 import { CourseShareModal } from '@/components/courses/CourseShareModal';
 import { getReferralCodeForUser } from '@/lib/referral-system';
+import { fetchCourseQuizzes } from '@/lib/data/quizzes';
+import { getCourseQuestionBank } from '@/data/question-banks';
+import { CourseQuestionBankView } from '@/components/courses/CourseQuestionBankView';
 
 export default function CourseDetailsPage() {
   const params = useParams();
@@ -33,6 +39,12 @@ export default function CourseDetailsPage() {
   const [requestToast, setRequestToast] = useState(false);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const [activeTab, setActiveTab] = useState<'curriculum' | 'quizzes' | 'question_bank'>('curriculum');
+  const [quizzes, setQuizzes] = useState<ChemistryQuiz[]>([]);
+
+  useEffect(() => {
+    fetchCourseQuizzes(courseId).then(setQuizzes);
+  }, [courseId]);
 
   useEffect(() => {
     const list = getStoredCourses();
@@ -91,6 +103,9 @@ export default function CourseDetailsPage() {
   const course = coursesList.find((c) => c.id === courseId);
   const lessons = course?.lessons || [];
   const firstLesson = lessons[0];
+  const questionBank = course
+    ? getCourseQuestionBank(course.id, course.title, course.code)
+    : null;
 
   const handleRequestActivation = async () => {
     if (!currentUser || !course) {
@@ -330,84 +345,224 @@ export default function CourseDetailsPage() {
           </div>
         </div>
 
-        {/* Syllabus / Lessons Table */}
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-lg sm:text-xl font-bold text-charcoal-900 font-display">
-                Course Lectures & Modules ({lessons.length} Lectures)
-              </h2>
-              <p className="text-xs sm:text-sm text-charcoal-100 font-sans">
-                Deductive progression dissecting chemical principles without cognitive leaps.
-              </p>
+        {/* Navigation Tabs Bar */}
+        <div className="flex items-center gap-2 border-b border-hairline pb-2 overflow-x-auto">
+          <button
+            type="button"
+            onClick={() => setActiveTab('curriculum')}
+            className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-lg text-xs sm:text-sm font-semibold transition-all ${
+              activeTab === 'curriculum'
+                ? 'bg-burgundy-900 text-ivory-100 shadow-sm'
+                : 'bg-ivory-100 hover:bg-ivory-300 text-charcoal-100 border border-hairline'
+            }`}
+          >
+            <BookOpen className="w-4 h-4" />
+            <span>Course Lectures ({lessons.length})</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('quizzes')}
+            className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-lg text-xs sm:text-sm font-semibold transition-all ${
+              activeTab === 'quizzes'
+                ? 'bg-burgundy-900 text-ivory-100 shadow-sm'
+                : 'bg-ivory-100 hover:bg-ivory-300 text-charcoal-100 border border-hairline'
+            }`}
+          >
+            <Award className="w-4 h-4" />
+            <span>Timed Quizzes ({quizzes.length})</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('question_bank')}
+            className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-lg text-xs sm:text-sm font-semibold transition-all ${
+              activeTab === 'question_bank'
+                ? 'bg-burgundy-900 text-ivory-100 shadow-sm'
+                : 'bg-ivory-100 hover:bg-ivory-300 text-charcoal-100 border border-hairline'
+            }`}
+          >
+            <FileQuestion className="w-4 h-4" />
+            <span>Question Bank ({questionBank?.questions.length || 0})</span>
+          </button>
+        </div>
+
+        {/* TAB 1: CURRICULUM */}
+        {activeTab === 'curriculum' && (
+          <div className="space-y-4 animate-fade-in">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-lg sm:text-xl font-bold text-charcoal-900 font-display">
+                  Course Lectures & Modules ({lessons.length} Lectures)
+                </h2>
+                <p className="text-xs sm:text-sm text-charcoal-100 font-sans">
+                  Deductive progression dissecting chemical principles without cognitive leaps.
+                </p>
+              </div>
+              {enrollmentStatus !== 'ACTIVE' && (
+                <span className="text-xs font-mono text-amber-800 bg-amber-50 border border-amber-200 px-3 py-1 rounded">
+                  Enrollment activation required to watch
+                </span>
+              )}
             </div>
-            {enrollmentStatus !== 'ACTIVE' && (
-              <span className="text-xs font-mono text-amber-800 bg-amber-50 border border-amber-200 px-3 py-1 rounded">
-                Enrollment activation required to watch
-              </span>
-            )}
-          </div>
 
-          {lessons.length > 0 ? (
-            <div className="border border-hairline rounded bg-ivory-100 divide-y divide-hairline shadow-quiet">
-              {lessons.map((lesson, idx) => (
-                <div
-                  key={lesson.id}
-                  className="p-5 sm:p-6 hover:bg-ivory-300/40 transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-4"
-                >
-                  <div className="space-y-2.5 max-w-2xl">
-                    <div className="flex items-center gap-3">
-                      <span className="font-formula text-sm font-bold text-burgundy-500">
-                        {idx + 1 < 10 ? `0${idx + 1}` : idx + 1}
-                      </span>
-
-                      <h3 className="font-bold text-base text-charcoal-900 font-display">
-                        {lesson.title}
-                      </h3>
-
-                      {lesson.type === 'lab' && (
-                        <span className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded bg-amber-50 text-amber-800 border border-amber-200">
-                          <FlaskConical className="w-3.5 h-3.5" /> Virtual Lab
+            {lessons.length > 0 ? (
+              <div className="border border-hairline rounded bg-ivory-100 divide-y divide-hairline shadow-quiet">
+                {lessons.map((lesson, idx) => (
+                  <div
+                    key={lesson.id}
+                    className="p-5 sm:p-6 hover:bg-ivory-300/40 transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+                  >
+                    <div className="space-y-2.5 max-w-2xl">
+                      <div className="flex items-center gap-3">
+                        <span className="font-formula text-sm font-bold text-burgundy-500">
+                          {idx + 1 < 10 ? `0${idx + 1}` : idx + 1}
                         </span>
+
+                        <h3 className="font-bold text-base text-charcoal-900 font-display">
+                          {lesson.title}
+                        </h3>
+
+                        {lesson.type === 'lab' && (
+                          <span className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded bg-amber-50 text-amber-800 border border-amber-200">
+                            <FlaskConical className="w-3.5 h-3.5" /> Virtual Lab
+                          </span>
+                        )}
+                      </div>
+
+                      <p className="text-xs sm:text-sm text-charcoal-100 font-sans leading-relaxed">
+                        {lesson.summary}
+                      </p>
+
+                      {lesson.keyFormulas && lesson.keyFormulas.length > 0 && (
+                        <div className="flex flex-wrap gap-2 pt-1">
+                          {lesson.keyFormulas.map((formula, fIdx) => (
+                            <span
+                              key={fIdx}
+                              className="font-formula text-xs text-charcoal-900 bg-ivory-300 px-2.5 py-1 rounded border border-hairline"
+                            >
+                              {formula}
+                            </span>
+                          ))}
+                        </div>
                       )}
                     </div>
 
-                    <p className="text-xs sm:text-sm text-charcoal-100 font-sans leading-relaxed">
-                      {lesson.summary}
+                    <div className="flex items-center justify-between sm:justify-end gap-4 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-hairline">
+                      <span className="font-formula text-xs sm:text-sm text-charcoal-50">
+                        {lesson.duration}
+                      </span>
+
+                      {enrollmentStatus === 'ACTIVE' ? (
+                        <Link
+                          href={`/courses/${course.id}/lessons/${lesson.id}`}
+                          className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded border border-hairline hover:border-burgundy-500 hover:text-burgundy-500 bg-ivory-100 text-xs sm:text-sm font-semibold font-sans transition-colors"
+                        >
+                          <span>Enter Lecture</span>
+                          <ArrowRight className="w-4 h-4" />
+                        </Link>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={handleRequestActivation}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded bg-ivory-200 text-charcoal-50 text-xs font-semibold font-sans cursor-pointer hover:bg-ivory-300 transition-colors"
+                        >
+                          <Lock className="w-3.5 h-3.5" />
+                          <span>Course Activation Required</span>
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="border border-dashed border-hairline rounded-xl bg-ivory-100 p-10 text-center space-y-3 shadow-quiet">
+                <Sparkles className="w-8 h-8 text-burgundy-500 mx-auto" />
+                <h3 className="text-base font-bold text-charcoal-900 font-display">
+                  No lectures uploaded for this course yet
+                </h3>
+                <p className="text-xs text-charcoal-100 font-sans max-w-md mx-auto">
+                  This course is newly created and currently being prepared. You can add lectures, videos, and PDF handouts via the Admin Dashboard.
+                </p>
+                {currentUser?.role === 'INSTRUCTOR' && (
+                  <div className="pt-2">
+                    <Link
+                      href="/dashboard"
+                      className="inline-flex items-center gap-2 px-5 py-2.5 rounded bg-burgundy-900 hover:bg-black text-ivory-100 text-xs font-semibold shadow-sm transition-colors"
+                    >
+                      <span>Go to Dashboard to Add Lectures</span>
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </Link>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* TAB 2: TIMED QUIZZES */}
+        {activeTab === 'quizzes' && (
+          <div className="space-y-4 animate-fade-in">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-lg sm:text-xl font-bold text-charcoal-900 font-display">
+                  Timed Assessment Quizzes ({quizzes.length})
+                </h2>
+                <p className="text-xs sm:text-sm text-charcoal-100 font-sans">
+                  Rigorous MCQ challenges assessing reaction mechanisms and analytical problem sets.
+                </p>
+              </div>
+              {enrollmentStatus !== 'ACTIVE' && (
+                <span className="text-xs font-mono text-amber-800 bg-amber-50 border border-amber-200 px-3 py-1 rounded">
+                  Activation required
+                </span>
+              )}
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {quizzes.map((q) => (
+                <div
+                  key={q.id}
+                  className="p-5 sm:p-6 rounded-xl border border-hairline bg-ivory-100 shadow-quiet space-y-4 flex flex-col justify-between"
+                >
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-formula text-[10px] text-burgundy-600 font-bold bg-burgundy-50 px-2 py-0.5 rounded border border-burgundy-200">
+                        {q.badge || 'TIMED EVALUATION'}
+                      </span>
+                      <span className="inline-flex items-center gap-1 text-xs font-mono text-charcoal-50">
+                        <Clock className="w-3.5 h-3.5 text-burgundy-500" />
+                        <span>{q.durationMinutes || 15} Mins</span>
+                      </span>
+                    </div>
+
+                    <h3 className="text-base font-bold text-charcoal-900 font-display">
+                      {q.title}
+                    </h3>
+
+                    <p className="text-xs text-charcoal-100 leading-relaxed font-sans line-clamp-2">
+                      {q.courseTitle || 'Interactive chemistry diagnostic challenge with model solution breakdown.'}
                     </p>
 
-                    {lesson.keyFormulas && lesson.keyFormulas.length > 0 && (
-                      <div className="flex flex-wrap gap-2 pt-1">
-                        {lesson.keyFormulas.map((formula, fIdx) => (
-                          <span
-                            key={fIdx}
-                            className="font-formula text-xs text-charcoal-900 bg-ivory-300 px-2.5 py-1 rounded border border-hairline"
-                          >
-                            {formula}
-                          </span>
-                        ))}
-                      </div>
-                    )}
+                    <div className="text-[11px] font-mono text-charcoal-50 pt-1">
+                      <span>{q.questions.length} Diagnostic MCQ Questions</span>
+                    </div>
                   </div>
 
-                  <div className="flex items-center justify-between sm:justify-end gap-4 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-hairline">
-                    <span className="font-formula text-xs sm:text-sm text-charcoal-50">
-                      {lesson.duration}
-                    </span>
-
+                  <div className="pt-3 border-t border-hairline">
                     {enrollmentStatus === 'ACTIVE' ? (
                       <Link
-                        href={`/courses/${course.id}/lessons/${lesson.id}`}
-                        className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded border border-hairline hover:border-burgundy-500 hover:text-burgundy-500 bg-ivory-100 text-xs sm:text-sm font-semibold font-sans transition-colors"
+                        href={`/courses/${course.id}/quizzes/${q.id}`}
+                        className="w-full py-2.5 px-4 rounded-lg bg-burgundy-900 hover:bg-black text-ivory-100 text-xs font-bold transition-colors flex items-center justify-center gap-2 shadow-sm"
                       >
-                        <span>Enter Lecture</span>
-                        <ArrowRight className="w-4 h-4" />
+                        <span>Enter Assessment Room</span>
+                        <ArrowRight className="w-3.5 h-3.5" />
                       </Link>
                     ) : (
                       <button
                         type="button"
                         onClick={handleRequestActivation}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded bg-ivory-200 text-charcoal-50 text-xs font-semibold font-sans cursor-pointer hover:bg-ivory-300 transition-colors"
+                        className="w-full py-2 px-3 rounded-lg bg-ivory-200 text-charcoal-50 text-xs font-semibold flex items-center justify-center gap-1.5"
                       >
                         <Lock className="w-3.5 h-3.5" />
                         <span>Course Activation Required</span>
@@ -417,29 +572,15 @@ export default function CourseDetailsPage() {
                 </div>
               ))}
             </div>
-          ) : (
-            <div className="border border-dashed border-hairline rounded-xl bg-ivory-100 p-10 text-center space-y-3 shadow-quiet">
-              <Sparkles className="w-8 h-8 text-burgundy-500 mx-auto" />
-              <h3 className="text-base font-bold text-charcoal-900 font-display">
-                No lectures uploaded for this course yet
-              </h3>
-              <p className="text-xs text-charcoal-100 font-sans max-w-md mx-auto">
-                This course is newly created and currently being prepared. You can add lectures, videos, and PDF handouts via the Admin Dashboard.
-              </p>
-              {currentUser?.role === 'INSTRUCTOR' && (
-                <div className="pt-2">
-                  <Link
-                    href="/dashboard"
-                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded bg-burgundy-900 hover:bg-black text-ivory-100 text-xs font-semibold shadow-sm transition-colors"
-                  >
-                    <span>Go to Dashboard to Add Lectures</span>
-                    <ArrowRight className="w-3.5 h-3.5" />
-                  </Link>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
+          </div>
+        )}
+
+        {/* TAB 3: STATIC QUESTION BANK */}
+        {activeTab === 'question_bank' && questionBank && (
+          <div className="animate-fade-in">
+            <CourseQuestionBankView bank={questionBank} />
+          </div>
+        )}
         {/* Course Share & Referral Modal */}
       <CourseShareModal
         isOpen={isShareModalOpen}
