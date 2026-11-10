@@ -35,6 +35,18 @@ export async function setEnrollmentStatus(
   if (error) throw error;
 }
 
+export async function adminEnrollStudent(
+  studentEmail: string,
+  courseId: string
+): Promise<CourseEnrollmentRecord> {
+  const { data, error } = await supabase.rpc('admin_enroll_student', {
+    p_student_email: studentEmail,
+    p_course_id: courseId,
+  });
+  if (error) throw error;
+  return data;
+}
+
 export async function listMyEnrollments(): Promise<CourseEnrollmentRecord[]> {
   const { data, error } = await supabase
     .from('course_enrollments')

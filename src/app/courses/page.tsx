@@ -9,8 +9,7 @@ import { supabase } from '@/lib/supabase';
 import { PhenolLogo } from '@/components/brand/PhenolLogo';
 import { CourseShareModal } from '@/components/courses/CourseShareModal';
 import { getReferralCodeForUser } from '@/lib/referral-system';
-import { AuthUser } from '@/types/auth';
-import { getPersistentAvatar } from '@/lib/user-profile';
+import { useCurrentUser } from '@/lib/auth/useCurrentUser';
 import {
   ArrowLeft,
   ArrowRight,
@@ -28,7 +27,7 @@ export default function CoursesPage() {
   const [coursesList, setCoursesList] = useState<ChemistryCourse[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<AcademicCategory | 'all'>('all');
   const [searchQuery, setSearchQuery] = useState('');
-  const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
+  const { user: currentUser } = useCurrentUser();
 
   // Sharing Modal
   const [sharingCourse, setSharingCourse] = useState<ChemistryCourse | null>(null);
@@ -48,24 +47,11 @@ export default function CoursesPage() {
       setCoursesList(getStoredCourses());
     });
 
-    try {
-      const saved = localStorage.getItem('phenol_auth_user');
-      if (saved) {
-        const u = JSON.parse(saved);
-        if (u?.email) {
-          u.avatar = getPersistentAvatar(u.email, u.avatar);
-        }
-        setCurrentUser(u);
-      }
-    } catch (e) {}
-
     const handleUpdate = () => {
       setCoursesList(getStoredCourses());
     };
-    window.addEventListener('storage', handleUpdate);
     window.addEventListener('phenol_courses_updated', handleUpdate);
     return () => {
-      window.removeEventListener('storage', handleUpdate);
       window.removeEventListener('phenol_courses_updated', handleUpdate);
     };
   }, []);
@@ -111,15 +97,7 @@ export default function CoursesPage() {
       notes: `Applied for ${chosenTrackObj?.name}. Direct inquiry.`,
     };
 
-    // 1. Sync to local storage
-    try {
-      const existing = localStorage.getItem('phenol_waitlist_applications');
-      const list = existing ? JSON.parse(existing) : [];
-      list.unshift(newApplication);
-      localStorage.setItem('phenol_waitlist_applications', JSON.stringify(list));
-    } catch (err) {}
-
-    // 2. Supabase persistence
+    // Supabase persistence
     try {
       await supabase.from('waitlist_applications').insert([
         {

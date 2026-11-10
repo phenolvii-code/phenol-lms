@@ -29,17 +29,21 @@ export interface LectureTimestamp {
   title: string;
 }
 
+// Admin editor input only - never exposed on client lesson objects
+export interface AdminLessonInput {
+  videoUrl?: string;
+  pdfNotesUrl?: string;
+}
+
 export interface ChemistryLesson {
   id: string;
   title: string;
   duration: string;
   type: 'video' | 'lab' | 'pdf';
   completed?: boolean;
-  videoUrl?: string;
   videoProvider?: 'youtube' | 'vimeo' | 'bunny' | 'direct' | 'auto';
   summary: string;
   keyFormulas?: string[];
-  pdfNotesUrl?: string;
   pdfNotesName?: string;
   timestamps?: LectureTimestamp[];
 }
@@ -127,37 +131,4 @@ export interface EnrolledStudent {
   progressPercent: number;
   averageGrade: number;
   status: 'active' | 'probation' | 'completed';
-}
-
-export interface TimelineComment {
-  id: string;
-  authorName: string;
-  authorEmail: string;
-  authorRole: 'INSTRUCTOR' | 'STUDENT';
-  authorAvatar: string;
-  content: string;
-  createdAt: string;
-}
-
-export interface TimelinePost {
-  id: string;
-  authorName: string;
-  authorEmail: string;
-  authorRole: 'INSTRUCTOR' | 'STUDENT';
-  authorAvatar: string;
-  trackBadge?: string;
-  content: string;
-  molecularFormula?: string;
-  createdAt: string;
-  reactions: {
-    flask: number; // 🧪 Reaction
-    bulb: number;  // 💡 Insight
-    heart: number; // ❤️ Resonance
-  };
-  myReactions?: {
-    flask?: boolean;
-    bulb?: boolean;
-    heart?: boolean;
-  };
-  comments: TimelineComment[];
 }

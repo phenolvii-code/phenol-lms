@@ -8,7 +8,6 @@ import {
   StudentSubmission,
   WaitlistApplication,
   EnrolledStudent,
-  TimelinePost,
 } from '@/types/lms';
 
 export const ACADEMIC_TRACKS: AcademicTrackCategory[] = [
@@ -154,5 +153,3 @@ export const SUBMISSIONS: StudentSubmission[] = [];
 export const WAITLIST_APPLICANTS: WaitlistApplication[] = [];
 
 export const ENROLLED_STUDENTS: EnrolledStudent[] = [];
-
-export const INITIAL_TIMELINE_POSTS: TimelinePost[] = [];

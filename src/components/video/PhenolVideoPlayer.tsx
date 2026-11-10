@@ -84,7 +84,6 @@ export const PhenolVideoPlayer: React.FC<PhenolVideoPlayerProps> = ({
 
   // Anti-tamper & Security States
   const [isTampered, setIsTampered] = useState(false);
-  const [isDevToolsDetected, setIsDevToolsDetected] = useState(false);
 
   // Forensic Watermark Dynamic Jitter Position (Moves every 10 seconds across 5 locations)
   const [watermarkPos, setWatermarkPos] = useState<React.CSSProperties>({
@@ -92,7 +91,7 @@ export const PhenolVideoPlayer: React.FC<PhenolVideoPlayerProps> = ({
     left: '16%',
   });
 
-  const parsed = parseVideoSource(videoUrl || 'https://www.youtube.com/watch?v=k3rRrl9J2F4');
+  const parsed = parseVideoSource(videoUrl || '');
 
   // Update totalDuration if prop changes and no duration from video yet
   useEffect(() => {
@@ -173,23 +172,6 @@ export const PhenolVideoPlayer: React.FC<PhenolVideoPlayerProps> = ({
     };
   }, []);
 
-  // Anti-DevTools heuristic detection
-  useEffect(() => {
-    const checkDevTools = () => {
-      const widthThreshold = window.outerWidth - window.innerWidth > 175;
-      const heightThreshold = window.outerHeight - window.innerHeight > 175;
-      if (widthThreshold || heightThreshold) {
-        setIsDevToolsDetected(true);
-        setIsPlaying(false);
-      } else {
-        setIsDevToolsDetected(false);
-      }
-    };
-
-    window.addEventListener('resize', checkDevTools);
-    return () => window.removeEventListener('resize', checkDevTools);
-  }, []);
-
   // Sync YouTube PostMessage events
   useEffect(() => {
     const handleYouTubeMessage = (event: MessageEvent) => {
@@ -223,7 +205,7 @@ export const PhenolVideoPlayer: React.FC<PhenolVideoPlayerProps> = ({
 
   // Smooth Time Progression Timer when playing
   useEffect(() => {
-    if (!isPlaying || isTampered || isDevToolsDetected) return;
+    if (!isPlaying || isTampered) return;
     const interval = setInterval(() => {
       if (isScrubbingRef.current) return;
 
@@ -240,7 +222,7 @@ export const PhenolVideoPlayer: React.FC<PhenolVideoPlayerProps> = ({
     }, 500);
 
     return () => clearInterval(interval);
-  }, [isPlaying, isTampered, isDevToolsDetected, parsed.type, playbackSpeed, totalDuration]);
+  }, [isPlaying, isTampered, parsed.type, playbackSpeed, totalDuration]);
 
   // Execute Seek
   const performSeek = useCallback(
@@ -295,7 +277,7 @@ export const PhenolVideoPlayer: React.FC<PhenolVideoPlayerProps> = ({
   }, [isPlaying, isMuted, isFullscreen, currentTime, totalDuration]);
 
   const togglePlay = () => {
-    if (isTampered || isDevToolsDetected) return;
+    if (isTampered) return;
 
     if (parsed.type === 'direct' && videoRef.current) {
       if (isPlaying) {
@@ -463,7 +445,7 @@ export const PhenolVideoPlayer: React.FC<PhenolVideoPlayerProps> = ({
             src={parsed.embedUrl}
             title={title}
             className={`w-full h-full pointer-events-auto transform scale-[1.04] origin-center ${
-              isTampered || isDevToolsDetected ? 'opacity-0 pointer-events-none' : 'opacity-100'
+              isTampered ? 'opacity-0 pointer-events-none' : 'opacity-100'
             }`}
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
             allowFullScreen
@@ -488,7 +470,7 @@ export const PhenolVideoPlayer: React.FC<PhenolVideoPlayerProps> = ({
           src={parsed.embedUrl}
           playsInline
           className={`w-full h-full object-cover cursor-pointer ${
-            isTampered || isDevToolsDetected ? 'opacity-0 pointer-events-none' : 'opacity-100'
+            isTampered ? 'opacity-0 pointer-events-none' : 'opacity-100'
           }`}
           onClick={togglePlay}
           onTimeUpdate={() => {
@@ -552,26 +534,21 @@ export const PhenolVideoPlayer: React.FC<PhenolVideoPlayerProps> = ({
         PHENOL FORENSIC WATERMARK // {studentCode.replace(/[^a-zA-Z0-9]/g, '')}
       </div>
 
-      {/* 3. Security Warning Overlay (when tampered or DevTools opened) */}
-      {(isTampered || isDevToolsDetected) && (
+      {/* 3. Security Warning Overlay (when tampered) */}
+      {isTampered && (
         <div className="absolute inset-0 z-50 bg-charcoal-950/95 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center text-ivory-100">
           <div className="w-14 h-14 rounded-full bg-burgundy-900/60 border border-burgundy-500/40 flex items-center justify-center mb-4 text-burgundy-400">
-            {isTampered ? <ShieldAlert className="w-7 h-7" /> : <Lock className="w-7 h-7" />}
+            <ShieldAlert className="w-7 h-7" />
           </div>
           <h3 className="font-bold text-base font-display mb-2 text-ivory-100">
-            {isTampered
-              ? 'تنبيه أمان: تم رصد محاولة تلاعب بعناصر الحماية'
-              : 'أدوات المطور مفتوحة (DevTools Detected)'}
+            تنبيه أمان: تم رصد محاولة تلاعب بعناصر الحماية
           </h3>
           <p className="text-xs text-charcoal-50 max-w-md leading-relaxed font-sans mb-4">
-            {isTampered
-              ? 'تم إيقاف تشغيل الفيديو لحماية الملكية الفكرية. يُرجى إعادة تحميل الصفحة لمتابعة المحاضرة.'
-              : 'يرجى إغلاق أدوات المطور (F12) لمتابعة مشاهدة المحاضرة الأكاديمية بأمان.'}
+            تم إيقاف تشغيل الفيديو لحماية الملكية الفكرية. يُرجى إعادة تحميل الصفحة لمتابعة المحاضرة.
           </p>
           <button
             onClick={() => {
               setIsTampered(false);
-              setIsDevToolsDetected(false);
               window.location.reload();
             }}
             className="px-4 py-2 rounded bg-burgundy-600 hover:bg-burgundy-700 text-ivory-100 text-xs font-semibold shadow-quiet transition-all"
@@ -582,7 +559,7 @@ export const PhenolVideoPlayer: React.FC<PhenolVideoPlayerProps> = ({
       )}
 
       {/* 4. Big Center Play Button Overlay (when paused and not tampered) */}
-      {!isPlaying && !isTampered && !isDevToolsDetected && (
+      {!isPlaying && !isTampered && (
         <div
           onClick={togglePlay}
           className="absolute inset-0 z-20 flex items-center justify-center bg-charcoal-900/40 backdrop-blur-[2px] cursor-pointer transition-opacity"

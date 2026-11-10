@@ -5,9 +5,9 @@ import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { CHEMISTRY_COURSES } from '@/data/mock-data';
 import { getStoredCourses, syncWithServerCourses } from '@/lib/courses-storage';
-import { checkUserCourseAccess, requestCourseEnrollment } from '@/lib/enrollment-storage';
+import { requestEnrollment, listMyEnrollments } from '@/lib/data/enrollments';
+import { useCurrentUser } from '@/lib/auth/useCurrentUser';
 import { ChemistryCourse } from '@/types/lms';
-import { AuthUser } from '@/types/auth';
 import { PhenolLogo } from '@/components/brand/PhenolLogo';
 import {
   ArrowRight,
@@ -21,47 +21,37 @@ import {
   Share2,
 } from 'lucide-react';
 import { CourseShareModal } from '@/components/courses/CourseShareModal';
-import { captureIncomingReferral, getReferralCodeForUser } from '@/lib/referral-system';
-import { getPersistentAvatar } from '@/lib/user-profile';
+import { getReferralCodeForUser } from '@/lib/referral-system';
 
 export default function CourseDetailsPage() {
   const params = useParams();
   const courseId = params?.id as string;
 
   const [coursesList, setCoursesList] = useState<ChemistryCourse[]>([]);
-  const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
+  const { user: currentUser } = useCurrentUser();
   const [enrollmentStatus, setEnrollmentStatus] = useState<'ACTIVE' | 'PENDING' | 'NOT_ENROLLED'>('NOT_ENROLLED');
   const [requestToast, setRequestToast] = useState(false);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
 
   useEffect(() => {
     const list = getStoredCourses();
     setCoursesList(list);
 
-    try {
-      const saved = localStorage.getItem('phenol_auth_user');
-      if (typeof window !== 'undefined') {
-      const params = new URLSearchParams(window.location.search);
-      const ref = params.get('ref');
-      if (ref) captureIncomingReferral(ref);
-    }
-    if (saved) {
-        const u: AuthUser = JSON.parse(saved);
-        if (u?.email) {
-          u.avatar = getPersistentAvatar(u.email, u.avatar);
-        }
-        setCurrentUser(u);
-        const access = checkUserCourseAccess(u, courseId);
-        setEnrollmentStatus(access.status === 'ACTIVE' ? 'ACTIVE' : access.status === 'PENDING' ? 'PENDING' : 'NOT_ENROLLED');
+    if (typeof window !== 'undefined') {
+      const p = new URLSearchParams(window.location.search);
+      const ref = p.get('ref');
+      if (ref) {
+        sessionStorage.setItem('phenol_ref_code', ref);
+        localStorage.setItem('phenol_ref_code', ref);
       }
-    } catch (e) {}
+    }
 
     const handleCoursesUpdate = () => {
       setCoursesList(getStoredCourses());
     };
     window.addEventListener('phenol_courses_updated', handleCoursesUpdate);
 
-    // Sync from server API
     syncWithServerCourses().then(() => {
       setCoursesList(getStoredCourses());
     });
@@ -71,15 +61,52 @@ export default function CourseDetailsPage() {
     };
   }, [courseId]);
 
+  useEffect(() => {
+    async function loadEnrollment() {
+      if (!currentUser) {
+        setEnrollmentStatus('NOT_ENROLLED');
+        return;
+      }
+      if (currentUser.role === 'INSTRUCTOR') {
+        setEnrollmentStatus('ACTIVE');
+        return;
+      }
+      try {
+        const enrs = await listMyEnrollments();
+        const enr = enrs.find((e) => e.course_id === courseId);
+        if (enr?.status === 'ACTIVE') {
+          setEnrollmentStatus('ACTIVE');
+        } else if (enr?.status === 'PENDING') {
+          setEnrollmentStatus('PENDING');
+        } else {
+          setEnrollmentStatus('NOT_ENROLLED');
+        }
+      } catch (err) {
+        console.error('Error fetching enrollment status:', err);
+      }
+    }
+    loadEnrollment();
+  }, [currentUser, courseId]);
+
   const course = coursesList.find((c) => c.id === courseId);
   const lessons = course?.lessons || [];
   const firstLesson = lessons[0];
 
-  const handleRequestActivation = () => {
-    if (!currentUser || !course) return;
-    requestCourseEnrollment(currentUser, course);
-    setEnrollmentStatus('PENDING');
-    setRequestToast(true);
+  const handleRequestActivation = async () => {
+    if (!currentUser || !course) {
+      alert('Please sign in first to request course activation.');
+      return;
+    }
+    try {
+      setErrorMessage('');
+      await requestEnrollment(courseId);
+      setEnrollmentStatus('PENDING');
+      setRequestToast(true);
+    } catch (err: any) {
+      console.error('Error requesting enrollment:', err);
+      setErrorMessage(err.message || 'Failed to submit activation request');
+      alert(err.message || 'Failed to submit activation request');
+    }
   };
 
   if (!course) {

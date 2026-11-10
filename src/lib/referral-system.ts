@@ -1,6 +1,6 @@
 /**
  * PHENOL ACADEMY - Course Referral & Academic Points Engine
- * Generates unique referral links per user, tracks conversions, and calculates milestone rewards.
+ * Generates unique referral links per user, captures incoming referral codes.
  */
 
 export interface ReferralStats {
@@ -45,9 +45,6 @@ export const REFERRAL_MILESTONES: ReferralMilestone[] = [
   },
 ];
 
-const REFERRAL_STATS_KEY = 'phenol_user_referral_stats';
-const ACTIVE_REFERRER_KEY = 'phenol_active_referred_by';
-
 export const getReferralCodeForUser = (user: { academicCode?: string; email?: string; id?: string } | null): string => {
   if (user?.academicCode && user.academicCode.length > 2) {
     return user.academicCode;
@@ -57,13 +54,6 @@ export const getReferralCodeForUser = (user: { academicCode?: string; email?: st
       user.email.split('').reduce((acc, char) => (acc << 5) - acc + char.charCodeAt(0), 0)
     ).toString(36).substring(0, 4).toUpperCase();
     return `PH-${hash}`;
-  }
-  if (typeof window !== 'undefined') {
-    const stored = localStorage.getItem('phenol_guest_referral_code');
-    if (stored) return stored;
-    const generated = `PH-${Math.floor(1000 + Math.random() * 9000)}`;
-    localStorage.setItem('phenol_guest_referral_code', generated);
-    return generated;
   }
   return 'PH-SCHOLAR';
 };
@@ -77,23 +67,6 @@ export const generateCourseReferralLink = (courseId: string, referralCode: strin
 };
 
 export const getReferralStats = (referralCode: string): ReferralStats => {
-  if (typeof window === 'undefined') {
-    return {
-      code: referralCode,
-      points: 0,
-      totalClicks: 0,
-      successfulReferrals: 0,
-      referredStudents: [],
-    };
-  }
-
-  try {
-    const raw = localStorage.getItem(`${REFERRAL_STATS_KEY}_${referralCode}`);
-    if (raw) {
-      return JSON.parse(raw);
-    }
-  } catch (e) {}
-
   return {
     code: referralCode,
     points: 0,
@@ -103,61 +76,21 @@ export const getReferralStats = (referralCode: string): ReferralStats => {
   };
 };
 
-export const saveReferralStats = (stats: ReferralStats): void => {
-  if (typeof window === 'undefined') return;
-  try {
-    localStorage.setItem(`${REFERRAL_STATS_KEY}_${stats.code}`, JSON.stringify(stats));
-    window.dispatchEvent(new Event('phenol_referral_updated'));
-  } catch (e) {}
-};
-
-/**
- * Tracks an incoming visitor arriving via ?ref=CODE
- */
 export const captureIncomingReferral = (refCode: string | null): void => {
   if (typeof window === 'undefined' || !refCode) return;
   const clean = refCode.trim();
   if (clean.length < 2) return;
-
   try {
-    localStorage.setItem(ACTIVE_REFERRER_KEY, clean);
-
-    // Increment click count for that referrer
-    const stats = getReferralStats(clean);
-    stats.totalClicks += 1;
-    saveReferralStats(stats);
+    sessionStorage.setItem('phenol_ref_code', clean);
+    localStorage.setItem('phenol_ref_code', clean);
   } catch (e) {}
 };
 
 export const getStoredReferrerCode = (): string | null => {
   if (typeof window === 'undefined') return null;
   try {
-    return localStorage.getItem(ACTIVE_REFERRER_KEY);
+    return sessionStorage.getItem('phenol_ref_code') || localStorage.getItem('phenol_ref_code');
   } catch (e) {
     return null;
   }
-};
-
-/**
- * Called when a student successfully registers or requests a course.
- * Awards points to the person who shared the link!
- */
-export const awardReferralPoints = (newStudentEmail: string): void => {
-  if (typeof window === 'undefined') return;
-  const referrerCode = getStoredReferrerCode();
-  if (!referrerCode) return;
-
-  try {
-    const stats = getReferralStats(referrerCode);
-    const cleanEmail = newStudentEmail.trim().toLowerCase();
-
-    if (!stats.referredStudents.includes(cleanEmail)) {
-      stats.referredStudents.push(cleanEmail);
-      stats.successfulReferrals += 1;
-      stats.points += 50; // 50 points per successful cohort referral
-      saveReferralStats(stats);
-      // Clear after successful conversion
-      localStorage.removeItem(ACTIVE_REFERRER_KEY);
-    }
-  } catch (e) {}
 };

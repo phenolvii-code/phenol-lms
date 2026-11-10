@@ -6,14 +6,9 @@ import { useParams } from 'next/navigation';
 import { CHEMISTRY_COURSES } from '@/data/mock-data';
 import { getStoredCourses, syncWithServerCourses } from '@/lib/courses-storage';
 import { getStudentAcademicCode } from '@/lib/student-code';
-import {
-  checkUserCourseAccess,
-  requestCourseEnrollment,
-  recordStudentLessonProgress,
-} from '@/lib/enrollment-storage';
+import { requestEnrollment, listMyEnrollments, CourseEnrollmentRecord } from '@/lib/data/enrollments';
+import { useCurrentUser } from '@/lib/auth/useCurrentUser';
 import { ChemistryCourse, ChemistryLesson, LectureTimestamp } from '@/types/lms';
-import { AuthUser } from '@/types/auth';
-import { getPersistentAvatar } from '@/lib/user-profile';
 import { PhenolLogo } from '@/components/brand/PhenolLogo';
 import { PhenolVideoPlayer } from '@/components/video/PhenolVideoPlayer';
 import { getLessonMedia } from '@/lib/data/courses';
@@ -56,7 +51,8 @@ export default function LessonExperiencePage() {
   const lessonId = params?.lessonId as string;
 
   const [coursesList, setCoursesList] = useState<ChemistryCourse[]>([]);
-  const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
+  const { user: currentUser } = useCurrentUser();
+  const [enrollments, setEnrollments] = useState<CourseEnrollmentRecord[]>([]);
   const [completedLessons, setCompletedLessons] = useState<string[]>([]);
   const [activeTab, setActiveTab] = useState<'summary' | 'timestamps' | 'pdf' | 'qa'>('summary');
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -69,79 +65,73 @@ export default function LessonExperiencePage() {
 
   useSessionEnforcer();
 
+  const isInstructor = currentUser?.role === 'INSTRUCTOR';
+  const isEnrolled = isInstructor || enrollments.some((e) => e.course_id === courseId && e.status === 'ACTIVE');
+  const isPending = !isEnrolled && enrollments.some((e) => e.course_id === courseId && e.status === 'PENDING');
+
   // Load Course and User State
   useEffect(() => {
     setCoursesList(getStoredCourses());
-    if (lessonId) { getLessonMedia(lessonId).then((m) => { if (m) setGatedMedia(m); }); }
     syncWithServerCourses().then(() => {
       setCoursesList(getStoredCourses());
     });
+  }, []);
 
-    try {
-      const savedUser = localStorage.getItem('phenol_auth_user');
-      if (savedUser) {
-        const u: AuthUser = JSON.parse(savedUser);
-        if (u?.email) {
-          u.avatar = getPersistentAvatar(u.email, u.avatar);
+  useEffect(() => {
+    async function loadEnrollment() {
+      if (!currentUser || currentUser.role === 'INSTRUCTOR') return;
+      try {
+        const myEnrs = await listMyEnrollments();
+        setEnrollments(myEnrs);
+      } catch (err) {
+        console.error('Error fetching enrollments:', err);
+      }
+    }
+    loadEnrollment();
+  }, [currentUser]);
+
+  useEffect(() => {
+    if (lessonId && isEnrolled) {
+      getLessonMedia(lessonId).then((m) => {
+        if (m) setGatedMedia(m);
+        else setGatedMedia(null);
+      });
+    } else {
+      setGatedMedia(null);
+    }
+  }, [lessonId, isEnrolled]);
+
+  useEffect(() => {
+    if (courseId) {
+      listCourseProgress(courseId).then((records) => {
+        if (Array.isArray(records)) {
+          setCompletedLessons(records.map((r) => r.lesson_id));
         }
-        setCurrentUser(u);
-      }
+      });
+    }
+  }, [courseId]);
 
-      if (courseId) {
-        listCourseProgress(courseId).then((records) => {
-          if (Array.isArray(records) && records.length > 0) {
-            setCompletedLessons(records.map((r) => r.lesson_id));
-          }
-        });
-      }
+  const loadComments = () => {
+    if (lessonId) {
+      fetchLessonComments(lessonId).then((dbComments) => {
+        if (Array.isArray(dbComments)) {
+          setLessonComments(
+            dbComments.map((c) => ({
+              id: c.id,
+              authorName: c.author_name || 'Enrolled Scholar',
+              authorCode: c.author_code || 'PH-SCHOLAR',
+              authorRole: c.author_role || 'STUDENT',
+              content: c.content,
+              timestamp: new Date(c.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            }))
+          );
+        }
+      });
+    }
+  };
 
-      if (lessonId) {
-        fetchLessonComments(lessonId).then((dbComments) => {
-          if (Array.isArray(dbComments) && dbComments.length > 0) {
-            setLessonComments(
-              dbComments.map((c) => ({
-                id: c.id,
-                authorName: c.author_name || 'Enrolled Scholar',
-                authorCode: c.author_code || 'PH-SCHOLAR',
-                authorRole: c.author_role || 'STUDENT',
-                content: c.content,
-                timestamp: new Date(c.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-              }))
-            );
-          }
-        });
-      }
-
-      const savedCompleted = localStorage.getItem('phenol_completed_lessons');
-      if (savedCompleted) {
-        setCompletedLessons(JSON.parse(savedCompleted));
-      }
-
-      const savedComments = localStorage.getItem(`phenol_qa_${lessonId}`);
-      if (savedComments) {
-        setLessonComments(JSON.parse(savedComments));
-      } else {
-        // Initial sample Q&A
-        setLessonComments([
-          {
-            id: 'qa-1',
-            authorName: 'Youssef Mansour',
-            authorCode: 'PH-4821-Y',
-            authorRole: 'STUDENT',
-            content: 'Dr. Omar, does resonance delocalization in phenol increase or decrease electron density on the oxygen atom compared to aliphatic alcohols?',
-            timestamp: 'Yesterday at 04:30 PM',
-          },
-          {
-            id: 'qa-2',
-            authorName: 'Dr. Omar Magdi',
-            authorCode: 'DIR-OMAR-01',
-            authorRole: 'INSTRUCTOR',
-            content: 'Excellent inquiry, Youssef. Resonance delocalization withdraws the unshared electron pair from oxygen into the aromatic ring, reducing oxygen electron density and making the O-H bond significantly more polarized and labile, facilitating proton release.',
-            timestamp: 'Yesterday at 05:15 PM',
-          },
-        ]);
-      }
-    } catch (e) {}
+  useEffect(() => {
+    loadComments();
   }, [lessonId]);
 
   const course = coursesList.find((c) => c.id === courseId);
@@ -217,7 +207,8 @@ export default function LessonExperiencePage() {
   const studentCode = getStudentAcademicCode(currentUser);
 
   // Toggle Completion & Record Progress in Persistent Roster
-  const toggleCompleted = () => {
+  // Toggle Completion & Record Progress in Persistent Database
+  const toggleCompleted = async () => {
     let updated: string[];
     if (isCompleted) {
       updated = completedLessons.filter((id) => id !== currentLesson.id);
@@ -226,45 +217,31 @@ export default function LessonExperiencePage() {
     }
     setCompletedLessons(updated);
     if (!isCompleted && courseId && currentLesson?.id) {
-      recordLessonProgress(courseId, currentLesson.id).catch(() => {});
-    }
-    try {
-      localStorage.setItem('phenol_completed_lessons', JSON.stringify(updated));
-      if (currentUser?.email) {
-        recordStudentLessonProgress(
-          currentUser.email,
-          courseId,
-          updated.length,
-          lessons.length,
-          currentLesson.title
-        );
+      try {
+        await recordLessonProgress(courseId, currentLesson.id);
+      } catch (e) {
+        console.error('Error recording lesson progress:', e);
       }
-    } catch (e) {}
+    }
   };
 
-  // Submit Q&A Comment
-  const handlePostQuestion = (e: React.FormEvent) => {
+  // Submit Q&A Comment directly to Database
+  const handlePostQuestion = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newQuestionText.trim()) return;
 
-    const newComment: LessonComment = {
-      id: `qa-${Date.now()}`,
-      authorName: currentUser?.name || 'Enrolled Scholar',
-      authorCode: studentCode,
-      authorRole: currentUser?.role === 'INSTRUCTOR' ? 'INSTRUCTOR' : 'STUDENT',
-      content: newQuestionText.trim(),
-      timestamp: 'Just now',
-    };
-
-    const updated = [...lessonComments, newComment];
-    setLessonComments(updated);
-    if (courseId && lessonId) {
-      postLessonComment(courseId, lessonId, newQuestionText.trim()).catch(() => {});
-    }
-    try {
-      localStorage.setItem(`phenol_qa_${lessonId}`, JSON.stringify(updated));
-    } catch (e) {}
+    const content = newQuestionText.trim();
     setNewQuestionText('');
+
+    try {
+      if (courseId && lessonId) {
+        await postLessonComment(courseId, lessonId, content);
+        loadComments();
+      }
+    } catch (err: any) {
+      console.error('Error posting comment:', err);
+      alert(err.message || 'Failed to post comment');
+    }
   };
 
   // Default Timestamps if not populated
@@ -342,8 +319,7 @@ export default function LessonExperiencePage() {
           <main className="lg:col-span-8 space-y-6">
             {/* Access Gate: Check if user is enrolled & active */}
             {(() => {
-              const access = checkUserCourseAccess(currentUser, courseId);
-              if (!access.isEnrolled) {
+              if (!isEnrolled) {
                 return (
                   <div className="relative aspect-video rounded-2xl bg-[#0f1012] border border-hairline/40 flex flex-col items-center justify-center p-8 text-center space-y-4 shadow-editorial text-ivory-100">
                     <div className="w-14 h-14 rounded-full bg-burgundy-950/80 border border-burgundy-700/50 flex items-center justify-center text-ivory-100 shadow-inner">
@@ -359,7 +335,7 @@ export default function LessonExperiencePage() {
                     </div>
 
                     <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
-                      {access.status === 'PENDING' ? (
+                      {isPending ? (
                         <span className="px-5 py-2.5 rounded bg-amber-500/20 text-amber-300 text-xs font-semibold border border-amber-500/30 flex items-center gap-1.5">
                           <Clock className="w-4 h-4" />
                           <span>Course activation request is currently pending review</span>
@@ -367,10 +343,17 @@ export default function LessonExperiencePage() {
                       ) : (
                         <button
                           type="button"
-                          onClick={() => {
-                            if (currentUser) {
-                              requestCourseEnrollment(currentUser, course);
-                              window.location.reload();
+                          onClick={async () => {
+                            if (!currentUser) {
+                              alert('Please sign in first to request course activation.');
+                              return;
+                            }
+                            try {
+                              await requestEnrollment(courseId);
+                              const myEnrs = await listMyEnrollments();
+                              setEnrollments(myEnrs);
+                            } catch (err: any) {
+                              alert(err.message || 'Failed to request activation');
                             }
                           }}
                           className="px-6 py-2.5 rounded bg-burgundy-900 hover:bg-black text-ivory-100 text-xs font-semibold transition-colors shadow-sm flex items-center gap-2"
@@ -391,10 +374,28 @@ export default function LessonExperiencePage() {
                 );
               }
 
+              if (!gatedMedia?.video_url) {
+                return (
+                  <div className="relative aspect-video rounded-2xl bg-[#0f1012] border border-hairline/40 flex flex-col items-center justify-center p-8 text-center space-y-4 shadow-editorial text-ivory-100">
+                    <div className="w-14 h-14 rounded-full bg-burgundy-950/80 border border-burgundy-700/50 flex items-center justify-center text-ivory-100 shadow-inner">
+                      <Clock className="w-6 h-6 text-burgundy-400" />
+                    </div>
+                    <div className="max-w-md space-y-1.5">
+                      <h3 className="text-lg font-bold text-ivory-100 font-display">
+                        Lecture Video in Preparation
+                      </h3>
+                      <p className="text-xs text-ivory-200/70 font-sans leading-relaxed">
+                        The video recording for this lecture is currently being finalized and will be accessible shortly.
+                      </p>
+                    </div>
+                  </div>
+                );
+              }
+
               return (
                 <div className="space-y-3">
                   <PhenolVideoPlayer
-                    videoUrl={gatedMedia?.video_url || currentLesson.videoUrl || 'https://www.youtube.com/watch?v=k3rRrl9J2F4'}
+                    videoUrl={gatedMedia.video_url}
                     title={currentLesson.title}
                     duration={currentLesson.duration}
                     studentCode={studentCode}
@@ -640,7 +641,7 @@ export default function LessonExperiencePage() {
                       </div>
 
                       <a
-                        href={currentLesson.pdfNotesUrl || '#'}
+                        href={gatedMedia?.pdf_notes_path || '#'}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded bg-burgundy-500 hover:bg-burgundy-800 text-ivory-100 text-xs font-semibold transition-colors shadow-quiet shrink-0"

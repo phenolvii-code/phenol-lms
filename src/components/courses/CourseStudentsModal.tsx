@@ -3,12 +3,12 @@
 import React, { useState, useEffect } from 'react';
 import { ChemistryCourse } from '@/types/lms';
 import {
-  CourseEnrollment,
-  getStoredEnrollments,
-  approveCourseEnrollment,
-  toggleCourseEnrollmentStatus,
-} from '@/lib/enrollment-storage';
+  CourseEnrollmentRecord,
+  listAllEnrollments,
+  setEnrollmentStatus,
+} from '@/lib/data/enrollments';
 import { WhatsAppIcon } from '@/components/auth/AuthIcons';
+import { Initials } from '@/components/ui/Initials';
 import {
   X,
   Users,
@@ -36,14 +36,18 @@ export const CourseStudentsModal: React.FC<CourseStudentsModalProps> = ({
   onClose,
   onEnrollmentsUpdated,
 }) => {
-  const [enrollments, setEnrollments] = useState<CourseEnrollment[]>([]);
+  const [enrollments, setEnrollments] = useState<CourseEnrollmentRecord[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterTab, setFilterTab] = useState<'all' | 'pending' | 'active'>('all');
 
-  const reloadData = () => {
-    const all = getStoredEnrollments();
-    const courseEnr = all.filter((e) => e.courseId === course.id);
-    setEnrollments(courseEnr);
+  const reloadData = async () => {
+    try {
+      const all = await listAllEnrollments();
+      const courseEnr = all.filter((e) => e.course_id === course.id);
+      setEnrollments(courseEnr);
+    } catch (err) {
+      console.error('Error loading course enrollments:', err);
+    }
   };
 
   useEffect(() => {
@@ -54,17 +58,25 @@ export const CourseStudentsModal: React.FC<CourseStudentsModalProps> = ({
 
   if (!isOpen) return null;
 
-  const handleApprove = (enrollmentId: string) => {
-    const updated = approveCourseEnrollment(enrollmentId);
-    setEnrollments(updated.filter((e) => e.courseId === course.id));
-    if (onEnrollmentsUpdated) onEnrollmentsUpdated();
+  const handleApprove = async (enrollmentId: string) => {
+    try {
+      await setEnrollmentStatus(enrollmentId, 'ACTIVE');
+      await reloadData();
+      if (onEnrollmentsUpdated) onEnrollmentsUpdated();
+    } catch (err: any) {
+      alert(err.message || 'Error activating enrollment');
+    }
   };
 
-  const handleToggleStatus = (enrollmentId: string, currentStatus: string) => {
+  const handleToggleStatus = async (enrollmentId: string, currentStatus: string) => {
     const newStatus = currentStatus === 'ACTIVE' ? 'REJECTED' : 'ACTIVE';
-    const updated = toggleCourseEnrollmentStatus(enrollmentId, newStatus);
-    setEnrollments(updated.filter((e) => e.courseId === course.id));
-    if (onEnrollmentsUpdated) onEnrollmentsUpdated();
+    try {
+      await setEnrollmentStatus(enrollmentId, newStatus);
+      await reloadData();
+      if (onEnrollmentsUpdated) onEnrollmentsUpdated();
+    } catch (err: any) {
+      alert(err.message || 'Error updating enrollment status');
+    }
   };
 
   const pendingList = enrollments.filter((e) => e.status === 'PENDING');
@@ -77,22 +89,22 @@ export const CourseStudentsModal: React.FC<CourseStudentsModalProps> = ({
     if (!searchQuery.trim()) return true;
     const q = searchQuery.toLowerCase();
     return (
-      e.studentName.toLowerCase().includes(q) ||
-      e.studentPhone.toLowerCase().includes(q) ||
-      e.studentCode.toLowerCase().includes(q) ||
-      e.studentEmail.toLowerCase().includes(q)
+      (e.student_name || '').toLowerCase().includes(q) ||
+      (e.student_phone || '').toLowerCase().includes(q) ||
+      (e.student_code || '').toLowerCase().includes(q) ||
+      (e.student_email || '').toLowerCase().includes(q)
     );
   });
 
   // Calculate Course Averages
   const avgProgress =
     activeList.length > 0
-      ? Math.round(activeList.reduce((acc, curr) => acc + curr.progressPercent, 0) / activeList.length)
+      ? Math.round(activeList.reduce((acc, curr: any) => acc + (curr.progressPercent || 0), 0) / activeList.length)
       : 0;
 
   const avgGrade =
     activeList.length > 0
-      ? Math.round(activeList.reduce((acc, curr) => acc + curr.averageQuizGrade, 0) / activeList.length)
+      ? Math.round(activeList.reduce((acc, curr: any) => acc + (curr.averageQuizGrade || 0), 0) / activeList.length)
       : 0;
 
   return (
@@ -208,9 +220,9 @@ export const CourseStudentsModal: React.FC<CourseStudentsModalProps> = ({
             </div>
           ) : (
             filteredEnrollments.map((enr) => {
-              const cleanPhone = enr.studentPhone.replace(/[^0-9]/g, '');
+              const cleanPhone = (enr.student_phone || '').replace(/[^0-9]/g, '');
               const whatsappLink = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(
-                `Hello ${enr.studentName}, regarding your enrollment in (${course.title}) with Dr. Omar Magdi at PHENOL Academy:`
+                `Hello ${enr.student_name}, regarding your enrollment in (${course.title}) with Dr. Omar Magdi at PHENOL Academy:`
               )}`;
 
               return (
@@ -221,24 +233,24 @@ export const CourseStudentsModal: React.FC<CourseStudentsModalProps> = ({
                   <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                     {/* Student Identity */}
                     <div className="flex items-center gap-3">
-                      <img
-                        src={enr.studentAvatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=80'}
-                        alt={enr.studentName}
-                        className="w-10 h-10 rounded-full object-cover border border-hairline"
-                      />
+                      <Initials name={enr.student_name} size="md" />
                       <div>
                         <div className="flex items-center gap-2">
                           <h4 className="text-xs sm:text-sm font-bold text-charcoal-900">
-                            {enr.studentName}
+                            {enr.student_name}
                           </h4>
                           <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-burgundy-50 text-burgundy-900 border border-burgundy-200">
-                            {enr.studentCode}
+                            {enr.student_code || 'PH-SCHOLAR'}
                           </span>
                         </div>
                         <div className="flex items-center gap-3 text-[11px] text-charcoal-100 font-mono mt-0.5">
-                          <span>{enr.studentEmail}</span>
-                          <span>•</span>
-                          <span className="text-charcoal-900 font-semibold">{enr.studentPhone}</span>
+                          <span>{enr.student_email}</span>
+                          {enr.student_phone && (
+                            <>
+                              <span>•</span>
+                              <span className="text-charcoal-900 font-semibold">{enr.student_phone}</span>
+                            </>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -289,35 +301,35 @@ export const CourseStudentsModal: React.FC<CourseStudentsModalProps> = ({
                         <div className="flex-1 h-2 bg-ivory-200 rounded-full overflow-hidden">
                           <div
                             className="h-full bg-burgundy-900 rounded-full"
-                            style={{ width: `${enr.progressPercent}%` }}
+                            style={{ width: `${(enr as any).progressPercent || 0}%` }}
                           />
                         </div>
                         <span className="font-mono font-bold text-charcoal-900 text-xs">
-                          {enr.progressPercent}%
+                          {(enr as any).progressPercent || 0}%
                         </span>
                       </div>
                       <span className="text-[10px] text-charcoal-50 font-mono mt-0.5 block">
-                        {enr.completedLessonsCount} of {enr.totalLessonsCount} lectures watched
+                        {(enr as any).completedLessonsCount || 0} of {course.lessons?.length || 0} lectures watched
                       </span>
                     </div>
 
                     <div>
                       <span className="text-[10px] font-mono text-charcoal-50 uppercase block">Quiz Average</span>
                       <span className="font-mono font-bold text-emerald-800 text-sm block mt-1">
-                        {enr.status === 'ACTIVE' ? `${enr.averageQuizGrade} / 20` : '—'}
+                        {enr.status === 'ACTIVE' ? `${(enr as any).averageQuizGrade || 0} / 20` : '—'}
                       </span>
                       <span className="text-[10px] text-charcoal-50 font-mono mt-0.5 block">
-                        Evaluation status: {enr.averageQuizGrade >= 18 ? 'Mastery' : 'On Track'}
+                        Evaluation status: {((enr as any).averageQuizGrade || 0) >= 18 ? 'Mastery' : 'On Track'}
                       </span>
                     </div>
 
                     <div>
                       <span className="text-[10px] font-mono text-charcoal-50 uppercase block">Last Activity</span>
                       <span className="font-sans font-semibold text-charcoal-900 text-xs block mt-1 truncate">
-                        {enr.lastLessonTitle || 'Registered'}
+                        {(enr as any).lastLessonTitle || enr.requested_at?.slice(0, 10) || 'Registered'}
                       </span>
                       <span className="text-[10px] text-charcoal-50 font-mono mt-0.5 block">
-                        {enr.lastActiveDate}
+                        {enr.approved_at ? `Approved ${enr.approved_at.slice(0, 10)}` : `Requested ${enr.requested_at?.slice(0, 10) || ''}`}
                       </span>
                     </div>
                   </div>
