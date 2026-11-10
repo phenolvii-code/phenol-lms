@@ -1,9 +1,13 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { ChemistryCourse } from '@/types/lms';
 import { CourseEnrollmentRecord } from '@/lib/data/enrollments';
-import { getAggregatedStudentsDirectory } from '@/lib/enrollment-storage';
+import {
+  getAggregatedStudentsDirectory,
+  syncWithServerStudents,
+  StudentOverview,
+} from '@/lib/enrollment-storage';
 import { WhatsAppIcon } from '@/components/auth/AuthIcons';
 import {
   Search,
@@ -37,7 +41,35 @@ export function AdminRosterTab({
   setIsDirectEnrollModalOpen,
 }: AdminRosterTabProps) {
   const pendingRequests = enrollments.filter((e) => e.status === 'PENDING');
-  const studentDirectory = getAggregatedStudentsDirectory();
+  const [studentDirectory, setStudentDirectory] = useState<StudentOverview[]>(() =>
+    getAggregatedStudentsDirectory(enrollments)
+  );
+
+  useEffect(() => {
+    let isMounted = true;
+    const fetchStudents = async () => {
+      try {
+        await syncWithServerStudents();
+        if (isMounted) {
+          setStudentDirectory(getAggregatedStudentsDirectory(enrollments));
+        }
+      } catch (err) {
+        console.error('Error fetching students in AdminRosterTab:', err);
+      }
+    };
+
+    fetchStudents();
+
+    const handleUpdate = () => fetchStudents();
+    window.addEventListener('phenol_students_updated', handleUpdate);
+    window.addEventListener('phenol_enrollments_updated', handleUpdate);
+
+    return () => {
+      isMounted = false;
+      window.removeEventListener('phenol_students_updated', handleUpdate);
+      window.removeEventListener('phenol_enrollments_updated', handleUpdate);
+    };
+  }, [enrollments]);
   const filteredStudents = studentDirectory.filter((st) => {
     if (!rosterSearchQuery.trim()) return true;
     const q = rosterSearchQuery.trim().toLowerCase();
