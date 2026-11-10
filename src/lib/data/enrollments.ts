@@ -72,3 +72,25 @@ export async function listAllEnrollments(): Promise<CourseEnrollmentRecord[]> {
   }
   return data || [];
 }
+
+/**
+ * Admin-only: Directly sets/resets a student's password in auth.users via RPC
+ */
+export async function adminSetStudentPassword(
+  studentEmail: string,
+  newPassword: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const { data, error } = await supabase.rpc('admin_set_student_password', {
+      p_student_email: studentEmail.trim().toLowerCase(),
+      p_new_password: newPassword,
+    });
+
+    if (error) {
+      return { success: false, error: error.message };
+    }
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err?.message || 'Failed to update student password.' };
+  }
+}

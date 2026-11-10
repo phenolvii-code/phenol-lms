@@ -21,7 +21,9 @@ import {
   Award,
   ChevronRight,
   BookOpen,
+  KeyRound,
 } from 'lucide-react';
+import { AdminResetPasswordModal } from '@/components/dashboard/modals/AdminResetPasswordModal';
 
 interface CourseStudentsModalProps {
   isOpen: boolean;
@@ -39,6 +41,12 @@ export const CourseStudentsModal: React.FC<CourseStudentsModalProps> = ({
   const [enrollments, setEnrollments] = useState<CourseEnrollmentRecord[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterTab, setFilterTab] = useState<'all' | 'pending' | 'active'>('all');
+  const [resetPasswordStudent, setResetPasswordStudent] = useState<{
+    name: string;
+    email: string;
+    phone?: string;
+    code?: string;
+  } | null>(null);
 
   const reloadData = async () => {
     try {
@@ -257,6 +265,23 @@ export const CourseStudentsModal: React.FC<CourseStudentsModalProps> = ({
 
                     {/* Quick WhatsApp & Action */}
                     <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setResetPasswordStudent({
+                            name: enr.student_name,
+                            email: enr.student_email,
+                            phone: enr.student_phone,
+                            code: enr.student_code,
+                          })
+                        }
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-burgundy-50 hover:bg-burgundy-100 text-burgundy-900 border border-burgundy-200 text-xs font-semibold transition-colors shadow-sm"
+                        title="Reset student password directly"
+                      >
+                        <KeyRound className="w-3.5 h-3.5 text-burgundy-600" />
+                        <span>Reset Password</span>
+                      </button>
+
                       <a
                         href={whatsappLink}
                         target="_blank"
@@ -339,6 +364,13 @@ export const CourseStudentsModal: React.FC<CourseStudentsModalProps> = ({
           )}
         </div>
       </div>
+
+      {/* Direct Password Reset Modal */}
+      <AdminResetPasswordModal
+        isOpen={!!resetPasswordStudent}
+        onClose={() => setResetPasswordStudent(null)}
+        student={resetPasswordStudent}
+      />
     </div>
   );
 };

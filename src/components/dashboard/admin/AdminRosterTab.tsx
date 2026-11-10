@@ -15,7 +15,9 @@ import {
   ShieldCheck,
   CheckCircle2,
   Users,
+  KeyRound,
 } from 'lucide-react';
+import { AdminResetPasswordModal } from '@/components/dashboard/modals/AdminResetPasswordModal';
 
 interface AdminRosterTabProps {
   enrollments: CourseEnrollmentRecord[];
@@ -44,6 +46,7 @@ export function AdminRosterTab({
   const [studentDirectory, setStudentDirectory] = useState<StudentOverview[]>(() =>
     getAggregatedStudentsDirectory(enrollments)
   );
+  const [resetPasswordStudent, setResetPasswordStudent] = useState<StudentOverview | null>(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -324,6 +327,16 @@ export function AdminRosterTab({
                             <span>Activate Course</span>
                           </button>
 
+                          <button
+                            type="button"
+                            onClick={() => setResetPasswordStudent(st)}
+                            className="px-2.5 py-1 rounded border border-burgundy-300 bg-burgundy-50 text-burgundy-900 hover:bg-burgundy-100 text-[11px] font-semibold transition-colors flex items-center gap-1 shadow-sm"
+                            title="Reset student password directly"
+                          >
+                            <KeyRound className="w-3 h-3 text-burgundy-600" />
+                            <span>Reset Password</span>
+                          </button>
+
                           <a
                             href={waLink}
                             target="_blank"
@@ -356,6 +369,13 @@ export function AdminRosterTab({
           </p>
         </div>
       )}
+
+      {/* Direct Reset Password Modal */}
+      <AdminResetPasswordModal
+        isOpen={!!resetPasswordStudent}
+        onClose={() => setResetPasswordStudent(null)}
+        student={resetPasswordStudent}
+      />
     </div>
   );
 }
