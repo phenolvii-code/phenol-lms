@@ -13,6 +13,8 @@ import {
   User,
   Phone,
   ShieldAlert,
+  CheckCircle2,
+  ArrowLeft,
 } from 'lucide-react';
 
 interface AuthModalProps {
@@ -42,10 +44,19 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const [phone, setPhone] = useState('');
   const [academicLevel, setAcademicLevel] = useState('High School Senior');
 
+  // Password Recovery State
+  const [isForgotPassword, setIsForgotPassword] = useState(false);
+  const [resetStatus, setResetStatus] = useState<{
+    type: 'success' | 'error';
+    text: string;
+  } | null>(null);
+
   useEffect(() => {
     if (isOpen) {
       setMode(initialMode === 'INSTRUCTOR_LOGIN' ? 'LOGIN' : initialMode);
       setErrorMessage(null);
+      setIsForgotPassword(false);
+      setResetStatus(null);
     }
   }, [initialMode, isOpen]);
 
@@ -97,6 +108,48 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       }
     } catch {
       setErrorMessage('Google authentication failed. Please try again.');
+      setIsLoading(false);
+    }
+  };
+
+  // Password Reset Request Handler
+  const handleResetPasswordRequest = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    setResetStatus(null);
+    const cleanEmail = email.trim().toLowerCase();
+    if (!cleanEmail) {
+      setResetStatus({
+        type: 'error',
+        text: 'Please enter your registered email address.',
+      });
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(cleanEmail, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+
+      if (error) {
+        setResetStatus({
+          type: 'error',
+          text: error.message || 'Could not send reset email. Please try again.',
+        });
+        return;
+      }
+
+      setResetStatus({
+        type: 'success',
+        text: 'A password reset link has been sent to your email. Please check your inbox and spam folder.',
+      });
+    } catch {
+      setResetStatus({
+        type: 'error',
+        text: 'Failed to send reset link. Please try again.',
+      });
+    } finally {
       setIsLoading(false);
     }
   };
@@ -246,8 +299,80 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             </div>
           </div>
 
-          {/* Unified Sign In Form */}
-          {mode === 'LOGIN' && (
+          {/* Forgot Password View */}
+          {isForgotPassword ? (
+            <div className="space-y-4">
+              <div className="text-center space-y-1">
+                <span className="font-formula text-[10px] text-burgundy-500 font-bold uppercase tracking-widest block">
+                  PASSWORD RECOVERY
+                </span>
+                <h3 className="font-display font-bold text-lg text-charcoal-900">
+                  Reset Your Password
+                </h3>
+                <p className="text-xs text-charcoal-100 font-sans">
+                  Enter your registered email address and we&apos;ll send you a password reset link.
+                </p>
+              </div>
+
+              {resetStatus && (
+                <div
+                  className={`p-3 rounded text-xs flex items-start gap-2 ${
+                    resetStatus.type === 'success'
+                      ? 'bg-emerald-50 border border-emerald-200 text-emerald-900'
+                      : 'bg-burgundy-50 border border-burgundy-200 text-burgundy-900'
+                  }`}
+                >
+                  {resetStatus.type === 'success' ? (
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                  ) : (
+                    <ShieldAlert className="w-4 h-4 text-burgundy-500 shrink-0 mt-0.5" />
+                  )}
+                  <span>{resetStatus.text}</span>
+                </div>
+              )}
+
+              <form onSubmit={handleResetPasswordRequest} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-semibold text-charcoal-900 mb-1.5 font-sans">
+                    Email Address
+                  </label>
+                  <div className="relative">
+                    <Mail className="w-4 h-4 text-charcoal-50 absolute left-3 top-3" />
+                    <input
+                      type="email"
+                      required
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="student@example.com"
+                      className="w-full pl-9 pr-3.5 py-2.5 text-sm bg-ivory-50 border border-hairline rounded text-charcoal-900 focus:outline-none focus:border-burgundy-500"
+                    />
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={isLoading}
+                  className="w-full py-2.5 rounded bg-burgundy-500 hover:bg-burgundy-800 text-ivory-100 text-sm font-semibold transition-colors shadow-quiet"
+                >
+                  {isLoading ? 'Sending Link...' : 'Send Password Reset Link'}
+                </button>
+              </form>
+
+              <div className="pt-2 text-center">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsForgotPassword(false);
+                    setResetStatus(null);
+                  }}
+                  className="inline-flex items-center gap-1.5 text-xs text-charcoal-100 hover:text-charcoal-900 font-semibold transition-colors"
+                >
+                  <ArrowLeft className="w-3.5 h-3.5" />
+                  <span>Back to Sign In</span>
+                </button>
+              </div>
+            </div>
+          ) : mode === 'LOGIN' ? (
             <form onSubmit={handleUnifiedLogin} className="space-y-4">
               <div>
                 <label className="block text-xs font-semibold text-charcoal-900 mb-1.5 font-sans">
@@ -267,9 +392,22 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-charcoal-900 mb-1.5 font-sans">
-                  Password
-                </label>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="text-xs font-semibold text-charcoal-900 font-sans">
+                    Password
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsForgotPassword(true);
+                      setErrorMessage(null);
+                      setResetStatus(null);
+                    }}
+                    className="text-[11px] font-sans font-medium text-burgundy-500 hover:text-burgundy-800 hover:underline transition-colors"
+                  >
+                    Forgot Password?
+                  </button>
+                </div>
                 <div className="relative">
                   <Lock className="w-4 h-4 text-charcoal-50 absolute left-3 top-3" />
                   <input
@@ -291,7 +429,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 {isLoading ? 'Signing In...' : 'Sign In to Dashboard'}
               </button>
             </form>
-          )}
+          ) : null}
 
           {/* Registration Form */}
           {mode === 'REGISTER' && (
