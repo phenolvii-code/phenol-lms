@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { AuthUser } from '@/types/auth';
 import { PhenolLogo } from '@/components/brand/PhenolLogo';
+import { NotificationBell } from '@/components/notifications/NotificationBell';
 import {
   Menu,
   X,
@@ -126,6 +127,8 @@ export const Navbar: React.FC<NavbarProps> = ({
               </>
             ) : (
               <div className="flex items-center gap-2.5 sm:gap-3">
+                <NotificationBell />
+
                 <Link
                   href="/dashboard"
                   className={`flex items-center gap-2 px-3 py-1.5 rounded border transition-colors text-xs sm:text-sm font-medium ${

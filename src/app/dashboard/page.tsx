@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { AuthUser } from '@/types/auth';
 import { useCurrentUser } from '@/lib/auth/useCurrentUser';
 import { PhenolLogo } from '@/components/brand/PhenolLogo';
+import { NotificationBell } from '@/components/notifications/NotificationBell';
 import { WhatsAppPromptModal } from '@/components/auth/WhatsAppPromptModal';
 import { Initials } from '@/components/ui/Initials';
 import {
@@ -43,6 +44,7 @@ import {
   CourseEnrollmentRecord,
 } from '@/lib/data/enrollments';
 import { recordRegisteredStudent } from '@/lib/enrollment-storage';
+import { adminNotifyCourseStudents } from '@/lib/data/notifications';
 import {
   FileCheck2,
   FileText,
@@ -536,6 +538,20 @@ export default function DashboardPage() {
     setCourses(updated);
     await saveStoredCourses(updated);
 
+    // Broadcast notification to all actively enrolled students
+    try {
+      const targetCourseObj = courses.find((c) => c.id === targetCourseId);
+      await adminNotifyCourseStudents(
+        targetCourseId,
+        `محاضرة جديدة: ${newLesson.title}`,
+        `تم نشر محاضرة جديدة في كورس ${targetCourseObj?.title || 'الكيمياء'}: "${newLesson.title}"`,
+        `/courses/${targetCourseId}/lessons/${newLesson.id}`,
+        newLesson.id
+      );
+    } catch (notifErr) {
+      console.warn('Could not dispatch course notification:', notifErr);
+    }
+
     setIsAddLectureOpen(false);
     setNewLectureTitle('');
     setNewLectureVideoUrl('');
@@ -751,6 +767,8 @@ export default function DashboardPage() {
               )}
 
               <div className="flex items-center gap-3">
+                <NotificationBell />
+
                 <button
                   type="button"
                   onClick={handleOpenProfileModal}
