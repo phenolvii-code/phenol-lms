@@ -16,6 +16,7 @@ import { ProgramsSection } from '@/components/home/ProgramsSection';
 import { ResourcesSection } from '@/components/home/ResourcesSection';
 import { AboutSection } from '@/components/home/AboutSection';
 import { FinalCtaSection } from '@/components/home/FinalCtaSection';
+import PhenolIntro from '@/components/intro/PhenolIntro';
 import { PhenolLogo } from '@/components/brand/PhenolLogo';
 import { Mail, Send, Youtube, Facebook } from 'lucide-react';
 import { WhatsAppIcon } from '@/components/auth/AuthIcons';
@@ -47,6 +48,8 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-ivory-200 text-charcoal-900 flex flex-col font-sans selection:bg-burgundy-500 selection:text-ivory-100 antialiased">
+      <PhenolIntro />
+
       {/* Editorial Academic Navbar */}
       <Navbar
         currentUser={currentUser}
