@@ -16,7 +16,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onSignUp, onSignIn, on
     <section className="relative pt-12 sm:pt-16 lg:pt-20 pb-12 sm:pb-16 px-4 sm:px-6 lg:px-8 max-w-5xl mx-auto">
       <div className="text-center">
         {/* Editorial Monogram Badge */}
-        <div className="inline-flex items-center gap-2.5 px-3.5 py-1.5 rounded-full border border-hairline bg-ivory-100 mb-6">
+        <div className="inline-flex items-center gap-2.5 px-3.5 py-1.5 rounded-full border border-hairline bg-ivory-100 mb-6 animate-fade-in-up">
           <img
             src="/images/phenol-symbol-burgundy.png"
             alt="PHENOL"
@@ -32,7 +32,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onSignUp, onSignIn, on
         </div>
 
         {/* Primary Headline: “To Understand Is to Master.” */}
-        <div className="max-w-4xl mx-auto">
+        <div className="max-w-4xl mx-auto animate-fade-in-up-delay-1">
           <h1 className="text-3xl sm:text-5xl lg:text-6xl font-extrabold font-display text-charcoal-900 tracking-tight py-1">
             <span className="text-burgundy-500 font-serif italic font-normal mr-2">“</span>
             To Understand Is to Master.
@@ -53,7 +53,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onSignUp, onSignIn, on
         </div>
 
         {/* Prominent Burgundy Interactive Action Buttons: Sign Up & Sign In */}
-        <div className="mt-8 sm:mt-10 flex flex-col sm:flex-row items-center justify-center gap-4 max-w-md sm:max-w-none mx-auto">
+        <div className="mt-8 sm:mt-10 flex flex-col sm:flex-row items-center justify-center gap-4 max-w-md sm:max-w-none mx-auto animate-fade-in-up-delay-2">
           <button
             type="button"
             onClick={handleSignUp}
@@ -73,7 +73,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onSignUp, onSignIn, on
         </div>
 
         {/* Large & Prominent Button: Navigate to /courses */}
-        <div className="mt-6 sm:mt-8 flex flex-col items-center justify-center max-w-lg mx-auto">
+        <div className="mt-6 sm:mt-8 flex flex-col items-center justify-center max-w-lg mx-auto animate-fade-in-up-delay-3">
           <Link
             href="/courses"
             className="w-full sm:w-auto min-w-[280px] sm:min-w-[420px] inline-flex items-center justify-between gap-4 px-8 sm:px-10 py-4 sm:py-5 rounded-2xl bg-burgundy-900 hover:bg-black active:scale-[0.98] text-ivory-100 font-sans font-bold text-lg sm:text-xl shadow-xl hover:shadow-2xl transition-all duration-300 border-2 border-ochre hover:border-ochre-light group cursor-pointer ring-4 ring-burgundy-900/10 hover:-translate-y-0.5"
