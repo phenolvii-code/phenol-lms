@@ -58,6 +58,7 @@ import {
   Plus,
   Send,
   Settings,
+  ExternalLink,
 } from 'lucide-react';
 
 // Subcomponents: Admin Tabs
@@ -741,29 +742,43 @@ export default function DashboardPage() {
 
             <div className="flex items-center gap-4">
               {isInstructor && (
-                <div className="hidden sm:flex items-center bg-ivory-300 p-1 rounded border border-hairline text-xs font-semibold">
-                  <button
-                    onClick={() => setAdminViewMode('ADMIN')}
-                    className={`px-3 py-1 rounded transition-colors ${
-                      adminViewMode === 'ADMIN'
-                        ? 'bg-burgundy-500 text-ivory-100 shadow-quiet'
-                        : 'text-charcoal-100 hover:text-charcoal-900'
-                    }`}
+                <>
+                  <Link
+                    href="/whiteboard"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    title="Open PHENOL Infinite Whiteboard Studio"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-burgundy-900 hover:bg-black text-ivory-100 text-xs font-bold transition-all shadow-sm border border-ochre/40 group shrink-0"
                   >
-                    Admin Portal
-                  </button>
-                  <button
-                    onClick={() => setAdminViewMode('STUDENT_PREVIEW')}
-                    className={`px-3 py-1 rounded transition-colors flex items-center gap-1.5 ${
-                      adminViewMode === 'STUDENT_PREVIEW'
-                        ? 'bg-burgundy-500 text-ivory-100 shadow-quiet'
-                        : 'text-charcoal-100 hover:text-charcoal-900'
-                    }`}
-                  >
-                    <Eye className="w-3.5 h-3.5" />
-                    <span>Student View</span>
-                  </button>
-                </div>
+                    <span className="text-ochre font-formula font-bold text-sm">⌬</span>
+                    <span className="hidden sm:inline">Whiteboard Studio</span>
+                    <ExternalLink className="w-3 h-3 text-ochre/80 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+                  </Link>
+
+                  <div className="hidden sm:flex items-center bg-ivory-300 p-1 rounded border border-hairline text-xs font-semibold">
+                    <button
+                      onClick={() => setAdminViewMode('ADMIN')}
+                      className={`px-3 py-1 rounded transition-colors ${
+                        adminViewMode === 'ADMIN'
+                          ? 'bg-burgundy-500 text-ivory-100 shadow-quiet'
+                          : 'text-charcoal-100 hover:text-charcoal-900'
+                      }`}
+                    >
+                      Admin Portal
+                    </button>
+                    <button
+                      onClick={() => setAdminViewMode('STUDENT_PREVIEW')}
+                      className={`px-3 py-1 rounded transition-colors flex items-center gap-1.5 ${
+                        adminViewMode === 'STUDENT_PREVIEW'
+                          ? 'bg-burgundy-500 text-ivory-100 shadow-quiet'
+                          : 'text-charcoal-100 hover:text-charcoal-900'
+                      }`}
+                    >
+                      <Eye className="w-3.5 h-3.5" />
+                      <span>Student View</span>
+                    </button>
+                  </div>
+                </>
               )}
 
               <div className="flex items-center gap-3">
