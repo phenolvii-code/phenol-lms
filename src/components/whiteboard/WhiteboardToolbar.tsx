@@ -28,8 +28,12 @@ interface WhiteboardToolbarProps {
   onSelectSize: (size: number) => void;
   currentShape: ShapeKind;
   onSelectShape: (shape: ShapeKind) => void;
-  onOpenEquationModal: () => void;
-  onOpenMoleculeModal: () => void;
+  onToggleChemDraw: () => void;
+  isChemDrawActive: boolean;
+  onToggleApparatusDrawer: () => void;
+  isApparatusDrawerOpen: boolean;
+  onActivateEquationStamp: () => void;
+  isEquationStampActive: boolean;
   onOpenTableModal: () => void;
   onOpenEnergyModal: () => void;
   onClearCanvas: () => void;
@@ -64,8 +68,12 @@ export const WhiteboardToolbar: React.FC<WhiteboardToolbarProps> = ({
   onSelectSize,
   currentShape,
   onSelectShape,
-  onOpenEquationModal,
-  onOpenMoleculeModal,
+  onToggleChemDraw,
+  isChemDrawActive,
+  onToggleApparatusDrawer,
+  isApparatusDrawerOpen,
+  onActivateEquationStamp,
+  isEquationStampActive,
   onOpenTableModal,
   onOpenEnergyModal,
   onClearCanvas,
@@ -83,7 +91,7 @@ export const WhiteboardToolbar: React.FC<WhiteboardToolbarProps> = ({
           onClick={() => onSelectTool('select')}
           title="Select & Pan Tool (V)"
           className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${
-            currentTool === 'select'
+            currentTool === 'select' && !isChemDrawActive
               ? 'bg-burgundy-900 text-ochre shadow-md scale-105'
               : 'text-charcoal-100 hover:text-charcoal-900 hover:bg-ivory-200'
           }`}
@@ -96,7 +104,7 @@ export const WhiteboardToolbar: React.FC<WhiteboardToolbarProps> = ({
           onClick={() => onSelectTool('pen')}
           title="Fountain Pen (P)"
           className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${
-            currentTool === 'pen'
+            currentTool === 'pen' && !isChemDrawActive
               ? 'bg-burgundy-900 text-ochre shadow-md scale-105'
               : 'text-charcoal-100 hover:text-charcoal-900 hover:bg-ivory-200'
           }`}
@@ -109,7 +117,7 @@ export const WhiteboardToolbar: React.FC<WhiteboardToolbarProps> = ({
           onClick={() => onSelectTool('highlighter')}
           title="Highlighter (H)"
           className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${
-            currentTool === 'highlighter'
+            currentTool === 'highlighter' && !isChemDrawActive
               ? 'bg-burgundy-900 text-ochre shadow-md scale-105'
               : 'text-charcoal-100 hover:text-charcoal-900 hover:bg-ivory-200'
           }`}
@@ -122,7 +130,7 @@ export const WhiteboardToolbar: React.FC<WhiteboardToolbarProps> = ({
           onClick={() => onSelectTool('eraser')}
           title="Eraser (E)"
           className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${
-            currentTool === 'eraser'
+            currentTool === 'eraser' && !isChemDrawActive
               ? 'bg-burgundy-900 text-ochre shadow-md scale-105'
               : 'text-charcoal-100 hover:text-charcoal-900 hover:bg-ivory-200'
           }`}
@@ -135,7 +143,7 @@ export const WhiteboardToolbar: React.FC<WhiteboardToolbarProps> = ({
           onClick={() => onSelectTool('text')}
           title="Text Note (T)"
           className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${
-            currentTool === 'text'
+            currentTool === 'text' && !isChemDrawActive
               ? 'bg-burgundy-900 text-ochre shadow-md scale-105'
               : 'text-charcoal-100 hover:text-charcoal-900 hover:bg-ivory-200'
           }`}
@@ -148,7 +156,7 @@ export const WhiteboardToolbar: React.FC<WhiteboardToolbarProps> = ({
           onClick={() => onSelectTool('shape')}
           title="Geometric Shapes (S)"
           className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${
-            currentTool === 'shape'
+            currentTool === 'shape' && !isChemDrawActive
               ? 'bg-burgundy-900 text-ochre shadow-md scale-105'
               : 'text-charcoal-100 hover:text-charcoal-900 hover:bg-ivory-200'
           }`}
@@ -163,20 +171,44 @@ export const WhiteboardToolbar: React.FC<WhiteboardToolbarProps> = ({
           CHEM
         </span>
 
+        {/* Mini-ChemDraw Studio */}
         <button
           type="button"
-          onClick={onOpenMoleculeModal}
-          title="Insert Organic Molecule (Benzene, Phenol, Rings)"
-          className="w-10 h-10 rounded-xl bg-ivory-200 border border-hairline hover:border-burgundy-500 hover:bg-burgundy-50 text-burgundy-900 flex items-center justify-center font-formula font-bold text-base transition-transform hover:scale-105"
+          onClick={onToggleChemDraw}
+          title="Mini-ChemDraw (Atom-by-atom zigzag structures, Lewis formulas, rings & functional groups)"
+          className={`w-10 h-10 rounded-xl border flex items-center justify-center font-formula font-bold text-base transition-all ${
+            isChemDrawActive
+              ? 'bg-burgundy-900 text-ochre border-ochre shadow-md scale-110'
+              : 'bg-ivory-200 border-hairline hover:border-burgundy-500 hover:bg-burgundy-50 text-burgundy-900 hover:scale-105'
+          }`}
         >
           ⌬
         </button>
 
+        {/* Laboratory Apparatus Drawer */}
         <button
           type="button"
-          onClick={onOpenEquationModal}
-          title="Chemical Equation & Stoichiometry Editor"
-          className="w-10 h-10 rounded-xl bg-ivory-200 border border-hairline hover:border-burgundy-500 hover:bg-burgundy-50 text-burgundy-900 flex items-center justify-center font-formula font-bold text-sm transition-transform hover:scale-105"
+          onClick={onToggleApparatusDrawer}
+          title="Chemistry Laboratory Apparatus (Burettes, Condensers, Burners, Flasks, Delivery tubes)"
+          className={`w-10 h-10 rounded-xl border flex items-center justify-center text-base transition-all ${
+            isApparatusDrawerOpen
+              ? 'bg-burgundy-900 text-ochre border-ochre shadow-md scale-110'
+              : 'bg-ivory-200 border-hairline hover:border-burgundy-500 hover:bg-burgundy-50 text-burgundy-900 hover:scale-105'
+          }`}
+        >
+          🧪
+        </button>
+
+        {/* In-Canvas Chemical Equation Stamp */}
+        <button
+          type="button"
+          onClick={onActivateEquationStamp}
+          title="In-Canvas Chemical Equation & Stoichiometry (Click canvas to drop equation block)"
+          className={`w-10 h-10 rounded-xl border flex items-center justify-center text-sm transition-all ${
+            isEquationStampActive
+              ? 'bg-burgundy-900 text-ochre border-ochre shadow-md scale-110'
+              : 'bg-ivory-200 border-hairline hover:border-burgundy-500 hover:bg-burgundy-50 text-burgundy-900 hover:scale-105'
+          }`}
         >
           ⚗️
         </button>

@@ -14,6 +14,8 @@ export type WhiteboardTool =
   | 'table'
   | 'formula'
   | 'molecule'
+  | 'chemdraw'
+  | 'apparatus'
   | 'mindmap'
   | 'energy_diagram'
   | 'image';
@@ -106,6 +108,43 @@ export interface ChemicalFormulaElement extends BaseWhiteboardElement {
   deltaH?: string; // e.g. "ΔH = -890 kJ/mol"
   fontSize: number;
   color: string;
+  reactants?: string;
+  conditionTop?: string;
+  conditionBottom?: string;
+  arrowType?: 'forward' | 'equilibrium' | 'resonance';
+  products?: string;
+}
+
+export type ApparatusKind =
+  | 'beaker'
+  | 'erlenmeyer'
+  | 'round_bottom_flask'
+  | 'distilling_flask'
+  | 'liebig_condenser'
+  | 'burette_stand'
+  | 'separatory_funnel'
+  | 'bunsen_burner_tripod'
+  | 'test_tube'
+  | 'test_tube_rack'
+  | 'boiling_delivery_tube'
+  | 'gas_collecting_trough'
+  | 'graduated_cylinder'
+  | 'thermometer'
+  | 'dropper'
+  | 'buchner_funnel'
+  | 'crucible_tripod'
+  | 'watch_glass_dish'
+  | 'u_tube';
+
+export interface ApparatusElement extends BaseWhiteboardElement {
+  type: 'apparatus';
+  kind: ApparatusKind;
+  width: number;
+  height: number;
+  label?: string;
+  liquidColor?: string;
+  liquidLevel?: number; // 0 to 1
+  scale?: number;
 }
 
 export interface ChemAtom {
@@ -186,6 +225,7 @@ export type WhiteboardElement =
   | TableElement
   | ChemicalFormulaElement
   | MoleculeElement
+  | ApparatusElement
   | MindMapElement
   | EnergyDiagramElement
   | ImageElement;

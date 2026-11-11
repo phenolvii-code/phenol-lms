@@ -16,6 +16,10 @@ import {
   TableElement,
   ChemicalFormulaElement,
   MoleculeElement,
+  ApparatusElement,
+  ApparatusKind,
+  ChemAtom,
+  ChemBond,
   EnergyDiagramElement,
 } from '@/types/whiteboard';
 import {
@@ -25,11 +29,49 @@ import {
 } from '@/lib/whiteboard-storage';
 import { WhiteboardHeader } from './WhiteboardHeader';
 import { WhiteboardToolbar } from './WhiteboardToolbar';
-import { ChemicalEquationModal } from './tools/ChemicalEquationModal';
-import { MoleculeBuilderModal } from './tools/MoleculeBuilderModal';
+import { ApparatusDrawer } from './apparatus/ApparatusDrawer';
+import { ApparatusItemInfo } from './apparatus/apparatus-data';
+import { renderApparatus } from './apparatus/render-apparatus';
+import {
+  ChemDrawToolbar,
+  ChemSubTool,
+  ChemElementSymbol,
+} from './chem/ChemDrawToolbar';
+import {
+  calculateNextZigzagPos,
+  createBenzeneRing,
+  createCyclohexaneRing,
+  createCyclopentaneRing,
+} from './chem/chem-geometry';
+import { InlineEquationBar } from './chem/InlineEquationBar';
 import { TableBuilderModal } from './tools/TableBuilderModal';
 import { EnergyDiagramModal } from './tools/EnergyDiagramModal';
 import { BoardsManagerModal } from './tools/BoardsManagerModal';
+
+interface ActiveStamp {
+  type: 'apparatus' | 'equation' | 'ring_benzene' | 'ring_cyclohexane' | 'ring_cyclopentane';
+  kind?: ApparatusKind;
+  name?: string;
+  width?: number;
+  height?: number;
+  liquidColor?: string;
+  liquidLevel?: number;
+}
+
+function distanceToSegment(
+  px: number,
+  py: number,
+  x1: number,
+  y1: number,
+  x2: number,
+  y2: number
+): number {
+  const l2 = (x2 - x1) ** 2 + (y2 - y1) ** 2;
+  if (l2 === 0) return Math.hypot(px - x1, py - y1);
+  let t = ((px - x1) * (x2 - x1) + (py - y1) * (y2 - y1)) / l2;
+  t = Math.max(0, Math.min(1, t));
+  return Math.hypot(px - (x1 + t * (x2 - x1)), py - (y1 + t * (y2 - y1)));
+}
 
 export const PhenolWhiteboard: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -47,13 +89,41 @@ export const PhenolWhiteboard: React.FC = () => {
   const [shapeKind, setShapeKind] = useState<ShapeKind>('rectangle');
   const [selectedElementId, setSelectedElementId] = useState<string | null>(null);
 
+  // Mini-ChemDraw Studio State
+  const [isChemDrawActive, setIsChemDrawActive] = useState<boolean>(false);
+  const [activeChemSubTool, setActiveChemSubTool] = useState<ChemSubTool>('zigzag_chain');
+  const [activeChemElement, setActiveChemElement] = useState<ChemElementSymbol>('C');
+  const [isLewisMode, setIsLewisMode] = useState<boolean>(false);
+  const [hoveredChemTarget, setHoveredChemTarget] = useState<{
+    moleculeId: string;
+    type: 'atom' | 'bond';
+    id: string;
+  } | null>(null);
+
+  // Apparatus Library State
+  const [isApparatusDrawerOpen, setIsApparatusDrawerOpen] = useState<boolean>(false);
+
+  // Cursor Ghost Stamp State (يحول السهم للحاجة اللي بضيفها ولما اضغط يضغط)
+  const [activeStamp, setActiveStamp] = useState<ActiveStamp | null>(null);
+  const cursorPosRef = useRef<{ x: number; y: number; screenX: number; screenY: number }>({
+    x: 0,
+    y: 0,
+    screenX: 0,
+    screenY: 0,
+  });
+
+  // In-Canvas Smart Equation State
+  const [editingEquation, setEditingEquation] = useState<ChemicalFormulaElement | null>(null);
+  const [equationScreenPos, setEquationScreenPos] = useState<{ x: number; y: number }>({
+    x: 300,
+    y: 200,
+  });
+
   // Undo / Redo History Stacks
   const [history, setHistory] = useState<WhiteboardElement[][]>([]);
   const [redoStack, setRedoStack] = useState<WhiteboardElement[][]>([]);
 
-  // Modals Visibility
-  const [isEquationModalOpen, setIsEquationModalOpen] = useState(false);
-  const [isMoleculeModalOpen, setIsMoleculeModalOpen] = useState(false);
+  // Other Modals Visibility
   const [isTableModalOpen, setIsTableModalOpen] = useState(false);
   const [isEnergyModalOpen, setIsEnergyModalOpen] = useState(false);
   const [isBoardsManagerOpen, setIsBoardsManagerOpen] = useState(false);
@@ -100,6 +170,17 @@ export const PhenolWhiteboard: React.FC = () => {
     [viewport]
   );
 
+  // Coordinate conversion helper: Canvas World Space -> Screen PX
+  const canvasToScreen = useCallback(
+    (worldX: number, worldY: number): { x: number; y: number } => {
+      return {
+        x: worldX * viewport.zoom + viewport.x,
+        y: worldY * viewport.zoom + viewport.y,
+      };
+    },
+    [viewport]
+  );
+
   // Record undo checkpoint
   const pushHistory = useCallback(
     (newElements: WhiteboardElement[]) => {
@@ -126,10 +207,25 @@ export const PhenolWhiteboard: React.FC = () => {
     setElements(next);
   }, [redoStack, elements]);
 
-  // Keyboard Shortcuts (Undo, Redo, Delete)
+  // Keyboard Shortcuts (Undo, Redo, Delete, ESC)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.target as HTMLElement).tagName === 'INPUT' || (e.target as HTMLElement).tagName === 'TEXTAREA') {
+        return;
+      }
+      if (e.key === 'Escape') {
+        if (activeStamp) {
+          setActiveStamp(null);
+        }
+        if (isChemDrawActive) {
+          setIsChemDrawActive(false);
+        }
+        if (editingEquation) {
+          setEditingEquation(null);
+        }
+        if (isApparatusDrawerOpen) {
+          setIsApparatusDrawerOpen(false);
+        }
         return;
       }
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
@@ -148,12 +244,13 @@ export const PhenolWhiteboard: React.FC = () => {
           e.preventDefault();
           pushHistory(elements.filter((el) => el.id !== selectedElementId));
           setSelectedElementId(null);
+          setEditingEquation(null);
         }
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [handleUndo, handleRedo, pushHistory, selectedElementId, elements]);
+  }, [handleUndo, handleRedo, pushHistory, selectedElementId, elements, activeStamp, isChemDrawActive, editingEquation, isApparatusDrawerOpen]);
 
   // Main Canvas Rendering Loop
   const renderCanvas = useCallback(() => {
@@ -299,27 +396,34 @@ export const PhenolWhiteboard: React.FC = () => {
 
         case 'formula': {
           const f = el as ChemicalFormulaElement;
-          ctx.fillStyle = f.color;
-          ctx.font = `bold ${f.fontSize}px 'JetBrains Mono', monospace`;
+          ctx.fillStyle = f.color || '#501325';
+          ctx.font = `bold ${f.fontSize || 20}px 'JetBrains Mono', monospace`;
           ctx.fillText(f.equation, f.x, f.y);
 
           if (f.subtitle) {
             ctx.fillStyle = '#6B7280';
-            ctx.font = `italic ${Math.max(f.fontSize - 6, 12)}px Georgia, serif`;
+            ctx.font = `italic ${Math.max((f.fontSize || 20) - 6, 12)}px Georgia, serif`;
             ctx.fillText(f.subtitle, f.x, f.y + 24);
           }
 
           if (f.deltaH) {
             ctx.fillStyle = f.deltaH.includes('-') ? '#047857' : '#B91C1C';
-            ctx.font = `bold ${Math.max(f.fontSize - 4, 13)}px 'JetBrains Mono', monospace`;
+            ctx.font = `bold ${Math.max((f.fontSize || 20) - 4, 13)}px 'JetBrains Mono', monospace`;
             ctx.fillText(f.deltaH, f.x, f.y + (f.subtitle ? 46 : 26));
           }
           break;
         }
 
+        case 'apparatus': {
+          renderApparatus(ctx, el as ApparatusElement);
+          break;
+        }
+
         case 'molecule': {
           const m = el as MoleculeElement;
-          // Render Bonds
+          const showDetailedLewis = m.showCarbons ?? isLewisMode;
+
+          // 1. Render Bonds with proper ChemDraw orders
           m.bonds.forEach((b) => {
             const from = m.atoms.find((a) => a.id === b.fromAtomId);
             const to = m.atoms.find((a) => a.id === b.toAtomId);
@@ -330,54 +434,147 @@ export const PhenolWhiteboard: React.FC = () => {
             const x2 = m.x + to.x;
             const y2 = m.y + to.y;
 
-            if (b.bondOrder === 2) {
-              const dx = x2 - x1;
-              const dy = y2 - y1;
-              const len = Math.hypot(dx, dy) || 1;
-              const nx = (-dy / len) * 3;
-              const ny = (dx / len) * 3;
+            const isHovered =
+              isChemDrawActive &&
+              hoveredChemTarget?.moleculeId === m.id &&
+              hoveredChemTarget?.id === b.id;
 
-              ctx.strokeStyle = '#18191B';
-              ctx.lineWidth = 2.5;
+            ctx.strokeStyle = isHovered ? '#0284C7' : '#18191B';
+            ctx.lineWidth = 2.5;
+
+            const dx = x2 - x1;
+            const dy = y2 - y1;
+            const len = Math.hypot(dx, dy) || 1;
+            const nx = (-dy / len) * 3.5;
+            const ny = (dx / len) * 3.5;
+
+            if (b.bondOrder === 2) {
+              // Double Bond (Parallel)
               ctx.beginPath();
               ctx.moveTo(x1 + nx, y1 + ny);
               ctx.lineTo(x2 + nx, y2 + ny);
               ctx.moveTo(x1 - nx, y1 - ny);
               ctx.lineTo(x2 - nx, y2 - ny);
               ctx.stroke();
+            } else if (b.bondOrder === 3) {
+              // Triple Bond
+              ctx.beginPath();
+              ctx.moveTo(x1, y1);
+              ctx.lineTo(x2, y2);
+              ctx.moveTo(x1 + nx * 1.5, y1 + ny * 1.5);
+              ctx.lineTo(x2 + nx * 1.5, y2 + ny * 1.5);
+              ctx.moveTo(x1 - nx * 1.5, y1 - ny * 1.5);
+              ctx.lineTo(x2 - nx * 1.5, y2 - ny * 1.5);
+              ctx.stroke();
+            } else if (b.bondOrder === 'wedge') {
+              // Wedged Stereochemical Bond (Tapered)
+              ctx.fillStyle = isHovered ? '#0284C7' : '#18191B';
+              ctx.beginPath();
+              ctx.moveTo(x1, y1);
+              ctx.lineTo(x2 + nx * 2, y2 + ny * 2);
+              ctx.lineTo(x2 - nx * 2, y2 - ny * 2);
+              ctx.closePath();
+              ctx.fill();
+            } else if (b.bondOrder === 'dash') {
+              // Dashed Stereochemical Bond
+              ctx.save();
+              ctx.setLineDash([3, 3]);
+              ctx.beginPath();
+              ctx.moveTo(x1, y1);
+              ctx.lineTo(x2, y2);
+              ctx.stroke();
+              ctx.restore();
             } else {
-              ctx.strokeStyle = '#18191B';
-              ctx.lineWidth = 2.5;
+              // Standard Single Bond
               ctx.beginPath();
               ctx.moveTo(x1, y1);
               ctx.lineTo(x2, y2);
               ctx.stroke();
             }
+
+            // Hover indicator outline
+            if (isHovered) {
+              ctx.strokeStyle = '#38BDF8';
+              ctx.lineWidth = 1;
+              ctx.setLineDash([2, 2]);
+              ctx.strokeRect((x1 + x2) / 2 - 8, (y1 + y2) / 2 - 8, 16, 16);
+              ctx.setLineDash([]);
+            }
           });
 
-          // Render Atoms
+          // 2. Render Atoms (Skeletal vs Lewis)
           m.atoms.forEach((a) => {
             const ax = m.x + a.x;
             const ay = m.y + a.y;
 
-            ctx.fillStyle = '#FAF8F5';
-            ctx.beginPath();
-            ctx.arc(ax, ay, a.symbol.length > 1 ? 12 : 9, 0, Math.PI * 2);
-            ctx.fill();
+            const connectedBondsCount = m.bonds.filter(
+              (b) => b.fromAtomId === a.id || b.toAtomId === a.id
+            ).length;
 
-            ctx.fillStyle = '#501325';
-            ctx.font = "bold 13px 'JetBrains Mono', monospace";
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            ctx.fillText(a.symbol, ax, ay);
+            const isHovered =
+              isChemDrawActive &&
+              hoveredChemTarget?.moleculeId === m.id &&
+              hoveredChemTarget?.id === a.id;
+
+            // In Skeletal mode, non-isolated Carbons are vertices without letters
+            const isImplicitCarbon = !showDetailedLewis && a.symbol === 'C' && connectedBondsCount > 0;
+
+            if (!isImplicitCarbon) {
+              // Clear background disk behind atom label so bonds don't cut through text
+              ctx.fillStyle = background.startsWith('dark') ? '#141416' : '#FAF8F5';
+              ctx.beginPath();
+              ctx.arc(ax, ay, a.symbol.length > 1 ? 14 : 11, 0, Math.PI * 2);
+              ctx.fill();
+
+              // Element CPK / Academic colors
+              let atomColor = '#501325';
+              if (a.symbol === 'O') atomColor = '#DC2626'; // Crimson
+              else if (a.symbol === 'N') atomColor = '#2563EB'; // Royal Blue
+              else if (a.symbol === 'Cl') atomColor = '#059669'; // Emerald
+              else if (a.symbol === 'Br') atomColor = '#D97706'; // Amber
+              else if (a.symbol === 'I') atomColor = '#7C3AED'; // Purple
+              else if (a.symbol === 'F') atomColor = '#0D9488'; // Teal
+              else if (a.symbol === 'S') atomColor = '#CA8A04'; // Yellow
+              else if (a.symbol === 'P') atomColor = '#EA580C'; // Orange
+
+              ctx.fillStyle = atomColor;
+              ctx.font = "bold 14px 'JetBrains Mono', monospace";
+              ctx.textAlign = 'center';
+              ctx.textBaseline = 'middle';
+              ctx.fillText(a.symbol, ax, ay);
+            }
+
+            // Formal Charge (+ / -) badge
+            if (a.charge) {
+              const cx = ax + 11;
+              const cy = ay - 9;
+              ctx.fillStyle = a.charge > 0 ? '#DC2626' : '#2563EB';
+              ctx.beginPath();
+              ctx.arc(cx, cy, 6, 0, Math.PI * 2);
+              ctx.fill();
+              ctx.fillStyle = '#FFFFFF';
+              ctx.font = 'bold 9px sans-serif';
+              ctx.textAlign = 'center';
+              ctx.textBaseline = 'middle';
+              ctx.fillText(a.charge > 0 ? '+' : '−', cx, cy);
+            }
 
             // Lone pairs
             if (a.lonePairs === 2) {
-              ctx.fillStyle = '#C9A038';
+              ctx.fillStyle = '#D97706';
               ctx.beginPath();
-              ctx.arc(ax - 5, ay - 11, 1.5, 0, Math.PI * 2);
-              ctx.arc(ax + 5, ay - 11, 1.5, 0, Math.PI * 2);
+              ctx.arc(ax - 5, ay - 13, 2, 0, Math.PI * 2);
+              ctx.arc(ax + 5, ay - 13, 2, 0, Math.PI * 2);
               ctx.fill();
+            }
+
+            // ChemDraw hover halo
+            if (isHovered) {
+              ctx.strokeStyle = '#C9A038';
+              ctx.lineWidth = 2.5;
+              ctx.beginPath();
+              ctx.arc(ax, ay, 16, 0, Math.PI * 2);
+              ctx.stroke();
             }
           });
 
@@ -398,71 +595,68 @@ export const PhenolWhiteboard: React.FC = () => {
             ctx.setLineDash([]);
           });
 
-          // Molecule Name Tag
-          ctx.fillStyle = '#6B7280';
-          ctx.font = 'bold 11px sans-serif';
-          ctx.textAlign = 'center';
-          ctx.fillText(m.name, m.x, m.y + 75);
+          // Molecule Name Tag if named
+          if (m.name && m.name.trim() !== '') {
+            ctx.fillStyle = '#6B7280';
+            ctx.font = 'bold 11px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText(m.name, m.x, m.y + 75);
+          }
           break;
         }
 
         case 'table': {
           const t = el as TableElement;
+          const cellH = t.rowHeight || 28;
           let currentY = t.y;
 
           // Header
-          ctx.fillStyle = t.headerBgColor;
-          ctx.fillRect(t.x, currentY, t.colWidths.reduce((a, b) => a + b, 0), t.rowHeight);
+          ctx.fillStyle = t.headerBgColor || '#501325';
+          let headerX = t.x;
+          t.headers.forEach((h, i) => {
+            const w = t.colWidths[i] || 100;
+            ctx.fillRect(headerX, currentY, w, cellH);
+            ctx.strokeStyle = t.borderColor || '#C9A038';
+            ctx.strokeRect(headerX, currentY, w, cellH);
 
-          let currentX = t.x;
-          t.headers.forEach((h, idx) => {
-            const w = t.colWidths[idx] || 150;
-            ctx.strokeStyle = '#FFFFFF';
-            ctx.lineWidth = 1;
-            ctx.strokeRect(currentX, currentY, w, t.rowHeight);
-
-            ctx.fillStyle = '#FFFFFF';
+            ctx.fillStyle = '#FAF8F5';
             ctx.font = "bold 12px 'Plus Jakarta Sans', sans-serif";
-            ctx.textAlign = 'left';
-            ctx.textBaseline = 'middle';
-            ctx.fillText(h, currentX + 8, currentY + t.rowHeight / 2);
-            currentX += w;
+            ctx.textAlign = 'center';
+            ctx.fillText(h, headerX + w / 2, currentY + cellH / 2 + 4);
+            headerX += w;
           });
 
-          currentY += t.rowHeight;
+          currentY += cellH;
 
-          // Rows
+          // Data Rows
           t.cells.forEach((row) => {
-            currentX = t.x;
-            row.forEach((cellVal, cIdx) => {
-              const w = t.colWidths[cIdx] || 150;
-              ctx.fillStyle = t.cellBgColor;
-              ctx.fillRect(currentX, currentY, w, t.rowHeight);
-
-              ctx.strokeStyle = t.borderColor;
-              ctx.lineWidth = 1;
-              ctx.strokeRect(currentX, currentY, w, t.rowHeight);
+            let cellX = t.x;
+            row.forEach((cell, ci) => {
+              const w = t.colWidths[ci] || 100;
+              ctx.fillStyle = t.cellBgColor || '#FFFFFF';
+              ctx.fillRect(cellX, currentY, w, cellH);
+              ctx.strokeStyle = t.borderColor || '#E5E7EB';
+              ctx.strokeRect(cellX, currentY, w, cellH);
 
               ctx.fillStyle = '#18191B';
               ctx.font = "11px 'Plus Jakarta Sans', sans-serif";
-              ctx.textAlign = 'left';
-              ctx.textBaseline = 'middle';
-              ctx.fillText(cellVal, currentX + 8, currentY + t.rowHeight / 2);
-              currentX += w;
+              ctx.textAlign = 'center';
+              ctx.fillText(cell, cellX + w / 2, currentY + cellH / 2 + 4);
+              cellX += w;
             });
-            currentY += t.rowHeight;
+            currentY += cellH;
           });
           break;
         }
 
         case 'energy_diagram': {
           const ed = el as EnergyDiagramElement;
-          const baseY = ed.y + ed.height - 30;
+          const baseY = ed.y + ed.height - 40;
 
-          // Background box
-          ctx.fillStyle = '#FAF8F5';
-          ctx.strokeStyle = '#D1CDC4';
-          ctx.lineWidth = 1;
+          // Frame
+          ctx.fillStyle = '#FFFFFF';
+          ctx.strokeStyle = '#E5E7EB';
+          ctx.lineWidth = 1.5;
           ctx.fillRect(ed.x, ed.y, ed.width, ed.height);
           ctx.strokeRect(ed.x, ed.y, ed.width, ed.height);
 
@@ -531,7 +725,7 @@ export const PhenolWhiteboard: React.FC = () => {
         ctx.strokeStyle = '#3B82F6';
         ctx.lineWidth = 1.5;
         ctx.setLineDash([4, 4]);
-        ctx.strokeRect(el.x - 6, el.y - 6, 40, 40);
+        ctx.strokeRect(el.x - 8, el.y - 8, 45, 45);
         ctx.setLineDash([]);
       }
 
@@ -559,8 +753,101 @@ export const PhenolWhiteboard: React.FC = () => {
       }
     }
 
+    // 5. Render Cursor Ghost Preview (يحول السهم للحاجة اللي بضيفها)
+    if (activeStamp) {
+      const ghostX = cursorPosRef.current.x;
+      const ghostY = cursorPosRef.current.y;
+      ctx.save();
+      ctx.globalAlpha = 0.55;
+
+      if (activeStamp.type === 'apparatus' && activeStamp.kind) {
+        renderApparatus(ctx, {
+          id: 'ghost-apparatus',
+          type: 'apparatus',
+          x: ghostX,
+          y: ghostY,
+          kind: activeStamp.kind,
+          width: activeStamp.width || 100,
+          height: activeStamp.height || 120,
+          liquidColor: activeStamp.liquidColor || '#2563EB',
+          liquidLevel: activeStamp.liquidLevel || 0.5,
+          zIndex: 9999,
+        });
+
+        // Ghost placement guide
+        ctx.strokeStyle = '#2563EB';
+        ctx.lineWidth = 1.5;
+        ctx.setLineDash([3, 3]);
+        ctx.strokeRect(ghostX, ghostY, activeStamp.width || 100, activeStamp.height || 120);
+      } else if (activeStamp.type === 'equation') {
+        ctx.fillStyle = '#501325';
+        ctx.font = "bold 20px 'JetBrains Mono', monospace";
+        ctx.fillText('2H₂ + O₂ → 2H₂O', ghostX, ghostY);
+        ctx.strokeStyle = '#501325';
+        ctx.lineWidth = 1.5;
+        ctx.setLineDash([3, 3]);
+        ctx.strokeRect(ghostX - 10, ghostY - 24, 250, 42);
+      } else if (activeStamp.type === 'ring_benzene') {
+        const ring = createBenzeneRing(ghostX, ghostY);
+        ring.bonds.forEach((b) => {
+          const from = ring.atoms.find((a) => a.id === b.fromAtomId);
+          const to = ring.atoms.find((a) => a.id === b.toAtomId);
+          if (from && to) {
+            ctx.strokeStyle = '#501325';
+            ctx.lineWidth = 2.5;
+            ctx.beginPath();
+            ctx.moveTo(from.x, from.y);
+            ctx.lineTo(to.x, to.y);
+            ctx.stroke();
+          }
+        });
+      } else if (activeStamp.type === 'ring_cyclohexane') {
+        const ring = createCyclohexaneRing(ghostX, ghostY);
+        ring.bonds.forEach((b) => {
+          const from = ring.atoms.find((a) => a.id === b.fromAtomId);
+          const to = ring.atoms.find((a) => a.id === b.toAtomId);
+          if (from && to) {
+            ctx.strokeStyle = '#501325';
+            ctx.lineWidth = 2.5;
+            ctx.beginPath();
+            ctx.moveTo(from.x, from.y);
+            ctx.lineTo(to.x, to.y);
+            ctx.stroke();
+          }
+        });
+      } else if (activeStamp.type === 'ring_cyclopentane') {
+        const ring = createCyclopentaneRing(ghostX, ghostY);
+        ring.bonds.forEach((b) => {
+          const from = ring.atoms.find((a) => a.id === b.fromAtomId);
+          const to = ring.atoms.find((a) => a.id === b.toAtomId);
+          if (from && to) {
+            ctx.strokeStyle = '#501325';
+            ctx.lineWidth = 2.5;
+            ctx.beginPath();
+            ctx.moveTo(from.x, from.y);
+            ctx.lineTo(to.x, to.y);
+            ctx.stroke();
+          }
+        });
+      }
+
+      ctx.restore();
+    }
+
     ctx.restore();
-  }, [background, viewport, elements, selectedElementId, tool, color, size]);
+  }, [
+    background,
+    viewport,
+    elements,
+    selectedElementId,
+    tool,
+    color,
+    size,
+    isChemDrawActive,
+    isLewisMode,
+    hoveredChemTarget,
+    activeStamp,
+  ]);
 
   // Synchronize canvas size with device pixel ratio
   const handleResize = useCallback(() => {
@@ -586,7 +873,7 @@ export const PhenolWhiteboard: React.FC = () => {
     renderCanvas();
   }, [renderCanvas]);
 
-  // Pointer Event Handlers (Stylus, Touch, Mouse)
+  // Pointer Event Handlers
   const handlePointerDown = (e: React.PointerEvent<HTMLCanvasElement>) => {
     canvasRef.current?.setPointerCapture(e.pointerId);
     isPointerDownRef.current = true;
@@ -595,12 +882,303 @@ export const PhenolWhiteboard: React.FC = () => {
     const worldPos = screenToCanvas(e.clientX, e.clientY);
     startCanvasPosRef.current = worldPos;
 
-    // Pan with middle-click or spacebar or select tool
+    // Pan with middle-click or spacebar or select tool with alt
     if (e.button === 1 || e.buttons === 4 || (tool === 'select' && e.altKey)) {
       isPanningRef.current = true;
       return;
     }
 
+    // 1. ACTIVE STAMP PLACEMENT (يحول السهم للحاجة اللي بضيفها ولما اضغط يضغط)
+    if (activeStamp) {
+      if (activeStamp.type === 'apparatus' && activeStamp.kind) {
+        const newApparatus: ApparatusElement = {
+          id: `app-${Date.now()}`,
+          type: 'apparatus',
+          x: worldPos.x,
+          y: worldPos.y,
+          kind: activeStamp.kind,
+          width: activeStamp.width || 100,
+          height: activeStamp.height || 120,
+          liquidColor: activeStamp.liquidColor || '#2563EB',
+          liquidLevel: activeStamp.liquidLevel || 0.5,
+          label: activeStamp.name,
+          zIndex: elements.length + 1,
+        };
+        pushHistory([...elements, newApparatus]);
+        setSelectedElementId(newApparatus.id);
+        setActiveStamp(null);
+        return;
+      }
+
+      if (activeStamp.type === 'equation') {
+        const newFormula: ChemicalFormulaElement = {
+          id: `formula-${Date.now()}`,
+          type: 'formula',
+          x: worldPos.x,
+          y: worldPos.y,
+          equation: '2H₂ + O₂ → 2H₂O',
+          reactants: '2H₂ + O₂',
+          products: '2H₂O',
+          subtitle: 'Heat / Catalyst',
+          deltaH: 'ΔH = -572 kJ/mol',
+          fontSize: 20,
+          color: '#501325',
+          zIndex: elements.length + 1,
+        };
+        pushHistory([...elements, newFormula]);
+        setSelectedElementId(newFormula.id);
+        setActiveStamp(null);
+        setEditingEquation(newFormula);
+        setEquationScreenPos({ x: e.clientX, y: e.clientY });
+        return;
+      }
+
+      if (
+        activeStamp.type === 'ring_benzene' ||
+        activeStamp.type === 'ring_cyclohexane' ||
+        activeStamp.type === 'ring_cyclopentane'
+      ) {
+        let ringData;
+        let ringName = 'Benzene';
+        if (activeStamp.type === 'ring_cyclopentane') {
+          ringData = createCyclopentaneRing(0, 0);
+          ringName = 'Cyclopentane';
+        } else if (activeStamp.type === 'ring_cyclohexane') {
+          ringData = createCyclohexaneRing(0, 0);
+          ringName = 'Cyclohexane';
+        } else {
+          ringData = createBenzeneRing(0, 0);
+        }
+        const newMol: MoleculeElement = {
+          id: `mol-${Date.now()}`,
+          type: 'molecule',
+          name: ringName,
+          x: worldPos.x,
+          y: worldPos.y,
+          atoms: ringData.atoms,
+          bonds: ringData.bonds,
+          curvedArrows: [],
+          showCarbons: isLewisMode,
+          zIndex: elements.length + 1,
+        };
+        pushHistory([...elements, newMol]);
+        setSelectedElementId(newMol.id);
+        setActiveStamp(null);
+        return;
+      }
+    }
+
+    // 2. MINI-CHEMDRAW INTERACTIVE ACTIONS
+    if (isChemDrawActive) {
+      // Find if clicked near an existing atom
+      let clickedAtom: ChemAtom | null = null;
+      let clickedMolecule: MoleculeElement | null = null;
+
+      for (const el of elements) {
+        if (el.type === 'molecule') {
+          const m = el as MoleculeElement;
+          for (const a of m.atoms) {
+            const dist = Math.hypot(m.x + a.x - worldPos.x, m.y + a.y - worldPos.y);
+            if (dist < 18) {
+              clickedAtom = a;
+              clickedMolecule = m;
+              break;
+            }
+          }
+          if (clickedAtom) break;
+        }
+      }
+
+      // Find if clicked near an existing bond
+      let clickedBond: ChemBond | null = null;
+      if (!clickedAtom) {
+        for (const el of elements) {
+          if (el.type === 'molecule') {
+            const m = el as MoleculeElement;
+            for (const b of m.bonds) {
+              const a1 = m.atoms.find((a) => a.id === b.fromAtomId);
+              const a2 = m.atoms.find((a) => a.id === b.toAtomId);
+              if (a1 && a2) {
+                const dist = distanceToSegment(
+                  worldPos.x,
+                  worldPos.y,
+                  m.x + a1.x,
+                  m.y + a1.y,
+                  m.x + a2.x,
+                  m.y + a2.y
+                );
+                if (dist < 10) {
+                  clickedBond = b;
+                  clickedMolecule = m;
+                  break;
+                }
+              }
+            }
+            if (clickedBond) break;
+          }
+        }
+      }
+
+      // Process ChemDraw Sub-tool
+      if (activeChemSubTool === 'zigzag_chain') {
+        if (clickedAtom && clickedMolecule) {
+          // Sprout zigzag link from existing atom!
+          const nextRelPos = calculateNextZigzagPos(
+            clickedMolecule.atoms,
+            clickedMolecule.bonds,
+            clickedAtom.id
+          );
+          const newAtomId = `atom-${Date.now()}`;
+          const newAtom: ChemAtom = {
+            id: newAtomId,
+            symbol: activeChemElement,
+            x: nextRelPos.x,
+            y: nextRelPos.y,
+          };
+          const newBond: ChemBond = {
+            id: `bond-${Date.now()}`,
+            fromAtomId: clickedAtom.id,
+            toAtomId: newAtomId,
+            bondOrder: 1,
+          };
+
+          const updatedMol: MoleculeElement = {
+            ...clickedMolecule,
+            atoms: [...clickedMolecule.atoms, newAtom],
+            bonds: [...clickedMolecule.bonds, newBond],
+          };
+
+          pushHistory(elements.map((el) => (el.id === updatedMol.id ? updatedMol : el)));
+          setSelectedElementId(updatedMol.id);
+          return;
+        } else {
+          // Start brand new molecule at world click position!
+          const newMolId = `mol-${Date.now()}`;
+          const newAtomId = `atom-${Date.now()}`;
+          const newMol: MoleculeElement = {
+            id: newMolId,
+            type: 'molecule',
+            name: '',
+            x: worldPos.x,
+            y: worldPos.y,
+            atoms: [{ id: newAtomId, symbol: activeChemElement, x: 0, y: 0 }],
+            bonds: [],
+            curvedArrows: [],
+            showCarbons: isLewisMode,
+            zIndex: elements.length + 1,
+          };
+          pushHistory([...elements, newMol]);
+          setSelectedElementId(newMol.id);
+          return;
+        }
+      }
+
+      if (activeChemSubTool === 'bond_cycle') {
+        if (clickedBond && clickedMolecule) {
+          // Cycle bond order: 1 -> 2 -> 3 -> wedge -> dash -> 1
+          let nextOrder: 1 | 2 | 3 | 'wedge' | 'dash' = 1;
+          if (clickedBond.bondOrder === 1) nextOrder = 2;
+          else if (clickedBond.bondOrder === 2) nextOrder = 3;
+          else if (clickedBond.bondOrder === 3) nextOrder = 'wedge';
+          else if (clickedBond.bondOrder === 'wedge') nextOrder = 'dash';
+          else nextOrder = 1;
+
+          const updatedBonds = clickedMolecule.bonds.map((b) =>
+            b.id === clickedBond?.id ? { ...b, bondOrder: nextOrder } : b
+          );
+          const updatedMol = { ...clickedMolecule, bonds: updatedBonds };
+          pushHistory(elements.map((el) => (el.id === updatedMol.id ? updatedMol : el)));
+          return;
+        }
+      }
+
+      if (activeChemSubTool === 'element_mutate') {
+        if (clickedAtom && clickedMolecule) {
+          const updatedAtoms = clickedMolecule.atoms.map((a) =>
+            a.id === clickedAtom?.id ? { ...a, symbol: activeChemElement } : a
+          );
+          const updatedMol = { ...clickedMolecule, atoms: updatedAtoms };
+          pushHistory(elements.map((el) => (el.id === updatedMol.id ? updatedMol : el)));
+          return;
+        }
+      }
+
+      if (activeChemSubTool === 'charge_plus') {
+        if (clickedAtom && clickedMolecule) {
+          const updatedAtoms = clickedMolecule.atoms.map((a) =>
+            a.id === clickedAtom?.id ? { ...a, charge: a.charge === 1 ? undefined : 1 } : a
+          );
+          const updatedMol = { ...clickedMolecule, atoms: updatedAtoms };
+          pushHistory(elements.map((el) => (el.id === updatedMol.id ? updatedMol : el)));
+          return;
+        }
+      }
+
+      if (activeChemSubTool === 'charge_minus') {
+        if (clickedAtom && clickedMolecule) {
+          const updatedAtoms = clickedMolecule.atoms.map((a) =>
+            a.id === clickedAtom?.id ? { ...a, charge: a.charge === -1 ? undefined : -1 } : a
+          );
+          const updatedMol = { ...clickedMolecule, atoms: updatedAtoms };
+          pushHistory(elements.map((el) => (el.id === updatedMol.id ? updatedMol : el)));
+          return;
+        }
+      }
+
+      if (activeChemSubTool === 'lone_pair') {
+        if (clickedAtom && clickedMolecule) {
+          const updatedAtoms = clickedMolecule.atoms.map((a) =>
+            a.id === clickedAtom?.id ? { ...a, lonePairs: a.lonePairs === 2 ? undefined : 2 } : a
+          );
+          const updatedMol = { ...clickedMolecule, atoms: updatedAtoms };
+          pushHistory(elements.map((el) => (el.id === updatedMol.id ? updatedMol : el)));
+          return;
+        }
+      }
+
+      if (activeChemSubTool === 'eraser_chem') {
+        if (clickedAtom && clickedMolecule) {
+          const remainingAtoms = clickedMolecule.atoms.filter((a) => a.id !== clickedAtom?.id);
+          const remainingBonds = clickedMolecule.bonds.filter(
+            (b) => b.fromAtomId !== clickedAtom?.id && b.toAtomId !== clickedAtom?.id
+          );
+          if (remainingAtoms.length === 0) {
+            pushHistory(elements.filter((el) => el.id !== clickedMolecule?.id));
+          } else {
+            const updatedMol = { ...clickedMolecule, atoms: remainingAtoms, bonds: remainingBonds };
+            pushHistory(elements.map((el) => (el.id === updatedMol.id ? updatedMol : el)));
+          }
+          return;
+        }
+        if (clickedBond && clickedMolecule) {
+          const remainingBonds = clickedMolecule.bonds.filter((b) => b.id !== clickedBond?.id);
+          const updatedMol = { ...clickedMolecule, bonds: remainingBonds };
+          pushHistory(elements.map((el) => (el.id === updatedMol.id ? updatedMol : el)));
+          return;
+        }
+      }
+
+      if (activeChemSubTool === 'ring_benzene') {
+        const ring = createBenzeneRing(worldPos.x, worldPos.y);
+        const newMol: MoleculeElement = {
+          id: `mol-${Date.now()}`,
+          type: 'molecule',
+          name: 'Benzene',
+          x: worldPos.x,
+          y: worldPos.y,
+          atoms: ring.atoms.map((a) => ({ ...a, x: a.x - worldPos.x, y: a.y - worldPos.y })),
+          bonds: ring.bonds,
+          curvedArrows: [],
+          showCarbons: isLewisMode,
+          zIndex: elements.length + 1,
+        };
+        pushHistory([...elements, newMol]);
+        setSelectedElementId(newMol.id);
+        return;
+      }
+    }
+
+    // 3. SELECT & MOVE TOOL
     if (tool === 'select') {
       // Find clicked element
       const hit = [...elements].reverse().find((el) => {
@@ -615,21 +1193,31 @@ export const PhenolWhiteboard: React.FC = () => {
           origY: hit.y,
           startPoint: worldPos,
         };
+
+        // If it's a formula element, open the in-canvas equation editor immediately!
+        if (hit.type === 'formula') {
+          setEditingEquation(hit as ChemicalFormulaElement);
+          setEquationScreenPos({ x: e.clientX, y: e.clientY });
+        } else {
+          setEditingEquation(null);
+        }
       } else {
         setSelectedElementId(null);
+        setEditingEquation(null);
         isPanningRef.current = true;
       }
       return;
     }
 
+    // 4. PEN & HIGHLIGHTER
     if (tool === 'pen' || tool === 'highlighter') {
       currentPointsRef.current = [{ x: worldPos.x, y: worldPos.y, pressure: e.pressure || 0.5 }];
       renderCanvas();
       return;
     }
 
+    // 5. ERASER
     if (tool === 'eraser') {
-      // Point eraser: remove strokes within radius
       const filtered = elements.filter((el) => {
         return Math.hypot(el.x - worldPos.x, el.y - worldPos.y) > 30;
       });
@@ -639,6 +1227,7 @@ export const PhenolWhiteboard: React.FC = () => {
       return;
     }
 
+    // 6. TEXT NOTE
     if (tool === 'text') {
       const input = prompt('Enter lecture text:');
       if (input && input.trim()) {
@@ -660,6 +1249,58 @@ export const PhenolWhiteboard: React.FC = () => {
   };
 
   const handlePointerMove = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    const worldPos = screenToCanvas(e.clientX, e.clientY);
+    cursorPosRef.current = {
+      x: worldPos.x,
+      y: worldPos.y,
+      screenX: e.clientX,
+      screenY: e.clientY,
+    };
+
+    // If stamp is active, re-render to update the ghost preview position smoothly
+    if (activeStamp) {
+      renderCanvas();
+    }
+
+    // In ChemDraw mode, detect hovered atom or bond for visual feedback
+    if (isChemDrawActive && !isPointerDownRef.current) {
+      let hovered: { moleculeId: string; type: 'atom' | 'bond'; id: string } | null = null;
+      for (const el of elements) {
+        if (el.type === 'molecule') {
+          const m = el as MoleculeElement;
+          for (const a of m.atoms) {
+            if (Math.hypot(m.x + a.x - worldPos.x, m.y + a.y - worldPos.y) < 16) {
+              hovered = { moleculeId: m.id, type: 'atom', id: a.id };
+              break;
+            }
+          }
+          if (!hovered) {
+            for (const b of m.bonds) {
+              const a1 = m.atoms.find((a) => a.id === b.fromAtomId);
+              const a2 = m.atoms.find((a) => a.id === b.toAtomId);
+              if (a1 && a2) {
+                if (
+                  distanceToSegment(
+                    worldPos.x,
+                    worldPos.y,
+                    m.x + a1.x,
+                    m.y + a1.y,
+                    m.x + a2.x,
+                    m.y + a2.y
+                  ) < 10
+                ) {
+                  hovered = { moleculeId: m.id, type: 'bond', id: b.id };
+                  break;
+                }
+              }
+            }
+          }
+          if (hovered) break;
+        }
+      }
+      setHoveredChemTarget(hovered);
+    }
+
     if (!isPointerDownRef.current) return;
 
     if (isPanningRef.current) {
@@ -675,7 +1316,6 @@ export const PhenolWhiteboard: React.FC = () => {
     }
 
     if (draggedElementRef.current) {
-      const worldPos = screenToCanvas(e.clientX, e.clientY);
       const dx = worldPos.x - draggedElementRef.current.startPoint.x;
       const dy = worldPos.y - draggedElementRef.current.startPoint.y;
 
@@ -688,8 +1328,6 @@ export const PhenolWhiteboard: React.FC = () => {
       );
       return;
     }
-
-    const worldPos = screenToCanvas(e.clientX, e.clientY);
 
     if (tool === 'pen' || tool === 'highlighter') {
       currentPointsRef.current.push({
@@ -746,7 +1384,6 @@ export const PhenolWhiteboard: React.FC = () => {
     const zoomFactor = e.deltaY < 0 ? 1.1 : 0.9;
     const newZoom = Math.min(Math.max(viewport.zoom * zoomFactor, 0.2), 4.0);
 
-    // Zoom centered on cursor
     const mouseX = e.clientX;
     const mouseY = e.clientY;
     const worldBefore = screenToCanvas(mouseX, mouseY);
@@ -812,20 +1449,40 @@ export const PhenolWhiteboard: React.FC = () => {
       {/* Floating Toolbar */}
       <WhiteboardToolbar
         currentTool={tool}
-        onSelectTool={setTool}
+        onSelectTool={(t) => {
+          setTool(t);
+          setActiveStamp(null);
+        }}
         currentColor={color}
         onSelectColor={setColor}
         currentSize={size}
         onSelectSize={setSize}
         currentShape={shapeKind}
         onSelectShape={setShapeKind}
-        onOpenEquationModal={() => setIsEquationModalOpen(true)}
-        onOpenMoleculeModal={() => setIsMoleculeModalOpen(true)}
+        onToggleChemDraw={() => {
+          setIsChemDrawActive((prev) => !prev);
+          setIsApparatusDrawerOpen(false);
+          setActiveStamp(null);
+        }}
+        isChemDrawActive={isChemDrawActive}
+        onToggleApparatusDrawer={() => {
+          setIsApparatusDrawerOpen((prev) => !prev);
+          setIsChemDrawActive(false);
+          setActiveStamp(null);
+        }}
+        isApparatusDrawerOpen={isApparatusDrawerOpen}
+        onActivateEquationStamp={() => {
+          setActiveStamp({ type: 'equation' });
+          setIsChemDrawActive(false);
+          setIsApparatusDrawerOpen(false);
+        }}
+        isEquationStampActive={activeStamp?.type === 'equation'}
         onOpenTableModal={() => setIsTableModalOpen(true)}
         onOpenEnergyModal={() => setIsEnergyModalOpen(true)}
         onClearCanvas={() => {
           if (confirm('Clear all drawings and elements on this board?')) {
             pushHistory([]);
+            setEditingEquation(null);
           }
         }}
         canUndo={history.length > 0}
@@ -833,6 +1490,90 @@ export const PhenolWhiteboard: React.FC = () => {
         onUndo={handleUndo}
         onRedo={handleRedo}
       />
+
+      {/* Mini-ChemDraw Floating Control Dock */}
+      {isChemDrawActive && (
+        <ChemDrawToolbar
+          activeSubTool={activeChemSubTool}
+          onSelectSubTool={(st) => {
+            setActiveChemSubTool(st);
+            if (st === 'ring_benzene') {
+              setActiveStamp({ type: 'ring_benzene' });
+            } else if (st === 'ring_cyclohexane') {
+              setActiveStamp({ type: 'ring_cyclohexane' });
+            } else if (st === 'ring_cyclopentane') {
+              setActiveStamp({ type: 'ring_cyclopentane' });
+            } else {
+              setActiveStamp(null);
+            }
+          }}
+          activeElement={activeChemElement}
+          onSelectElement={setActiveChemElement}
+          isLewisMode={isLewisMode}
+          onToggleLewisMode={() => setIsLewisMode((prev) => !prev)}
+          onClose={() => setIsChemDrawActive(false)}
+        />
+      )}
+
+      {/* Laboratory Apparatus Drawer */}
+      <ApparatusDrawer
+        isOpen={isApparatusDrawerOpen}
+        onClose={() => setIsApparatusDrawerOpen(false)}
+        onSelectApparatus={(item: ApparatusItemInfo) => {
+          setActiveStamp({
+            type: 'apparatus',
+            kind: item.kind as ApparatusKind,
+            name: item.name,
+            width: item.width,
+            height: item.height,
+            liquidColor: item.defaultLiquidColor,
+            liquidLevel: item.defaultLiquidLevel,
+          });
+        }}
+        selectedKind={activeStamp?.kind || null}
+      />
+
+      {/* In-Canvas Smart Equation Floating Bar */}
+      {editingEquation && (
+        <InlineEquationBar
+          element={editingEquation}
+          screenPos={equationScreenPos}
+          onChange={(updated) => {
+            const nextEq = { ...editingEquation, ...updated };
+            setEditingEquation(nextEq);
+            setElements((prev) =>
+              prev.map((el) => (el.id === editingEquation.id ? (nextEq as WhiteboardElement) : el))
+            );
+          }}
+          onClose={() => {
+            pushHistory(elements);
+            setEditingEquation(null);
+          }}
+        />
+      )}
+
+      {/* Active Stamp Banner Guide (يحول السهم للحاجة اللي بضيفها) */}
+      {activeStamp && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 bg-burgundy-900 text-ivory-100 px-4 py-2 rounded-2xl border border-ochre/40 shadow-editorial flex items-center gap-3 text-xs animate-in fade-in slide-in-from-bottom-2">
+          <span className="text-sm">🎯</span>
+          <span>
+            <strong>Stamp Mode:</strong> Click anywhere on canvas to place{' '}
+            <span className="text-ochre font-bold">
+              {activeStamp.type === 'apparatus'
+                ? activeStamp.name
+                : activeStamp.type === 'equation'
+                ? 'Chemical Equation'
+                : 'Organic Ring'}
+            </span>
+          </span>
+          <button
+            onClick={() => setActiveStamp(null)}
+            className="px-2 py-0.5 rounded-lg bg-white/10 hover:bg-white/20 text-ivory-200 text-[11px] font-mono"
+          >
+            Cancel (ESC)
+          </button>
+        </div>
+      )}
 
       {/* Infinite Canvas Viewport */}
       <canvas
@@ -842,36 +1583,12 @@ export const PhenolWhiteboard: React.FC = () => {
         onPointerUp={handlePointerUp}
         onPointerCancel={handlePointerUp}
         onWheel={handleWheel}
-        className="w-full h-full block touch-none cursor-crosshair"
+        className={`w-full h-full block touch-none ${
+          activeStamp ? 'cursor-copy' : isChemDrawActive ? 'cursor-crosshair' : 'cursor-default'
+        }`}
       />
 
-      {/* Specialized Scientific Modals */}
-      <ChemicalEquationModal
-        isOpen={isEquationModalOpen}
-        onClose={() => setIsEquationModalOpen(false)}
-        onInsert={(formula) => {
-          const newEl: ChemicalFormulaElement = {
-            ...formula,
-            id: `formula-${Date.now()}`,
-            zIndex: elements.length + 1,
-          };
-          pushHistory([...elements, newEl]);
-        }}
-      />
-
-      <MoleculeBuilderModal
-        isOpen={isMoleculeModalOpen}
-        onClose={() => setIsMoleculeModalOpen(false)}
-        onInsert={(mol) => {
-          const newEl: MoleculeElement = {
-            ...mol,
-            id: `mol-${Date.now()}`,
-            zIndex: elements.length + 1,
-          };
-          pushHistory([...elements, newEl]);
-        }}
-      />
-
+      {/* Additional Modals */}
       <TableBuilderModal
         isOpen={isTableModalOpen}
         onClose={() => setIsTableModalOpen(false)}
@@ -909,6 +1626,7 @@ export const PhenolWhiteboard: React.FC = () => {
           setBackground(selected.background || 'grid');
           setHistory([]);
           setRedoStack([]);
+          setEditingEquation(null);
         }}
         onCreateNewBoard={(newTitle) => {
           const newBoard: WhiteboardDocument = {
@@ -926,6 +1644,7 @@ export const PhenolWhiteboard: React.FC = () => {
           setBackground(newBoard.background);
           setHistory([]);
           setRedoStack([]);
+          setEditingEquation(null);
         }}
       />
     </div>
