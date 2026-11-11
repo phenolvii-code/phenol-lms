@@ -743,18 +743,6 @@ export default function DashboardPage() {
             <div className="flex items-center gap-4">
               {isInstructor && (
                 <>
-                  <Link
-                    href="/whiteboard"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    title="Open PHENOL Infinite Whiteboard Studio"
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-burgundy-900 hover:bg-black text-ivory-100 text-xs font-bold transition-all shadow-sm border border-ochre/40 group shrink-0"
-                  >
-                    <span className="text-ochre font-formula font-bold text-sm">⌬</span>
-                    <span className="hidden sm:inline">Whiteboard Studio</span>
-                    <ExternalLink className="w-3 h-3 text-ochre/80 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
-                  </Link>
-
                   <div className="hidden sm:flex items-center bg-ivory-300 p-1 rounded border border-hairline text-xs font-semibold">
                     <button
                       onClick={() => setAdminViewMode('ADMIN')}
