@@ -16,7 +16,6 @@ import { ProgramsSection } from '@/components/home/ProgramsSection';
 import { ResourcesSection } from '@/components/home/ResourcesSection';
 import { AboutSection } from '@/components/home/AboutSection';
 import { FinalCtaSection } from '@/components/home/FinalCtaSection';
-import { BenzenePortalIntro } from '@/components/animation/BenzenePortalIntro';
 import { PhenolLogo } from '@/components/brand/PhenolLogo';
 import { Mail, Send, Youtube, Facebook } from 'lucide-react';
 import { WhatsAppIcon } from '@/components/auth/AuthIcons';
@@ -26,7 +25,6 @@ export default function Home() {
   const { user: currentUser, signOut } = useCurrentUser();
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [authModalMode, setAuthModalMode] = useState<AuthModalMode>('LOGIN');
-  const [replayPortal, setReplayPortal] = useState(false);
 
   // Automatically catch and route password recovery callbacks
   useEffect(() => {
@@ -49,13 +47,6 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-ivory-200 text-charcoal-900 flex flex-col font-sans selection:bg-burgundy-500 selection:text-ivory-100 antialiased">
-      {/* Golden Benzene Entrance Portal Experience */}
-      <BenzenePortalIntro
-        key={replayPortal ? 'replay' : 'default'}
-        forceShow={replayPortal}
-        onComplete={() => setReplayPortal(false)}
-      />
-
       {/* Editorial Academic Navbar */}
       <Navbar
         currentUser={currentUser}
@@ -189,22 +180,7 @@ export default function Home() {
               </span>
             </div>
 
-            <div className="flex flex-wrap items-center justify-center sm:justify-end gap-3 sm:gap-4 font-sans text-charcoal-50 text-xs">
-              <button
-                type="button"
-                onClick={() => {
-                  try {
-                    sessionStorage.removeItem('phenol_portal_seen');
-                  } catch {}
-                  setReplayPortal(true);
-                }}
-                className="hover:text-burgundy-600 transition-colors flex items-center gap-1.5 cursor-pointer text-ochre font-medium"
-                title="Replay Entrance Portal"
-              >
-                <span>⌬</span>
-                <span>Replay Intro</span>
-              </button>
-              <span>•</span>
+            <div className="flex items-center gap-4 font-sans text-charcoal-50 text-xs">
               <Link href="/privacy" className="hover:text-burgundy-600 transition-colors underline-offset-4 hover:underline">
                 Privacy Policy
               </Link>
