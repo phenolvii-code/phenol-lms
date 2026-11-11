@@ -1,7 +1,8 @@
 'use client';
 
 import React from 'react';
-import { ArrowRight, BookOpen, ArrowDown } from 'lucide-react';
+import Link from 'next/link';
+import { ArrowRight, BookOpen } from 'lucide-react';
 
 interface HeroSectionProps {
   onSignUp?: () => void;
@@ -71,39 +72,25 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onSignUp, onSignIn, on
           </button>
         </div>
 
-        {/* Large & Prominent Bridge Button: Explore Our Courses */}
+        {/* Large & Prominent Button: Navigate to /courses */}
         <div className="mt-6 sm:mt-8 flex flex-col items-center justify-center max-w-lg mx-auto">
-          <a
-            href="#courses"
-            onClick={(e) => {
-              e.preventDefault();
-              const target = document.getElementById('courses');
-              if (target) {
-                target.scrollIntoView({ behavior: 'smooth' });
-              } else {
-                window.location.href = '/courses';
-              }
-            }}
-            className="w-full sm:w-auto min-w-[280px] sm:min-w-[420px] inline-flex items-center justify-between gap-4 px-6 sm:px-8 py-4 sm:py-5 rounded-2xl bg-burgundy-900 hover:bg-black active:scale-[0.98] text-ivory-100 font-sans font-bold text-base sm:text-xl shadow-xl hover:shadow-2xl transition-all duration-300 border-2 border-ochre hover:border-ochre-light group cursor-pointer ring-4 ring-burgundy-900/10 hover:-translate-y-0.5"
+          <Link
+            href="/courses"
+            className="w-full sm:w-auto min-w-[280px] sm:min-w-[420px] inline-flex items-center justify-between gap-4 px-8 sm:px-10 py-4 sm:py-5 rounded-2xl bg-burgundy-900 hover:bg-black active:scale-[0.98] text-ivory-100 font-sans font-bold text-lg sm:text-xl shadow-xl hover:shadow-2xl transition-all duration-300 border-2 border-ochre hover:border-ochre-light group cursor-pointer ring-4 ring-burgundy-900/10 hover:-translate-y-0.5"
             aria-label="Explore Our Courses"
           >
-            <div className="flex items-center gap-3 sm:gap-4 text-left">
+            <div className="flex items-center gap-3.5 sm:gap-4 text-left">
               <div className="w-10 sm:w-12 h-10 sm:h-12 rounded-xl bg-burgundy-800 border border-ochre/40 flex items-center justify-center text-ochre-light group-hover:scale-110 transition-transform shrink-0">
                 <BookOpen className="w-5 sm:w-6 h-5 sm:h-6 text-ochre" />
               </div>
-              <div>
-                <span className="block text-base sm:text-xl font-bold tracking-tight text-ivory-100 font-display">
-                  Explore Our Courses
-                </span>
-                <span className="block text-xs sm:text-sm font-medium text-ochre-light/90 font-sans">
-                  استكشف مقرراتنا والكورسات الدراسية
-                </span>
-              </div>
+              <span className="text-lg sm:text-2xl font-extrabold tracking-tight text-ivory-100 font-display">
+                Explore Our Courses
+              </span>
             </div>
-            <div className="w-8 sm:w-10 h-8 sm:h-10 rounded-full bg-ivory-100/10 flex items-center justify-center shrink-0 group-hover:bg-ochre/20 transition-colors">
-              <ArrowDown className="w-4 sm:w-5 h-4 sm:h-5 text-ochre animate-bounce group-hover:translate-y-0.5 transition-transform" />
+            <div className="w-9 sm:w-11 h-9 sm:h-11 rounded-full bg-ivory-100/10 flex items-center justify-center shrink-0 group-hover:bg-ochre/20 transition-colors">
+              <ArrowRight className="w-5 sm:w-6 h-5 sm:h-6 text-ochre group-hover:translate-x-1.5 transition-transform" />
             </div>
-          </a>
+          </Link>
         </div>
 
         {/* Footnote 3 Principles */}
