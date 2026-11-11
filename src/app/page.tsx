@@ -62,20 +62,20 @@ export default function Home() {
           onSignIn={() => handleOpenAuth('LOGIN')}
         />
 
-        {/* Section 02: Philosophy */}
+        {/* Section 02: Core Chemistry Curricula & Courses (First Section) */}
+        <ProgramsSection onOpenWaitlistModal={() => handleOpenAuth('REGISTER')} />
+
+        {/* Section 03: Philosophy */}
         <PhilosophySection />
 
-        {/* Section 03: Feynman Method */}
+        {/* Section 04: Feynman Method */}
         <FeynmanMethodSection />
 
-        {/* Section 04: Beyond Memorization Comparison */}
+        {/* Section 05: Beyond Memorization Comparison */}
         <ComparisonSection />
 
-        {/* Section 05: Analytical Problem Solving */}
+        {/* Section 06: Analytical Problem Solving */}
         <ProblemSolvingSection />
-
-        {/* Section 06: Learning Programs & Waitlist */}
-        <ProgramsSection onOpenWaitlistModal={() => handleOpenAuth('REGISTER')} />
 
         {/* Section 07: Learning Resources */}
         <ResourcesSection />

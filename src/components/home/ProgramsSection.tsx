@@ -32,7 +32,10 @@ export const ProgramsSection: React.FC<ProgramsSectionProps> = ({ onOpenWaitlist
   }, []);
 
   return (
-    <section id="programs" className="py-14 sm:py-18 border-t border-hairline px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto scroll-mt-24">
+    <section id="courses" className="py-14 sm:py-18 border-t border-hairline px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto scroll-mt-24 relative">
+      {/* Anchor for backward-compatible links */}
+      <span id="programs" className="absolute -top-24" />
+      
       <div className="space-y-8">
         
         {/* Section Heading with Action Button */}
@@ -41,7 +44,7 @@ export const ProgramsSection: React.FC<ProgramsSectionProps> = ({ onOpenWaitlist
             <div className="flex items-center gap-2">
               <span className="font-formula text-xs text-burgundy-500 font-bold uppercase tracking-widest flex items-center gap-1.5">
                 <Sparkles className="w-3.5 h-3.5" />
-                SECTION 05 • ACADEMIC PROGRAMS
+                SECTION 01 • ACADEMIC PROGRAMS & COURSES
               </span>
             </div>
 
