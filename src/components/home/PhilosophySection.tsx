@@ -32,7 +32,7 @@ export const PhilosophySection: React.FC = () => {
             <div className="flex items-center gap-2">
               <span className="font-formula text-xs text-burgundy-500 font-bold uppercase tracking-widest flex items-center gap-1.5">
                 <Sparkles className="w-3.5 h-3.5" />
-                SECTION 01 • PHILOSOPHY
+                SECTION 02 • PHILOSOPHY
               </span>
             </div>
 

@@ -32,7 +32,7 @@ export const FeynmanMethodSection: React.FC = () => {
             <div className="flex items-center gap-2">
               <span className="font-formula text-xs text-burgundy-500 font-bold uppercase tracking-widest flex items-center gap-1.5">
                 <Sparkles className="w-3.5 h-3.5" />
-                SECTION 02 • METHODOLOGY
+                SECTION 03 • METHODOLOGY
               </span>
             </div>
 

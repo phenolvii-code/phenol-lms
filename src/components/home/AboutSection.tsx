@@ -40,10 +40,10 @@ export const AboutSection: React.FC = () => {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 border-t border-hairline pt-6">
           <div className="lg:col-span-8 space-y-4 text-xs sm:text-sm text-charcoal-100 leading-relaxed font-sans">
             <p>
-              I am Dr. Omar Magdi. I dedicate my pedagogical practice to investigating what occurs beneath the surface of the reaction vessel: the physical mechanism explaining the phenomenon, the electronic structure directing the molecular geometry, and the mathematical logic that turns a formula into an intuitive deduction.
+              I am Dr. Omar Magdi, a PharmD graduate and chemistry educator. My academic background in pharmaceutical sciences has shaped the way I approach chemistry: not merely as a collection of equations, reactions, and theoretical rules, but as a coherent scientific discipline whose concepts are deeply interconnected.
             </p>
             <p>
-              Genuine scientific education does not terminate with handing out the answer; it begins when the student acquires the mental instruments to arrive at the solution independently.
+              For me, scientific understanding begins where memorization ends. Behind every reaction lies a mechanism, behind every pattern lies a principle, and behind every meaningful scientific answer lies a question worth asking.
             </p>
           </div>
 
@@ -53,7 +53,7 @@ export const AboutSection: React.FC = () => {
                 Dr. Omar Magdi
               </span>
               <span className="block text-xs font-semibold text-burgundy-500 font-sans tracking-wide">
-                Academic Director & Senior Fellow, PHENOL
+                PharmD • Chemistry Educator & Founder, PHENOL
               </span>
             </div>
 
@@ -62,7 +62,7 @@ export const AboutSection: React.FC = () => {
                 “To Understand Is to Master.”
               </span>
               <span className="font-formula text-[11px] text-charcoal-50 block">
-                Find the Simple. Master the Complex.
+                Understand the principles. Explore the mechanisms.
               </span>
             </div>
           </div>
