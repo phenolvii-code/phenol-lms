@@ -17,6 +17,8 @@ import {
   Sparkles,
   Layers,
   Activity,
+  Network,
+  Shapes,
 } from 'lucide-react';
 
 interface WhiteboardToolbarProps {
@@ -28,12 +30,16 @@ interface WhiteboardToolbarProps {
   onSelectSize: (size: number) => void;
   currentShape: ShapeKind;
   onSelectShape: (shape: ShapeKind) => void;
+  onToggleShapePopup: () => void;
+  isShapePopupOpen: boolean;
   onToggleChemDraw: () => void;
   isChemDrawActive: boolean;
   onToggleApparatusDrawer: () => void;
   isApparatusDrawerOpen: boolean;
   onActivateEquationStamp: () => void;
   isEquationStampActive: boolean;
+  onToggleMindMapDrawer: () => void;
+  isMindMapDrawerOpen: boolean;
   onOpenTableModal: () => void;
   onOpenEnergyModal: () => void;
   onClearCanvas: () => void;
@@ -68,12 +74,16 @@ export const WhiteboardToolbar: React.FC<WhiteboardToolbarProps> = ({
   onSelectSize,
   currentShape,
   onSelectShape,
+  onToggleShapePopup,
+  isShapePopupOpen,
   onToggleChemDraw,
   isChemDrawActive,
   onToggleApparatusDrawer,
   isApparatusDrawerOpen,
   onActivateEquationStamp,
   isEquationStampActive,
+  onToggleMindMapDrawer,
+  isMindMapDrawerOpen,
   onOpenTableModal,
   onOpenEnergyModal,
   onClearCanvas,
@@ -89,7 +99,7 @@ export const WhiteboardToolbar: React.FC<WhiteboardToolbarProps> = ({
         <button
           type="button"
           onClick={() => onSelectTool('select')}
-          title="Select & Pan Tool (V)"
+          title="Select & Move Tool (V) - Click element to select, drag to reposition"
           className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${
             currentTool === 'select' && !isChemDrawActive
               ? 'bg-burgundy-900 text-ochre shadow-md scale-105'
@@ -141,7 +151,7 @@ export const WhiteboardToolbar: React.FC<WhiteboardToolbarProps> = ({
         <button
           type="button"
           onClick={() => onSelectTool('text')}
-          title="Text Note (T)"
+          title="Direct Text Note (T) - Click canvas to type directly Miro-style"
           className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${
             currentTool === 'text' && !isChemDrawActive
               ? 'bg-burgundy-900 text-ochre shadow-md scale-105'
@@ -153,15 +163,18 @@ export const WhiteboardToolbar: React.FC<WhiteboardToolbarProps> = ({
 
         <button
           type="button"
-          onClick={() => onSelectTool('shape')}
-          title="Geometric Shapes (S)"
+          onClick={() => {
+            onSelectTool('shape');
+            onToggleShapePopup();
+          }}
+          title="Shapes & Arrows (S) - Click to pick Rectangle, Circle, Arrow..."
           className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${
-            currentTool === 'shape' && !isChemDrawActive
+            (currentTool === 'shape' || isShapePopupOpen) && !isChemDrawActive
               ? 'bg-burgundy-900 text-ochre shadow-md scale-105'
               : 'text-charcoal-100 hover:text-charcoal-900 hover:bg-ivory-200'
           }`}
         >
-          <Square className="w-4 h-4" />
+          <Shapes className="w-4 h-4" />
         </button>
       </div>
 
@@ -211,6 +224,20 @@ export const WhiteboardToolbar: React.FC<WhiteboardToolbarProps> = ({
           }`}
         >
           ⚗️
+        </button>
+
+        {/* Mind Map Studio */}
+        <button
+          type="button"
+          onClick={onToggleMindMapDrawer}
+          title="Chemistry Mind Map Studio (Hydrocarbons, Functional Groups, Custom Maps)"
+          className={`w-10 h-10 rounded-xl border flex items-center justify-center text-sm transition-all ${
+            isMindMapDrawerOpen
+              ? 'bg-burgundy-900 text-ochre border-ochre shadow-md scale-110'
+              : 'bg-ivory-200 border-hairline hover:border-burgundy-500 hover:bg-burgundy-50 text-burgundy-900 hover:scale-105'
+          }`}
+        >
+          <Network className="w-4 h-4 text-burgundy-900" />
         </button>
 
         <button

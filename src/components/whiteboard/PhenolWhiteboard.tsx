@@ -21,6 +21,7 @@ import {
   ChemAtom,
   ChemBond,
   EnergyDiagramElement,
+  MindMapElement,
 } from '@/types/whiteboard';
 import {
   saveBoardToStorage,
@@ -40,37 +41,41 @@ import {
 import {
   calculateNextZigzagPos,
   createBenzeneRing,
+  createAromaticCircleBenzene,
   createCyclohexaneRing,
   createCyclopentaneRing,
 } from './chem/chem-geometry';
 import { InlineEquationBar } from './chem/InlineEquationBar';
+import { ShapeSelectorPopup } from './tools/ShapeSelectorPopup';
+import { MindMapDrawer } from './mindmap/MindMapDrawer';
+import { renderMindMap } from './mindmap/render-mindmap';
+import { MindMapPreset } from './mindmap/mindmap-data';
+import {
+  getElementBounds,
+  hitTestElement,
+  drawSelectionBox,
+} from './tools/selection-bounds';
 import { TableBuilderModal } from './tools/TableBuilderModal';
 import { EnergyDiagramModal } from './tools/EnergyDiagramModal';
 import { BoardsManagerModal } from './tools/BoardsManagerModal';
+import { Trash2, Copy, Lock, Unlock } from 'lucide-react';
 
 interface ActiveStamp {
-  type: 'apparatus' | 'equation' | 'ring_benzene' | 'ring_cyclohexane' | 'ring_cyclopentane';
+  type:
+    | 'apparatus'
+    | 'equation'
+    | 'ring_benzene'
+    | 'ring_aromatic_circle'
+    | 'ring_cyclohexane'
+    | 'ring_cyclopentane'
+    | 'mindmap';
   kind?: ApparatusKind;
   name?: string;
   width?: number;
   height?: number;
   liquidColor?: string;
   liquidLevel?: number;
-}
-
-function distanceToSegment(
-  px: number,
-  py: number,
-  x1: number,
-  y1: number,
-  x2: number,
-  y2: number
-): number {
-  const l2 = (x2 - x1) ** 2 + (y2 - y1) ** 2;
-  if (l2 === 0) return Math.hypot(px - x1, py - y1);
-  let t = ((px - x1) * (x2 - x1) + (py - y1) * (y2 - y1)) / l2;
-  t = Math.max(0, Math.min(1, t));
-  return Math.hypot(px - (x1 + t * (x2 - x1)), py - (y1 + t * (y2 - y1)));
+  preset?: MindMapPreset;
 }
 
 export const PhenolWhiteboard: React.FC = () => {
@@ -89,6 +94,9 @@ export const PhenolWhiteboard: React.FC = () => {
   const [shapeKind, setShapeKind] = useState<ShapeKind>('rectangle');
   const [selectedElementId, setSelectedElementId] = useState<string | null>(null);
 
+  // Shapes & Arrows Popup
+  const [isShapePopupOpen, setIsShapePopupOpen] = useState(false);
+
   // Mini-ChemDraw Studio State
   const [isChemDrawActive, setIsChemDrawActive] = useState<boolean>(false);
   const [activeChemSubTool, setActiveChemSubTool] = useState<ChemSubTool>('zigzag_chain');
@@ -102,6 +110,20 @@ export const PhenolWhiteboard: React.FC = () => {
 
   // Apparatus Library State
   const [isApparatusDrawerOpen, setIsApparatusDrawerOpen] = useState<boolean>(false);
+
+  // Mind Map Studio State
+  const [isMindMapDrawerOpen, setIsMindMapDrawerOpen] = useState<boolean>(false);
+
+  // In-Place Text Editing (Miro Style - no window.prompt)
+  const [inlineTextEditor, setInlineTextEditor] = useState<{
+    id?: string;
+    x: number;
+    y: number;
+    screenX: number;
+    screenY: number;
+    text: string;
+  } | null>(null);
+  const textInputRef = useRef<HTMLTextAreaElement | null>(null);
 
   // Cursor Ghost Stamp State (يحول السهم للحاجة اللي بضيفها ولما اضغط يضغط)
   const [activeStamp, setActiveStamp] = useState<ActiveStamp | null>(null);
@@ -132,6 +154,8 @@ export const PhenolWhiteboard: React.FC = () => {
   // Pointer Interaction Tracking
   const isPointerDownRef = useRef(false);
   const isPanningRef = useRef(false);
+  const isDrawingShapeRef = useRef(false);
+  const shapeStartRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
   const currentPointsRef = useRef<Point2D[]>([]);
   const startCanvasPosRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
   const startScreenPosRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
@@ -214,18 +238,12 @@ export const PhenolWhiteboard: React.FC = () => {
         return;
       }
       if (e.key === 'Escape') {
-        if (activeStamp) {
-          setActiveStamp(null);
-        }
-        if (isChemDrawActive) {
-          setIsChemDrawActive(false);
-        }
-        if (editingEquation) {
-          setEditingEquation(null);
-        }
-        if (isApparatusDrawerOpen) {
-          setIsApparatusDrawerOpen(false);
-        }
+        if (activeStamp) setActiveStamp(null);
+        if (isChemDrawActive) setIsChemDrawActive(false);
+        if (editingEquation) setEditingEquation(null);
+        if (isApparatusDrawerOpen) setIsApparatusDrawerOpen(false);
+        if (isMindMapDrawerOpen) setIsMindMapDrawerOpen(false);
+        if (isShapePopupOpen) setIsShapePopupOpen(false);
         return;
       }
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
@@ -250,7 +268,19 @@ export const PhenolWhiteboard: React.FC = () => {
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [handleUndo, handleRedo, pushHistory, selectedElementId, elements, activeStamp, isChemDrawActive, editingEquation, isApparatusDrawerOpen]);
+  }, [
+    handleUndo,
+    handleRedo,
+    pushHistory,
+    selectedElementId,
+    elements,
+    activeStamp,
+    isChemDrawActive,
+    editingEquation,
+    isApparatusDrawerOpen,
+    isMindMapDrawerOpen,
+    isShapePopupOpen,
+  ]);
 
   // Main Canvas Rendering Loop
   const renderCanvas = useCallback(() => {
@@ -264,7 +294,7 @@ export const PhenolWhiteboard: React.FC = () => {
 
     // 1. Draw Background
     const isDark = background.startsWith('dark');
-    ctx.fillStyle = isDark ? '#141416' : '#FAF8F5'; // Dark chalkboard vs Ivory
+    ctx.fillStyle = isDark ? '#141416' : '#FAF8F5';
     ctx.fillRect(0, 0, width, height);
 
     // Background Matrix (Grid or Dots)
@@ -338,15 +368,30 @@ export const PhenolWhiteboard: React.FC = () => {
 
         case 'shape': {
           const sh = el as ShapeElement;
-          ctx.strokeStyle = sh.strokeColor;
-          ctx.lineWidth = sh.strokeWidth;
-          if (sh.fillColor) {
-            ctx.fillStyle = sh.fillColor;
-          }
+          ctx.strokeStyle = sh.strokeColor || '#501325';
+          ctx.lineWidth = sh.strokeWidth || 3;
+          ctx.lineCap = 'round';
+          ctx.lineJoin = 'round';
+          if (sh.fillColor) ctx.fillStyle = sh.fillColor;
 
           if (sh.shapeKind === 'rectangle') {
             ctx.strokeRect(sh.x, sh.y, sh.width, sh.height);
             if (sh.fillColor) ctx.fillRect(sh.x, sh.y, sh.width, sh.height);
+          } else if (sh.shapeKind === 'rounded_rectangle') {
+            const r = 12;
+            ctx.beginPath();
+            ctx.moveTo(sh.x + r, sh.y);
+            ctx.lineTo(sh.x + sh.width - r, sh.y);
+            ctx.quadraticCurveTo(sh.x + sh.width, sh.y, sh.x + sh.width, sh.y + r);
+            ctx.lineTo(sh.x + sh.width, sh.y + sh.height - r);
+            ctx.quadraticCurveTo(sh.x + sh.width, sh.y + sh.height, sh.x + sh.width - r, sh.y + sh.height);
+            ctx.lineTo(sh.x + r, sh.y + sh.height);
+            ctx.quadraticCurveTo(sh.x, sh.y + sh.height, sh.x, sh.y + sh.height - r);
+            ctx.lineTo(sh.x, sh.y + r);
+            ctx.quadraticCurveTo(sh.x, sh.y, sh.x + r, sh.y);
+            ctx.closePath();
+            ctx.stroke();
+            if (sh.fillColor) ctx.fill();
           } else if (sh.shapeKind === 'ellipse') {
             ctx.beginPath();
             ctx.ellipse(
@@ -360,6 +405,28 @@ export const PhenolWhiteboard: React.FC = () => {
             );
             ctx.stroke();
             if (sh.fillColor) ctx.fill();
+          } else if (sh.shapeKind === 'triangle') {
+            ctx.beginPath();
+            ctx.moveTo(sh.x + sh.width / 2, sh.y);
+            ctx.lineTo(sh.x + sh.width, sh.y + sh.height);
+            ctx.lineTo(sh.x, sh.y + sh.height);
+            ctx.closePath();
+            ctx.stroke();
+            if (sh.fillColor) ctx.fill();
+          } else if (sh.shapeKind === 'diamond') {
+            ctx.beginPath();
+            ctx.moveTo(sh.x + sh.width / 2, sh.y);
+            ctx.lineTo(sh.x + sh.width, sh.y + sh.height / 2);
+            ctx.lineTo(sh.x + sh.width / 2, sh.y + sh.height);
+            ctx.lineTo(sh.x, sh.y + sh.height / 2);
+            ctx.closePath();
+            ctx.stroke();
+            if (sh.fillColor) ctx.fill();
+          } else if (sh.shapeKind === 'line' && sh.endX !== undefined && sh.endY !== undefined) {
+            ctx.beginPath();
+            ctx.moveTo(sh.x, sh.y);
+            ctx.lineTo(sh.endX, sh.endY);
+            ctx.stroke();
           } else if (sh.shapeKind === 'arrow' && sh.endX !== undefined && sh.endY !== undefined) {
             ctx.beginPath();
             ctx.moveTo(sh.x, sh.y);
@@ -368,6 +435,65 @@ export const PhenolWhiteboard: React.FC = () => {
 
             // Arrow head
             const angle = Math.atan2(sh.endY - sh.y, sh.endX - sh.x);
+            const headlen = 16;
+            ctx.beginPath();
+            ctx.moveTo(sh.endX, sh.endY);
+            ctx.lineTo(
+              sh.endX - headlen * Math.cos(angle - Math.PI / 6),
+              sh.endY - headlen * Math.sin(angle - Math.PI / 6)
+            );
+            ctx.lineTo(
+              sh.endX - headlen * Math.cos(angle + Math.PI / 6),
+              sh.endY - headlen * Math.sin(angle + Math.PI / 6)
+            );
+            ctx.closePath();
+            ctx.fillStyle = sh.strokeColor;
+            ctx.fill();
+          } else if (sh.shapeKind === 'double_headed_arrow' && sh.endX !== undefined && sh.endY !== undefined) {
+            ctx.beginPath();
+            ctx.moveTo(sh.x, sh.y);
+            ctx.lineTo(sh.endX, sh.endY);
+            ctx.stroke();
+
+            const angle = Math.atan2(sh.endY - sh.y, sh.endX - sh.x);
+            const headlen = 14;
+            // End head
+            ctx.beginPath();
+            ctx.moveTo(sh.endX, sh.endY);
+            ctx.lineTo(
+              sh.endX - headlen * Math.cos(angle - Math.PI / 6),
+              sh.endY - headlen * Math.sin(angle - Math.PI / 6)
+            );
+            ctx.lineTo(
+              sh.endX - headlen * Math.cos(angle + Math.PI / 6),
+              sh.endY - headlen * Math.sin(angle + Math.PI / 6)
+            );
+            ctx.closePath();
+            ctx.fillStyle = sh.strokeColor;
+            ctx.fill();
+
+            // Start head
+            ctx.beginPath();
+            ctx.moveTo(sh.x, sh.y);
+            ctx.lineTo(
+              sh.x + headlen * Math.cos(angle - Math.PI / 6),
+              sh.y + headlen * Math.sin(angle - Math.PI / 6)
+            );
+            ctx.lineTo(
+              sh.x + headlen * Math.cos(angle + Math.PI / 6),
+              sh.y + headlen * Math.sin(angle + Math.PI / 6)
+            );
+            ctx.closePath();
+            ctx.fill();
+          } else if (sh.shapeKind === 'curved_arrow' && sh.endX !== undefined && sh.endY !== undefined) {
+            const cx = sh.controlX ?? (sh.x + sh.endX) / 2;
+            const cy = sh.controlY ?? (sh.y + sh.endY) / 2 - 30;
+            ctx.beginPath();
+            ctx.moveTo(sh.x, sh.y);
+            ctx.quadraticCurveTo(cx, cy, sh.endX, sh.endY);
+            ctx.stroke();
+
+            const angle = Math.atan2(sh.endY - cy, sh.endX - cx);
             const headlen = 14;
             ctx.beginPath();
             ctx.moveTo(sh.endX, sh.endY);
@@ -419,11 +545,28 @@ export const PhenolWhiteboard: React.FC = () => {
           break;
         }
 
+        case 'mindmap': {
+          renderMindMap(ctx, el as MindMapElement);
+          break;
+        }
+
         case 'molecule': {
           const m = el as MoleculeElement;
           const showDetailedLewis = m.showCarbons ?? isLewisMode;
 
-          // 1. Render Bonds with proper ChemDraw orders
+          // Find centroid of molecule to orient inner double bonds accurately towards the inside of rings
+          let centroidX = 0;
+          let centroidY = 0;
+          if (m.atoms.length > 0) {
+            m.atoms.forEach((a) => {
+              centroidX += a.x;
+              centroidY += a.y;
+            });
+            centroidX /= m.atoms.length;
+            centroidY /= m.atoms.length;
+          }
+
+          // 1. Render Bonds (Flawless ChemDraw standard: outer perimeter stays 100% connected, inner Pi bond is inside)
           m.bonds.forEach((b) => {
             const from = m.atoms.find((a) => a.id === b.fromAtomId);
             const to = m.atoms.find((a) => a.id === b.toAtomId);
@@ -440,39 +583,68 @@ export const PhenolWhiteboard: React.FC = () => {
               hoveredChemTarget?.id === b.id;
 
             ctx.strokeStyle = isHovered ? '#0284C7' : '#18191B';
-            ctx.lineWidth = 2.5;
+            ctx.lineWidth = 2.4;
+            ctx.lineCap = 'round';
 
             const dx = x2 - x1;
             const dy = y2 - y1;
             const len = Math.hypot(dx, dy) || 1;
-            const nx = (-dy / len) * 3.5;
-            const ny = (dx / len) * 3.5;
 
             if (b.bondOrder === 2) {
-              // Double Bond (Parallel)
+              // Primary bond along vertices (keeping the ring/chain perimeter fully intact)
               ctx.beginPath();
-              ctx.moveTo(x1 + nx, y1 + ny);
-              ctx.lineTo(x2 + nx, y2 + ny);
-              ctx.moveTo(x1 - nx, y1 - ny);
-              ctx.lineTo(x2 - nx, y2 - ny);
+              ctx.moveTo(x1, y1);
+              ctx.lineTo(x2, y2);
+              ctx.stroke();
+
+              // Secondary pi-bond oriented towards centroid of ring/molecule
+              const midX = (from.x + to.x) / 2;
+              const midY = (from.y + to.y) / 2;
+              const toCentroidX = centroidX - midX;
+              const toCentroidY = centroidY - midY;
+              const cLen = Math.hypot(toCentroidX, toCentroidY) || 1;
+
+              // Offset vector pointing inwards
+              let nx = (toCentroidX / cLen) * 5.5;
+              let ny = (toCentroidY / cLen) * 5.5;
+
+              // If centroid is zero/collinear, use perpendicular
+              if (cLen < 2) {
+                nx = (-dy / len) * 5;
+                ny = (dx / len) * 5;
+              }
+
+              // Draw shortened inner line (ChemDraw standard: 15% inset from both ends)
+              const inset = 0.15;
+              ctx.beginPath();
+              ctx.moveTo(x1 + dx * inset + nx, y1 + dy * inset + ny);
+              ctx.lineTo(x2 - dx * inset + nx, y2 - dy * inset + ny);
               ctx.stroke();
             } else if (b.bondOrder === 3) {
               // Triple Bond
               ctx.beginPath();
               ctx.moveTo(x1, y1);
               ctx.lineTo(x2, y2);
-              ctx.moveTo(x1 + nx * 1.5, y1 + ny * 1.5);
-              ctx.lineTo(x2 + nx * 1.5, y2 + ny * 1.5);
-              ctx.moveTo(x1 - nx * 1.5, y1 - ny * 1.5);
-              ctx.lineTo(x2 - nx * 1.5, y2 - ny * 1.5);
+              ctx.stroke();
+
+              const nx = (-dy / len) * 4.5;
+              const ny = (dx / len) * 4.5;
+              const inset = 0.15;
+              ctx.beginPath();
+              ctx.moveTo(x1 + dx * inset + nx, y1 + dy * inset + ny);
+              ctx.lineTo(x2 - dx * inset + nx, y2 - dy * inset + ny);
+              ctx.moveTo(x1 + dx * inset - nx, y1 + dy * inset - ny);
+              ctx.lineTo(x2 - dx * inset - nx, y2 - dy * inset - ny);
               ctx.stroke();
             } else if (b.bondOrder === 'wedge') {
-              // Wedged Stereochemical Bond (Tapered)
+              // Wedged Stereochemical Bond (Tapered triangle)
+              const nx = (-dy / len) * 4.5;
+              const ny = (dx / len) * 4.5;
               ctx.fillStyle = isHovered ? '#0284C7' : '#18191B';
               ctx.beginPath();
               ctx.moveTo(x1, y1);
-              ctx.lineTo(x2 + nx * 2, y2 + ny * 2);
-              ctx.lineTo(x2 - nx * 2, y2 - ny * 2);
+              ctx.lineTo(x2 + nx, y2 + ny);
+              ctx.lineTo(x2 - nx, y2 - ny);
               ctx.closePath();
               ctx.fill();
             } else if (b.bondOrder === 'dash') {
@@ -491,16 +663,18 @@ export const PhenolWhiteboard: React.FC = () => {
               ctx.lineTo(x2, y2);
               ctx.stroke();
             }
-
-            // Hover indicator outline
-            if (isHovered) {
-              ctx.strokeStyle = '#38BDF8';
-              ctx.lineWidth = 1;
-              ctx.setLineDash([2, 2]);
-              ctx.strokeRect((x1 + x2) / 2 - 8, (y1 + y2) / 2 - 8, 16, 16);
-              ctx.setLineDash([]);
-            }
           });
+
+          // Aromatic Delocalized Resonance Circle (if benzene ring has circle enabled)
+          if (m.isAromaticCircle && m.atoms.length === 6) {
+            ctx.save();
+            ctx.strokeStyle = '#18191B';
+            ctx.lineWidth = 2.2;
+            ctx.beginPath();
+            ctx.arc(m.x + centroidX, m.y + centroidY, 24, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.restore();
+          }
 
           // 2. Render Atoms (Skeletal vs Lewis)
           m.atoms.forEach((a) => {
@@ -544,15 +718,19 @@ export const PhenolWhiteboard: React.FC = () => {
               ctx.fillText(a.symbol, ax, ay);
             }
 
-            // Formal Charge (+ / -) badge
+            // Formal Charge (+ / -) - ChemDraw Style: Clean delicate badge without heavy thick circles
             if (a.charge) {
               const cx = ax + 11;
               const cy = ay - 9;
-              ctx.fillStyle = a.charge > 0 ? '#DC2626' : '#2563EB';
+              ctx.strokeStyle = a.charge > 0 ? '#DC2626' : '#2563EB';
+              ctx.fillStyle = '#FFFFFF';
+              ctx.lineWidth = 1;
               ctx.beginPath();
               ctx.arc(cx, cy, 6, 0, Math.PI * 2);
               ctx.fill();
-              ctx.fillStyle = '#FFFFFF';
+              ctx.stroke();
+
+              ctx.fillStyle = a.charge > 0 ? '#DC2626' : '#2563EB';
               ctx.font = 'bold 9px sans-serif';
               ctx.textAlign = 'center';
               ctx.textBaseline = 'middle';
@@ -563,8 +741,8 @@ export const PhenolWhiteboard: React.FC = () => {
             if (a.lonePairs === 2) {
               ctx.fillStyle = '#D97706';
               ctx.beginPath();
-              ctx.arc(ax - 5, ay - 13, 2, 0, Math.PI * 2);
-              ctx.arc(ax + 5, ay - 13, 2, 0, Math.PI * 2);
+              ctx.arc(ax - 5, ay - 13, 1.8, 0, Math.PI * 2);
+              ctx.arc(ax + 5, ay - 13, 1.8, 0, Math.PI * 2);
               ctx.fill();
             }
 
@@ -577,31 +755,6 @@ export const PhenolWhiteboard: React.FC = () => {
               ctx.stroke();
             }
           });
-
-          // Mechanism Curved Arrows
-          m.curvedArrows?.forEach((ca) => {
-            ctx.strokeStyle = '#D97706';
-            ctx.lineWidth = 2;
-            ctx.setLineDash([3, 2]);
-            ctx.beginPath();
-            ctx.moveTo(m.x + ca.startX, m.y + ca.startY);
-            ctx.quadraticCurveTo(
-              m.x + ca.controlX,
-              m.y + ca.controlY,
-              m.x + ca.endX,
-              m.y + ca.endY
-            );
-            ctx.stroke();
-            ctx.setLineDash([]);
-          });
-
-          // Molecule Name Tag if named
-          if (m.name && m.name.trim() !== '') {
-            ctx.fillStyle = '#6B7280';
-            ctx.font = 'bold 11px sans-serif';
-            ctx.textAlign = 'center';
-            ctx.fillText(m.name, m.x, m.y + 75);
-          }
           break;
         }
 
@@ -653,20 +806,17 @@ export const PhenolWhiteboard: React.FC = () => {
           const ed = el as EnergyDiagramElement;
           const baseY = ed.y + ed.height - 40;
 
-          // Frame
           ctx.fillStyle = '#FFFFFF';
           ctx.strokeStyle = '#E5E7EB';
           ctx.lineWidth = 1.5;
           ctx.fillRect(ed.x, ed.y, ed.width, ed.height);
           ctx.strokeRect(ed.x, ed.y, ed.width, ed.height);
 
-          // Title
           ctx.fillStyle = '#501325';
           ctx.font = "bold 13px 'Plus Jakarta Sans', sans-serif";
           ctx.textAlign = 'left';
           ctx.fillText(ed.reactionName, ed.x + 16, ed.y + 24);
 
-          // Axes
           ctx.strokeStyle = '#454952';
           ctx.lineWidth = 1.5;
           ctx.beginPath();
@@ -676,18 +826,15 @@ export const PhenolWhiteboard: React.FC = () => {
           ctx.lineTo(ed.x + 40, ed.y + 40);
           ctx.stroke();
 
-          // Labels
           ctx.fillStyle = '#6B7280';
           ctx.font = '10px sans-serif';
           ctx.fillText('Reaction Coordinate', ed.x + ed.width - 110, baseY + 18);
           ctx.fillText('Potential Energy', ed.x + 45, ed.y + 48);
 
-          // Energy Levels
           const rxY = ed.isExothermic ? baseY - 80 : baseY - 50;
           const prY = ed.isExothermic ? baseY - 30 : baseY - 90;
           const peakY = ed.y + 70;
 
-          // Reactants plateau
           ctx.strokeStyle = '#501325';
           ctx.lineWidth = 3;
           ctx.beginPath();
@@ -695,19 +842,16 @@ export const PhenolWhiteboard: React.FC = () => {
           ctx.lineTo(ed.x + 120, rxY);
           ctx.stroke();
 
-          // Curve
           ctx.beginPath();
           ctx.moveTo(ed.x + 120, rxY);
           ctx.quadraticCurveTo(ed.x + 220, peakY, ed.x + 320, prY);
           ctx.stroke();
 
-          // Products plateau
           ctx.beginPath();
           ctx.moveTo(ed.x + 320, prY);
           ctx.lineTo(ed.x + 420, prY);
           ctx.stroke();
 
-          // Annotations
           ctx.fillStyle = '#18191B';
           ctx.font = "bold 10px 'JetBrains Mono', monospace";
           ctx.fillText(ed.reactantsLabel, ed.x + 50, rxY - 10);
@@ -720,13 +864,9 @@ export const PhenolWhiteboard: React.FC = () => {
         }
       }
 
-      // Selection bounding box indicator
+      // Professional Selection Bounding Box
       if (isSelected) {
-        ctx.strokeStyle = '#3B82F6';
-        ctx.lineWidth = 1.5;
-        ctx.setLineDash([4, 4]);
-        ctx.strokeRect(el.x - 8, el.y - 8, 45, 45);
-        ctx.setLineDash([]);
+        drawSelectionBox(ctx, el, viewport.zoom);
       }
 
       ctx.restore();
@@ -753,7 +893,61 @@ export const PhenolWhiteboard: React.FC = () => {
       }
     }
 
-    // 5. Render Cursor Ghost Preview (يحول السهم للحاجة اللي بضيفها)
+    // 5. Render In-Progress Drag-to-Draw Shape Preview
+    if (isDrawingShapeRef.current) {
+      const start = shapeStartRef.current;
+      const cur = cursorPosRef.current;
+      const w = cur.x - start.x;
+      const h = cur.y - start.y;
+
+      ctx.save();
+      ctx.strokeStyle = color;
+      ctx.lineWidth = size;
+      ctx.setLineDash([4, 4]);
+
+      if (shapeKind === 'rectangle') {
+        ctx.strokeRect(Math.min(start.x, cur.x), Math.min(start.y, cur.y), Math.abs(w), Math.abs(h));
+      } else if (shapeKind === 'rounded_rectangle') {
+        ctx.strokeRect(Math.min(start.x, cur.x), Math.min(start.y, cur.y), Math.abs(w), Math.abs(h));
+      } else if (shapeKind === 'ellipse') {
+        ctx.beginPath();
+        ctx.ellipse(
+          (start.x + cur.x) / 2,
+          (start.y + cur.y) / 2,
+          Math.abs(w / 2),
+          Math.abs(h / 2),
+          0,
+          0,
+          Math.PI * 2
+        );
+        ctx.stroke();
+      } else if (shapeKind === 'triangle') {
+        ctx.beginPath();
+        ctx.moveTo((start.x + cur.x) / 2, Math.min(start.y, cur.y));
+        ctx.lineTo(Math.max(start.x, cur.x), Math.max(start.y, cur.y));
+        ctx.lineTo(Math.min(start.x, cur.x), Math.max(start.y, cur.y));
+        ctx.closePath();
+        ctx.stroke();
+      } else if (shapeKind === 'diamond') {
+        const mx = (start.x + cur.x) / 2;
+        const my = (start.y + cur.y) / 2;
+        ctx.beginPath();
+        ctx.moveTo(mx, Math.min(start.y, cur.y));
+        ctx.lineTo(Math.max(start.x, cur.x), my);
+        ctx.lineTo(mx, Math.max(start.y, cur.y));
+        ctx.lineTo(Math.min(start.x, cur.x), my);
+        ctx.closePath();
+        ctx.stroke();
+      } else if (shapeKind === 'line' || shapeKind === 'arrow' || shapeKind === 'double_headed_arrow') {
+        ctx.beginPath();
+        ctx.moveTo(start.x, start.y);
+        ctx.lineTo(cur.x, cur.y);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+
+    // 6. Render Cursor Ghost Preview (يحول السهم للحاجة اللي بضيفها)
     if (activeStamp) {
       const ghostX = cursorPosRef.current.x;
       const ghostY = cursorPosRef.current.y;
@@ -773,12 +967,6 @@ export const PhenolWhiteboard: React.FC = () => {
           liquidLevel: activeStamp.liquidLevel || 0.5,
           zIndex: 9999,
         });
-
-        // Ghost placement guide
-        ctx.strokeStyle = '#2563EB';
-        ctx.lineWidth = 1.5;
-        ctx.setLineDash([3, 3]);
-        ctx.strokeRect(ghostX, ghostY, activeStamp.width || 100, activeStamp.height || 120);
       } else if (activeStamp.type === 'equation') {
         ctx.fillStyle = '#501325';
         ctx.font = "bold 20px 'JetBrains Mono', monospace";
@@ -787,6 +975,23 @@ export const PhenolWhiteboard: React.FC = () => {
         ctx.lineWidth = 1.5;
         ctx.setLineDash([3, 3]);
         ctx.strokeRect(ghostX - 10, ghostY - 24, 250, 42);
+      } else if (activeStamp.type === 'ring_aromatic_circle') {
+        const ring = createAromaticCircleBenzene(ghostX, ghostY);
+        ring.bonds.forEach((b) => {
+          const from = ring.atoms.find((a) => a.id === b.fromAtomId);
+          const to = ring.atoms.find((a) => a.id === b.toAtomId);
+          if (from && to) {
+            ctx.strokeStyle = '#501325';
+            ctx.lineWidth = 2.4;
+            ctx.beginPath();
+            ctx.moveTo(from.x, from.y);
+            ctx.lineTo(to.x, to.y);
+            ctx.stroke();
+          }
+        });
+        ctx.beginPath();
+        ctx.arc(ghostX, ghostY, 24, 0, Math.PI * 2);
+        ctx.stroke();
       } else if (activeStamp.type === 'ring_benzene') {
         const ring = createBenzeneRing(ghostX, ghostY);
         ring.bonds.forEach((b) => {
@@ -794,7 +999,7 @@ export const PhenolWhiteboard: React.FC = () => {
           const to = ring.atoms.find((a) => a.id === b.toAtomId);
           if (from && to) {
             ctx.strokeStyle = '#501325';
-            ctx.lineWidth = 2.5;
+            ctx.lineWidth = 2.4;
             ctx.beginPath();
             ctx.moveTo(from.x, from.y);
             ctx.lineTo(to.x, to.y);
@@ -808,7 +1013,7 @@ export const PhenolWhiteboard: React.FC = () => {
           const to = ring.atoms.find((a) => a.id === b.toAtomId);
           if (from && to) {
             ctx.strokeStyle = '#501325';
-            ctx.lineWidth = 2.5;
+            ctx.lineWidth = 2.4;
             ctx.beginPath();
             ctx.moveTo(from.x, from.y);
             ctx.lineTo(to.x, to.y);
@@ -822,7 +1027,7 @@ export const PhenolWhiteboard: React.FC = () => {
           const to = ring.atoms.find((a) => a.id === b.toAtomId);
           if (from && to) {
             ctx.strokeStyle = '#501325';
-            ctx.lineWidth = 2.5;
+            ctx.lineWidth = 2.4;
             ctx.beginPath();
             ctx.moveTo(from.x, from.y);
             ctx.lineTo(to.x, to.y);
@@ -843,6 +1048,7 @@ export const PhenolWhiteboard: React.FC = () => {
     tool,
     color,
     size,
+    shapeKind,
     isChemDrawActive,
     isLewisMode,
     hoveredChemTarget,
@@ -933,22 +1139,45 @@ export const PhenolWhiteboard: React.FC = () => {
         return;
       }
 
+      if (activeStamp.type === 'mindmap' && activeStamp.preset) {
+        const newMindMap: MindMapElement = {
+          id: `mm-${Date.now()}`,
+          type: 'mindmap',
+          title: activeStamp.preset.title,
+          rootNode: activeStamp.preset.rootNode,
+          x: worldPos.x,
+          y: worldPos.y,
+          zIndex: elements.length + 1,
+        };
+        pushHistory([...elements, newMindMap]);
+        setSelectedElementId(newMindMap.id);
+        setActiveStamp(null);
+        return;
+      }
+
       if (
         activeStamp.type === 'ring_benzene' ||
+        activeStamp.type === 'ring_aromatic_circle' ||
         activeStamp.type === 'ring_cyclohexane' ||
         activeStamp.type === 'ring_cyclopentane'
       ) {
         let ringData;
         let ringName = 'Benzene';
+        const isCircle = activeStamp.type === 'ring_aromatic_circle';
+
         if (activeStamp.type === 'ring_cyclopentane') {
           ringData = createCyclopentaneRing(0, 0);
           ringName = 'Cyclopentane';
         } else if (activeStamp.type === 'ring_cyclohexane') {
           ringData = createCyclohexaneRing(0, 0);
           ringName = 'Cyclohexane';
+        } else if (isCircle) {
+          ringData = createAromaticCircleBenzene(0, 0);
+          ringName = 'Benzene';
         } else {
           ringData = createBenzeneRing(0, 0);
         }
+
         const newMol: MoleculeElement = {
           id: `mol-${Date.now()}`,
           type: 'molecule',
@@ -959,6 +1188,7 @@ export const PhenolWhiteboard: React.FC = () => {
           bonds: ringData.bonds,
           curvedArrows: [],
           showCarbons: isLewisMode,
+          isAromaticCircle: isCircle,
           zIndex: elements.length + 1,
         };
         pushHistory([...elements, newMol]);
@@ -970,7 +1200,6 @@ export const PhenolWhiteboard: React.FC = () => {
 
     // 2. MINI-CHEMDRAW INTERACTIVE ACTIONS
     if (isChemDrawActive) {
-      // Find if clicked near an existing atom
       let clickedAtom: ChemAtom | null = null;
       let clickedMolecule: MoleculeElement | null = null;
 
@@ -989,7 +1218,6 @@ export const PhenolWhiteboard: React.FC = () => {
         }
       }
 
-      // Find if clicked near an existing bond
       let clickedBond: ChemBond | null = null;
       if (!clickedAtom) {
         for (const el of elements) {
@@ -999,15 +1227,11 @@ export const PhenolWhiteboard: React.FC = () => {
               const a1 = m.atoms.find((a) => a.id === b.fromAtomId);
               const a2 = m.atoms.find((a) => a.id === b.toAtomId);
               if (a1 && a2) {
-                const dist = distanceToSegment(
-                  worldPos.x,
-                  worldPos.y,
-                  m.x + a1.x,
-                  m.y + a1.y,
-                  m.x + a2.x,
-                  m.y + a2.y
+                const dist = Math.hypot(
+                  (m.x + a1.x + m.x + a2.x) / 2 - worldPos.x,
+                  (m.y + a1.y + m.y + a2.y) / 2 - worldPos.y
                 );
-                if (dist < 10) {
+                if (dist < 14) {
                   clickedBond = b;
                   clickedMolecule = m;
                   break;
@@ -1019,10 +1243,8 @@ export const PhenolWhiteboard: React.FC = () => {
         }
       }
 
-      // Process ChemDraw Sub-tool
       if (activeChemSubTool === 'zigzag_chain') {
         if (clickedAtom && clickedMolecule) {
-          // Sprout zigzag link from existing atom!
           const nextRelPos = calculateNextZigzagPos(
             clickedMolecule.atoms,
             clickedMolecule.bonds,
@@ -1052,7 +1274,6 @@ export const PhenolWhiteboard: React.FC = () => {
           setSelectedElementId(updatedMol.id);
           return;
         } else {
-          // Start brand new molecule at world click position!
           const newMolId = `mol-${Date.now()}`;
           const newAtomId = `atom-${Date.now()}`;
           const newMol: MoleculeElement = {
@@ -1075,7 +1296,6 @@ export const PhenolWhiteboard: React.FC = () => {
 
       if (activeChemSubTool === 'bond_cycle') {
         if (clickedBond && clickedMolecule) {
-          // Cycle bond order: 1 -> 2 -> 3 -> wedge -> dash -> 1
           let nextOrder: 1 | 2 | 3 | 'wedge' | 'dash' = 1;
           if (clickedBond.bondOrder === 1) nextOrder = 2;
           else if (clickedBond.bondOrder === 2) nextOrder = 3;
@@ -1157,33 +1377,11 @@ export const PhenolWhiteboard: React.FC = () => {
           return;
         }
       }
-
-      if (activeChemSubTool === 'ring_benzene') {
-        const ring = createBenzeneRing(worldPos.x, worldPos.y);
-        const newMol: MoleculeElement = {
-          id: `mol-${Date.now()}`,
-          type: 'molecule',
-          name: 'Benzene',
-          x: worldPos.x,
-          y: worldPos.y,
-          atoms: ring.atoms.map((a) => ({ ...a, x: a.x - worldPos.x, y: a.y - worldPos.y })),
-          bonds: ring.bonds,
-          curvedArrows: [],
-          showCarbons: isLewisMode,
-          zIndex: elements.length + 1,
-        };
-        pushHistory([...elements, newMol]);
-        setSelectedElementId(newMol.id);
-        return;
-      }
     }
 
-    // 3. SELECT & MOVE TOOL
+    // 3. SELECT & MOVE TOOL (Accurate bounding box hit testing)
     if (tool === 'select') {
-      // Find clicked element
-      const hit = [...elements].reverse().find((el) => {
-        return Math.hypot(el.x - worldPos.x, el.y - worldPos.y) < 60;
-      });
+      const hit = [...elements].reverse().find((el) => hitTestElement(el, worldPos.x, worldPos.y));
 
       if (hit) {
         setSelectedElementId(hit.id);
@@ -1194,7 +1392,6 @@ export const PhenolWhiteboard: React.FC = () => {
           startPoint: worldPos,
         };
 
-        // If it's a formula element, open the in-canvas equation editor immediately!
         if (hit.type === 'formula') {
           setEditingEquation(hit as ChemicalFormulaElement);
           setEquationScreenPos({ x: e.clientX, y: e.clientY });
@@ -1216,35 +1413,35 @@ export const PhenolWhiteboard: React.FC = () => {
       return;
     }
 
-    // 5. ERASER
-    if (tool === 'eraser') {
-      const filtered = elements.filter((el) => {
-        return Math.hypot(el.x - worldPos.x, el.y - worldPos.y) > 30;
+    // 5. DRAG-TO-DRAW SHAPES & ARROWS
+    if (tool === 'shape') {
+      isDrawingShapeRef.current = true;
+      shapeStartRef.current = worldPos;
+      return;
+    }
+
+    // 6. DIRECT IN-PLACE TEXT TOOL (Miro Style - no alert prompt!)
+    if (tool === 'text') {
+      setInlineTextEditor({
+        x: worldPos.x,
+        y: worldPos.y,
+        screenX: e.clientX,
+        screenY: e.clientY,
+        text: '',
       });
+      setTimeout(() => {
+        textInputRef.current?.focus();
+      }, 50);
+      return;
+    }
+
+    // 7. ERASER
+    if (tool === 'eraser') {
+      const filtered = elements.filter((el) => !hitTestElement(el, worldPos.x, worldPos.y));
       if (filtered.length !== elements.length) {
         pushHistory(filtered);
       }
       return;
-    }
-
-    // 6. TEXT NOTE
-    if (tool === 'text') {
-      const input = prompt('Enter lecture text:');
-      if (input && input.trim()) {
-        const newText: TextElement = {
-          id: `txt-${Date.now()}`,
-          type: 'text',
-          x: worldPos.x,
-          y: worldPos.y,
-          text: input.trim(),
-          fontSize: 18,
-          color,
-          zIndex: elements.length + 1,
-        };
-        pushHistory([...elements, newText]);
-        setTool('select');
-      }
-      isPointerDownRef.current = false;
     }
   };
 
@@ -1257,12 +1454,10 @@ export const PhenolWhiteboard: React.FC = () => {
       screenY: e.clientY,
     };
 
-    // If stamp is active, re-render to update the ghost preview position smoothly
-    if (activeStamp) {
+    if (activeStamp || isDrawingShapeRef.current) {
       renderCanvas();
     }
 
-    // In ChemDraw mode, detect hovered atom or bond for visual feedback
     if (isChemDrawActive && !isPointerDownRef.current) {
       let hovered: { moleculeId: string; type: 'atom' | 'bond'; id: string } | null = null;
       for (const el of elements) {
@@ -1272,27 +1467,6 @@ export const PhenolWhiteboard: React.FC = () => {
             if (Math.hypot(m.x + a.x - worldPos.x, m.y + a.y - worldPos.y) < 16) {
               hovered = { moleculeId: m.id, type: 'atom', id: a.id };
               break;
-            }
-          }
-          if (!hovered) {
-            for (const b of m.bonds) {
-              const a1 = m.atoms.find((a) => a.id === b.fromAtomId);
-              const a2 = m.atoms.find((a) => a.id === b.toAtomId);
-              if (a1 && a2) {
-                if (
-                  distanceToSegment(
-                    worldPos.x,
-                    worldPos.y,
-                    m.x + a1.x,
-                    m.y + a1.y,
-                    m.x + a2.x,
-                    m.y + a2.y
-                  ) < 10
-                ) {
-                  hovered = { moleculeId: m.id, type: 'bond', id: b.id };
-                  break;
-                }
-              }
             }
           }
           if (hovered) break;
@@ -1340,9 +1514,7 @@ export const PhenolWhiteboard: React.FC = () => {
     }
 
     if (tool === 'eraser') {
-      const filtered = elements.filter((el) => {
-        return Math.hypot(el.x - worldPos.x, el.y - worldPos.y) > 30;
-      });
+      const filtered = elements.filter((el) => !hitTestElement(el, worldPos.x, worldPos.y));
       if (filtered.length !== elements.length) {
         setElements(filtered);
       }
@@ -1357,6 +1529,72 @@ export const PhenolWhiteboard: React.FC = () => {
     if (draggedElementRef.current) {
       draggedElementRef.current = null;
       pushHistory(elements);
+      return;
+    }
+
+    if (isDrawingShapeRef.current) {
+      isDrawingShapeRef.current = false;
+      const start = shapeStartRef.current;
+      const worldPos = screenToCanvas(e.clientX, e.clientY);
+      const w = worldPos.x - start.x;
+      const h = worldPos.y - start.y;
+
+      if (Math.hypot(w, h) > 8) {
+        let newShape: ShapeElement;
+        if (
+          shapeKind === 'line' ||
+          shapeKind === 'arrow' ||
+          shapeKind === 'double_headed_arrow'
+        ) {
+          newShape = {
+            id: `shape-${Date.now()}`,
+            type: 'shape',
+            shapeKind,
+            x: start.x,
+            y: start.y,
+            endX: worldPos.x,
+            endY: worldPos.y,
+            width: Math.abs(w),
+            height: Math.abs(h),
+            strokeColor: color,
+            strokeWidth: size,
+            zIndex: elements.length + 1,
+          };
+        } else if (shapeKind === 'curved_arrow') {
+          newShape = {
+            id: `shape-${Date.now()}`,
+            type: 'shape',
+            shapeKind,
+            x: start.x,
+            y: start.y,
+            endX: worldPos.x,
+            endY: worldPos.y,
+            controlX: (start.x + worldPos.x) / 2,
+            controlY: (start.y + worldPos.y) / 2 - 30,
+            width: Math.abs(w),
+            height: Math.abs(h),
+            strokeColor: color,
+            strokeWidth: size,
+            zIndex: elements.length + 1,
+          };
+        } else {
+          newShape = {
+            id: `shape-${Date.now()}`,
+            type: 'shape',
+            shapeKind,
+            x: Math.min(start.x, worldPos.x),
+            y: Math.min(start.y, worldPos.y),
+            width: Math.abs(w),
+            height: Math.abs(h),
+            strokeColor: color,
+            strokeWidth: size,
+            zIndex: elements.length + 1,
+          };
+        }
+        pushHistory([...elements, newShape]);
+        setSelectedElementId(newShape.id);
+      }
+      renderCanvas();
       return;
     }
 
@@ -1376,6 +1614,34 @@ export const PhenolWhiteboard: React.FC = () => {
       currentPointsRef.current = [];
       renderCanvas();
     }
+  };
+
+  // Commit In-Place Miro Text Editor
+  const commitInlineText = () => {
+    if (!inlineTextEditor) return;
+    const trimmed = inlineTextEditor.text.trim();
+    if (trimmed) {
+      if (inlineTextEditor.id) {
+        const updated = elements.map((el) =>
+          el.id === inlineTextEditor.id ? { ...el, text: trimmed } : el
+        );
+        pushHistory(updated);
+      } else {
+        const newText: TextElement = {
+          id: `txt-${Date.now()}`,
+          type: 'text',
+          x: inlineTextEditor.x,
+          y: inlineTextEditor.y,
+          text: trimmed,
+          fontSize: 20,
+          color,
+          zIndex: elements.length + 1,
+        };
+        pushHistory([...elements, newText]);
+        setSelectedElementId(newText.id);
+      }
+    }
+    setInlineTextEditor(null);
   };
 
   // Zoom with Wheel
@@ -1424,6 +1690,13 @@ export const PhenolWhiteboard: React.FC = () => {
     URL.revokeObjectURL(url);
   };
 
+  // Currently selected element object
+  const selectedElement = elements.find((el) => el.id === selectedElementId);
+  const selectedBounds = selectedElement ? getElementBounds(selectedElement) : null;
+  const selectedScreenPos = selectedBounds
+    ? canvasToScreen(selectedBounds.x, selectedBounds.y)
+    : null;
+
   return (
     <div className="relative w-screen h-screen overflow-hidden select-none bg-ivory-200">
       {/* Top Header */}
@@ -1452,6 +1725,7 @@ export const PhenolWhiteboard: React.FC = () => {
         onSelectTool={(t) => {
           setTool(t);
           setActiveStamp(null);
+          if (t !== 'shape') setIsShapePopupOpen(false);
         }}
         currentColor={color}
         onSelectColor={setColor}
@@ -1459,15 +1733,19 @@ export const PhenolWhiteboard: React.FC = () => {
         onSelectSize={setSize}
         currentShape={shapeKind}
         onSelectShape={setShapeKind}
+        onToggleShapePopup={() => setIsShapePopupOpen((prev) => !prev)}
+        isShapePopupOpen={isShapePopupOpen}
         onToggleChemDraw={() => {
           setIsChemDrawActive((prev) => !prev);
           setIsApparatusDrawerOpen(false);
+          setIsMindMapDrawerOpen(false);
           setActiveStamp(null);
         }}
         isChemDrawActive={isChemDrawActive}
         onToggleApparatusDrawer={() => {
           setIsApparatusDrawerOpen((prev) => !prev);
           setIsChemDrawActive(false);
+          setIsMindMapDrawerOpen(false);
           setActiveStamp(null);
         }}
         isApparatusDrawerOpen={isApparatusDrawerOpen}
@@ -1475,14 +1753,23 @@ export const PhenolWhiteboard: React.FC = () => {
           setActiveStamp({ type: 'equation' });
           setIsChemDrawActive(false);
           setIsApparatusDrawerOpen(false);
+          setIsMindMapDrawerOpen(false);
         }}
         isEquationStampActive={activeStamp?.type === 'equation'}
+        onToggleMindMapDrawer={() => {
+          setIsMindMapDrawerOpen((prev) => !prev);
+          setIsChemDrawActive(false);
+          setIsApparatusDrawerOpen(false);
+          setActiveStamp(null);
+        }}
+        isMindMapDrawerOpen={isMindMapDrawerOpen}
         onOpenTableModal={() => setIsTableModalOpen(true)}
         onOpenEnergyModal={() => setIsEnergyModalOpen(true)}
         onClearCanvas={() => {
           if (confirm('Clear all drawings and elements on this board?')) {
             pushHistory([]);
             setEditingEquation(null);
+            setSelectedElementId(null);
           }
         }}
         canUndo={history.length > 0}
@@ -1491,13 +1778,26 @@ export const PhenolWhiteboard: React.FC = () => {
         onRedo={handleRedo}
       />
 
+      {/* Shape Selector Sub-Palette */}
+      <ShapeSelectorPopup
+        isOpen={isShapePopupOpen}
+        onClose={() => setIsShapePopupOpen(false)}
+        currentShape={shapeKind}
+        onSelectShape={(sh) => {
+          setShapeKind(sh);
+          setTool('shape');
+        }}
+      />
+
       {/* Mini-ChemDraw Floating Control Dock */}
       {isChemDrawActive && (
         <ChemDrawToolbar
           activeSubTool={activeChemSubTool}
           onSelectSubTool={(st) => {
             setActiveChemSubTool(st);
-            if (st === 'ring_benzene') {
+            if (st === 'ring_aromatic_circle') {
+              setActiveStamp({ type: 'ring_aromatic_circle' });
+            } else if (st === 'ring_benzene') {
               setActiveStamp({ type: 'ring_benzene' });
             } else if (st === 'ring_cyclohexane') {
               setActiveStamp({ type: 'ring_cyclohexane' });
@@ -1515,7 +1815,7 @@ export const PhenolWhiteboard: React.FC = () => {
         />
       )}
 
-      {/* Laboratory Apparatus Drawer */}
+      {/* Laboratory Apparatus Visual Shapes Drawer */}
       <ApparatusDrawer
         isOpen={isApparatusDrawerOpen}
         onClose={() => setIsApparatusDrawerOpen(false)}
@@ -1531,6 +1831,19 @@ export const PhenolWhiteboard: React.FC = () => {
           });
         }}
         selectedKind={activeStamp?.kind || null}
+      />
+
+      {/* Chemistry Mind Map Studio Drawer */}
+      <MindMapDrawer
+        isOpen={isMindMapDrawerOpen}
+        onClose={() => setIsMindMapDrawerOpen(false)}
+        onSelectPreset={(preset) => {
+          setActiveStamp({
+            type: 'mindmap',
+            name: preset.title,
+            preset,
+          });
+        }}
       />
 
       {/* In-Canvas Smart Equation Floating Bar */}
@@ -1552,6 +1865,104 @@ export const PhenolWhiteboard: React.FC = () => {
         />
       )}
 
+      {/* In-Place Miro Style Text Input */}
+      {inlineTextEditor && (
+        <div
+          style={{
+            position: 'absolute',
+            left: inlineTextEditor.screenX,
+            top: inlineTextEditor.screenY,
+            zIndex: 60,
+          }}
+          className="animate-in fade-in zoom-in-95 duration-100"
+        >
+          <textarea
+            ref={textInputRef}
+            value={inlineTextEditor.text}
+            onChange={(e) =>
+              setInlineTextEditor((prev) => (prev ? { ...prev, text: e.target.value } : null))
+            }
+            onKeyDown={(e) => {
+              if (e.key === 'Escape') {
+                commitInlineText();
+              } else if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+                commitInlineText();
+              }
+            }}
+            onBlur={commitInlineText}
+            placeholder="Type text here..."
+            rows={2}
+            className="p-2 min-w-[200px] max-w-[450px] bg-white/95 backdrop-blur-md rounded-xl border-2 border-burgundy-900 shadow-editorial text-base font-sans text-charcoal-900 focus:outline-none resize-both"
+          />
+          <div className="text-[10px] text-charcoal-500 font-mono mt-0.5">
+            Click outside or press Ctrl+Enter to finish
+          </div>
+        </div>
+      )}
+
+      {/* Floating Action Pill for Selected Element */}
+      {selectedElement && selectedScreenPos && !isPointerDownRef.current && (
+        <div
+          style={{
+            position: 'absolute',
+            left: Math.max(10, selectedScreenPos.x),
+            top: Math.max(10, selectedScreenPos.y - 42),
+            zIndex: 45,
+          }}
+          className="flex items-center gap-1 p-1 bg-white/95 backdrop-blur-md rounded-xl border border-hairline shadow-editorial text-xs"
+        >
+          <button
+            type="button"
+            onClick={() => {
+              const dup: WhiteboardElement = {
+                ...selectedElement,
+                id: `${selectedElement.type}-${Date.now()}`,
+                x: selectedElement.x + 30,
+                y: selectedElement.y + 30,
+                zIndex: elements.length + 1,
+              };
+              pushHistory([...elements, dup]);
+              setSelectedElementId(dup.id);
+            }}
+            title="Duplicate Element"
+            className="w-7 h-7 rounded-lg flex items-center justify-center text-charcoal-700 hover:text-burgundy-900 hover:bg-ivory-200 transition-colors"
+          >
+            <Copy className="w-3.5 h-3.5" />
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              const updated = elements.map((el) =>
+                el.id === selectedElement.id ? { ...el, isLocked: !el.isLocked } : el
+              );
+              pushHistory(updated);
+            }}
+            title={selectedElement.isLocked ? 'Unlock Element' : 'Lock Element'}
+            className="w-7 h-7 rounded-lg flex items-center justify-center text-charcoal-700 hover:text-burgundy-900 hover:bg-ivory-200 transition-colors"
+          >
+            {selectedElement.isLocked ? (
+              <Lock className="w-3.5 h-3.5 text-amber-600" />
+            ) : (
+              <Unlock className="w-3.5 h-3.5" />
+            )}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              pushHistory(elements.filter((el) => el.id !== selectedElement.id));
+              setSelectedElementId(null);
+              setEditingEquation(null);
+            }}
+            title="Delete Element (Del)"
+            className="w-7 h-7 rounded-lg flex items-center justify-center text-rose-600 hover:bg-rose-50 transition-colors"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
+
       {/* Active Stamp Banner Guide (يحول السهم للحاجة اللي بضيفها) */}
       {activeStamp && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 bg-burgundy-900 text-ivory-100 px-4 py-2 rounded-2xl border border-ochre/40 shadow-editorial flex items-center gap-3 text-xs animate-in fade-in slide-in-from-bottom-2">
@@ -1563,6 +1974,8 @@ export const PhenolWhiteboard: React.FC = () => {
                 ? activeStamp.name
                 : activeStamp.type === 'equation'
                 ? 'Chemical Equation'
+                : activeStamp.type === 'mindmap'
+                ? activeStamp.name
                 : 'Organic Ring'}
             </span>
           </span>
@@ -1584,7 +1997,15 @@ export const PhenolWhiteboard: React.FC = () => {
         onPointerCancel={handlePointerUp}
         onWheel={handleWheel}
         className={`w-full h-full block touch-none ${
-          activeStamp ? 'cursor-copy' : isChemDrawActive ? 'cursor-crosshair' : 'cursor-default'
+          activeStamp
+            ? 'cursor-copy'
+            : isChemDrawActive
+            ? 'cursor-crosshair'
+            : tool === 'text'
+            ? 'cursor-text'
+            : tool === 'select'
+            ? 'cursor-default'
+            : 'cursor-crosshair'
         }`}
       />
 
@@ -1627,6 +2048,7 @@ export const PhenolWhiteboard: React.FC = () => {
           setHistory([]);
           setRedoStack([]);
           setEditingEquation(null);
+          setSelectedElementId(null);
         }}
         onCreateNewBoard={(newTitle) => {
           const newBoard: WhiteboardDocument = {
@@ -1645,6 +2067,7 @@ export const PhenolWhiteboard: React.FC = () => {
           setHistory([]);
           setRedoStack([]);
           setEditingEquation(null);
+          setSelectedElementId(null);
         }}
       />
     </div>

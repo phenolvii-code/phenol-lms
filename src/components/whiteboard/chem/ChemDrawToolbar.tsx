@@ -6,7 +6,8 @@ export type ChemSubTool =
   | 'zigzag_chain' // Sprout/extend zigzag chain atom-by-atom
   | 'bond_cycle' // Toggle single/double/triple/wedge/dash
   | 'element_mutate' // Change atom symbol (C, O, N, Cl...)
-  | 'ring_benzene'
+  | 'ring_benzene' // Kekule alternating double bonds
+  | 'ring_aromatic_circle' // Classic delocalized circle benzene ring
   | 'ring_cyclohexane'
   | 'ring_cyclopentane'
   | 'charge_plus'
@@ -84,10 +85,10 @@ export const ChemDrawToolbar: React.FC<ChemDrawToolbarProps> = ({
       <div className="flex items-center gap-1">
         <button
           type="button"
-          onClick={() => onSelectSubTool('ring_benzene')}
-          title="Stamp Benzene Ring (Click canvas or atom to fuse)"
+          onClick={() => onSelectSubTool('ring_aromatic_circle')}
+          title="Aromatic Benzene Ring (With central resonance circle)"
           className={`w-8 h-8 rounded-xl font-formula font-bold text-base flex items-center justify-center transition-all ${
-            activeSubTool === 'ring_benzene'
+            activeSubTool === 'ring_aromatic_circle'
               ? 'bg-burgundy-900 text-ochre shadow-xs scale-105'
               : 'text-charcoal-800 hover:bg-ivory-200'
           }`}
@@ -97,8 +98,21 @@ export const ChemDrawToolbar: React.FC<ChemDrawToolbarProps> = ({
 
         <button
           type="button"
+          onClick={() => onSelectSubTool('ring_benzene')}
+          title="Kekulé Benzene Ring (With alternating double bonds)"
+          className={`w-8 h-8 rounded-xl font-formula font-bold text-base flex items-center justify-center transition-all ${
+            activeSubTool === 'ring_benzene'
+              ? 'bg-burgundy-900 text-ochre shadow-xs scale-105'
+              : 'text-charcoal-800 hover:bg-ivory-200'
+          }`}
+        >
+          ⏣
+        </button>
+
+        <button
+          type="button"
           onClick={() => onSelectSubTool('ring_cyclohexane')}
-          title="Stamp Cyclohexane Ring"
+          title="Cyclohexane Ring (Single bonds)"
           className={`w-8 h-8 rounded-xl font-formula font-bold text-sm flex items-center justify-center transition-all ${
             activeSubTool === 'ring_cyclohexane'
               ? 'bg-burgundy-900 text-ochre shadow-xs scale-105'
@@ -111,7 +125,7 @@ export const ChemDrawToolbar: React.FC<ChemDrawToolbarProps> = ({
         <button
           type="button"
           onClick={() => onSelectSubTool('ring_cyclopentane')}
-          title="Stamp Cyclopentane Ring"
+          title="Cyclopentane Ring (5 carbons)"
           className={`w-8 h-8 rounded-xl font-formula font-bold text-sm flex items-center justify-center transition-all ${
             activeSubTool === 'ring_cyclopentane'
               ? 'bg-burgundy-900 text-ochre shadow-xs scale-105'

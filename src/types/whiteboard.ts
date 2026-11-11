@@ -22,12 +22,14 @@ export type WhiteboardTool =
 
 export type ShapeKind =
   | 'rectangle'
+  | 'rounded_rectangle'
   | 'ellipse'
+  | 'triangle'
+  | 'diamond'
   | 'line'
   | 'arrow'
-  | 'curved_arrow'
   | 'double_headed_arrow'
-  | 'triangle';
+  | 'curved_arrow';
 
 export type BackgroundPattern = 'ivory_blank' | 'grid' | 'dots' | 'dark_chalkboard' | 'dark_grid';
 
@@ -181,6 +183,7 @@ export interface MoleculeElement extends BaseWhiteboardElement {
   bonds: ChemBond[];
   curvedArrows: CurvedMechanismArrow[];
   showCarbons?: boolean;
+  isAromaticCircle?: boolean; // classic resonance circle inside 6-membered aromatic ring
 }
 
 export interface MindMapNode {

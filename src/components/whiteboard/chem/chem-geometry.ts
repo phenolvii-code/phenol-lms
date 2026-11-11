@@ -97,15 +97,21 @@ export function calculateNextZigzagPos(
 }
 
 /**
- * Creates a standalone Benzene ring anchored at (x, y)
+ * Creates a ChemDraw-standard canonical Benzene ring anchored at (centerX, centerY).
+ * Oriented with top vertex pointing up (-90° / 270°), standard chemical textbook orientation.
  */
-export function createBenzeneRing(centerX: number, centerY: number, radius = 40): { atoms: ChemAtom[]; bonds: ChemBond[] } {
+export function createBenzeneRing(
+  centerX: number,
+  centerY: number,
+  radius = 42
+): { atoms: ChemAtom[]; bonds: ChemBond[] } {
   const atoms: ChemAtom[] = [];
   const bonds: ChemBond[] = [];
   const prefix = `bz-${Date.now()}`;
 
+  // 6 vertices at standard ChemDraw canonical angles: -90°, -30°, 30°, 90°, 150°, 210°
   for (let i = 0; i < 6; i++) {
-    const angle = (i * Math.PI) / 3 - Math.PI / 6;
+    const angle = (i * Math.PI) / 3 - Math.PI / 2;
     atoms.push({
       id: `${prefix}-a${i}`,
       symbol: 'C',
@@ -125,6 +131,21 @@ export function createBenzeneRing(centerX: number, centerY: number, radius = 40)
   }
 
   return { atoms, bonds };
+}
+
+/**
+ * Creates an Aromatic Resonance Benzene Ring (Hexagon with Delocalized Circle)
+ */
+export function createAromaticCircleBenzene(
+  centerX: number,
+  centerY: number,
+  radius = 42
+): { atoms: ChemAtom[]; bonds: ChemBond[] } {
+  const ring = createBenzeneRing(centerX, centerY, radius);
+  ring.bonds.forEach((b) => {
+    b.bondOrder = 1; // Perimeter is single bonds, circle rendered in center
+  });
+  return ring;
 }
 
 /**
