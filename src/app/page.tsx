@@ -58,6 +58,7 @@ export default function Home() {
       <main className="flex-1">
         {/* Section 01: Hero */}
         <HeroSection
+          currentUser={currentUser}
           onSignUp={() => handleOpenAuth('REGISTER')}
           onSignIn={() => handleOpenAuth('LOGIN')}
         />
@@ -85,6 +86,7 @@ export default function Home() {
 
         {/* Section 09: Final CTA */}
         <FinalCtaSection
+          currentUser={currentUser}
           onSignUp={() => handleOpenAuth('REGISTER')}
           onSignIn={() => handleOpenAuth('LOGIN')}
         />

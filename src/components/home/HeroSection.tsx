@@ -3,14 +3,21 @@
 import React from 'react';
 import Link from 'next/link';
 import { ArrowRight, BookOpen } from 'lucide-react';
+import { AuthUser } from '@/types/auth';
 
 interface HeroSectionProps {
+  currentUser?: AuthUser | null;
   onSignUp?: () => void;
   onSignIn?: () => void;
   onStartJourney?: () => void;
 }
 
-export const HeroSection: React.FC<HeroSectionProps> = ({ onSignUp, onSignIn, onStartJourney }) => {
+export const HeroSection: React.FC<HeroSectionProps> = ({
+  currentUser,
+  onSignUp,
+  onSignIn,
+  onStartJourney,
+}) => {
   const handleSignUp = onSignUp || onStartJourney;
   return (
     <section className="relative pt-12 sm:pt-16 lg:pt-20 pb-12 sm:pb-16 px-4 sm:px-6 lg:px-8 max-w-5xl mx-auto">
@@ -52,24 +59,36 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onSignUp, onSignIn, on
           </p>
         </div>
 
-        {/* Prominent Burgundy Interactive Action Buttons: Sign Up & Sign In */}
+        {/* Prominent Action Buttons: Context-Aware Authentication */}
         <div className="mt-8 sm:mt-10 flex flex-col sm:flex-row items-center justify-center gap-4 max-w-md sm:max-w-none mx-auto">
-          <button
-            type="button"
-            onClick={handleSignUp}
-            className="w-full sm:w-auto min-w-[190px] inline-flex items-center justify-center gap-2.5 px-8 py-4 rounded-lg bg-burgundy-500 hover:bg-burgundy-900 active:scale-[0.98] text-ivory-100 font-sans font-bold text-base sm:text-lg transition-all duration-200 shadow-lg hover:shadow-xl hover:-translate-y-0.5 cursor-pointer ring-2 ring-burgundy-500/20"
-          >
-            <span>Sign Up</span>
-            <ArrowRight className="w-5 h-5 transition-transform group-hover:translate-x-1" />
-          </button>
+          {currentUser ? (
+            <Link
+              href="/dashboard"
+              className="w-full sm:w-auto min-w-[220px] inline-flex items-center justify-center gap-2.5 px-8 py-4 rounded-lg bg-burgundy-500 hover:bg-burgundy-900 active:scale-[0.98] text-ivory-100 font-sans font-bold text-base sm:text-lg transition-all duration-200 shadow-lg hover:shadow-xl hover:-translate-y-0.5 cursor-pointer ring-2 ring-burgundy-500/20"
+            >
+              <span>Go to Dashboard</span>
+              <ArrowRight className="w-5 h-5 transition-transform group-hover:translate-x-1" />
+            </Link>
+          ) : (
+            <>
+              <button
+                type="button"
+                onClick={handleSignUp}
+                className="w-full sm:w-auto min-w-[190px] inline-flex items-center justify-center gap-2.5 px-8 py-4 rounded-lg bg-burgundy-500 hover:bg-burgundy-900 active:scale-[0.98] text-ivory-100 font-sans font-bold text-base sm:text-lg transition-all duration-200 shadow-lg hover:shadow-xl hover:-translate-y-0.5 cursor-pointer ring-2 ring-burgundy-500/20"
+              >
+                <span>Sign Up</span>
+                <ArrowRight className="w-5 h-5 transition-transform group-hover:translate-x-1" />
+              </button>
 
-          <button
-            type="button"
-            onClick={onSignIn}
-            className="w-full sm:w-auto min-w-[190px] inline-flex items-center justify-center gap-2 px-8 py-4 rounded-lg bg-ivory-100 hover:bg-ivory-300 active:scale-[0.98] border-2 border-burgundy-500 text-burgundy-500 hover:text-burgundy-900 font-sans font-bold text-base sm:text-lg transition-all duration-200 shadow-md hover:shadow-lg hover:-translate-y-0.5 cursor-pointer"
-          >
-            <span>Sign In</span>
-          </button>
+              <button
+                type="button"
+                onClick={onSignIn}
+                className="w-full sm:w-auto min-w-[190px] inline-flex items-center justify-center gap-2 px-8 py-4 rounded-lg bg-ivory-100 hover:bg-ivory-300 active:scale-[0.98] border-2 border-burgundy-500 text-burgundy-500 hover:text-burgundy-900 font-sans font-bold text-base sm:text-lg transition-all duration-200 shadow-md hover:shadow-lg hover:-translate-y-0.5 cursor-pointer"
+              >
+                <span>Sign In</span>
+              </button>
+            </>
+          )}
         </div>
 
         {/* Large & Prominent Button: Navigate to /courses */}

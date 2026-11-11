@@ -21,8 +21,10 @@ import {
 } from 'lucide-react';
 import { PhenolLogo } from '@/components/brand/PhenolLogo';
 import { WhatsAppIcon } from '@/components/auth/AuthIcons';
+import { useCurrentUser } from '@/lib/auth/useCurrentUser';
 
 export default function AboutPage() {
+  const { user: currentUser } = useCurrentUser();
   const educationalPrinciples = [
     {
       num: '01',
@@ -99,12 +101,22 @@ export default function AboutPage() {
 
           <PhenolLogo size={32} subtitle="Dr. Omar Magdi" />
 
-          <Link
-            href="/courses"
-            className="px-4 py-2 rounded-lg bg-burgundy-500 hover:bg-burgundy-900 text-ivory-100 text-xs font-bold transition-all shadow-sm hover:shadow"
-          >
-            Explore Courses
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link
+              href="/courses"
+              className="px-4 py-2 rounded-lg bg-burgundy-500 hover:bg-burgundy-900 text-ivory-100 text-xs font-bold transition-all shadow-sm hover:shadow"
+            >
+              Explore Courses
+            </Link>
+            {currentUser && (
+              <Link
+                href="/dashboard"
+                className="px-3.5 py-2 rounded-lg border border-hairline bg-ivory-100 hover:bg-ivory-300 text-charcoal-900 text-xs font-semibold transition-colors"
+              >
+                Dashboard
+              </Link>
+            )}
+          </div>
         </div>
       </header>
 
@@ -475,12 +487,21 @@ export default function AboutPage() {
               <span>Explore Courses</span>
               <ArrowRight className="w-4 h-4" />
             </Link>
-            <Link
-              href="/register"
-              className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-ivory-100 hover:bg-ivory-300 active:scale-[0.98] border border-hairline text-charcoal-900 font-sans font-bold text-sm transition-all shadow-quiet"
-            >
-              <span>Join Cohort</span>
-            </Link>
+            {currentUser ? (
+              <Link
+                href="/dashboard"
+                className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-ivory-100 hover:bg-ivory-300 active:scale-[0.98] border border-hairline text-charcoal-900 font-sans font-bold text-sm transition-all shadow-quiet"
+              >
+                <span>Go to Dashboard</span>
+              </Link>
+            ) : (
+              <Link
+                href="/register"
+                className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-ivory-100 hover:bg-ivory-300 active:scale-[0.98] border border-hairline text-charcoal-900 font-sans font-bold text-sm transition-all shadow-quiet"
+              >
+                <span>Join Cohort</span>
+              </Link>
+            )}
           </div>
         </div>
       </main>
