@@ -77,11 +77,11 @@ export const WhatsAppPromptModal: React.FC<WhatsAppPromptModalProps> = ({
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-charcoal-900/80 backdrop-blur-md animate-fade-in font-sans">
       <div className="relative w-full max-w-md bg-ivory-100 rounded-lg border border-hairline shadow-editorial overflow-hidden">
-        {/* Header with WhatsApp green accent */}
+        {/* Header */}
         <div className="p-6 border-b border-hairline bg-ivory-200 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-600 shadow-sm">
-              <WhatsAppIcon className="w-5 h-5 fill-emerald-600" />
+            <div className="w-10 h-10 rounded-full bg-ivory-300 border border-hairline flex items-center justify-center text-charcoal-900 shadow-quiet">
+              <WhatsAppIcon className="w-5 h-5 fill-charcoal-900" />
             </div>
             <div>
               <h3 className="font-editorial text-sm font-bold uppercase tracking-wider text-charcoal-900">
@@ -95,15 +95,15 @@ export const WhatsAppPromptModal: React.FC<WhatsAppPromptModalProps> = ({
 
         {/* Body */}
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          <div className="p-3.5 bg-emerald-50/60 border border-emerald-200/60 rounded text-xs text-emerald-900 flex items-start gap-2.5">
-            <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-            <p>
+          <div className="p-3.5 bg-ivory-200/80 border border-hairline rounded text-xs text-charcoal-800 flex items-start gap-2.5 shadow-quiet">
+            <ShieldCheck className="w-4 h-4 text-ochre-500 shrink-0 mt-0.5" />
+            <p className="leading-relaxed">
               Dr. Omar communicates directly via WhatsApp to coordinate problem-solving sessions and provide feedback.
             </p>
           </div>
 
           {errorMessage && (
-            <div className="p-3 rounded bg-burgundy-50 border border-burgundy-200 text-burgundy-900 text-xs">
+            <div className="p-3 rounded bg-ivory-200 border border-burgundy-200 text-burgundy-900 text-xs shadow-quiet">
               {errorMessage}
             </div>
           )}

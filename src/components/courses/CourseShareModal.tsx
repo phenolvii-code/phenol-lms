@@ -149,9 +149,9 @@ export const CourseShareModal: React.FC<CourseShareModalProps> = ({
               href={whatsappUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="w-full py-2.5 px-4 rounded border border-emerald-300 bg-emerald-50 hover:bg-emerald-100 text-emerald-900 text-xs font-semibold flex items-center justify-center gap-2 transition-colors shadow-sm"
+              className="w-full py-2.5 px-4 rounded-lg border border-hairline bg-ivory-200 hover:bg-ivory-300 text-charcoal-900 text-xs font-semibold flex items-center justify-center gap-2 transition-colors shadow-quiet"
             >
-              <WhatsAppIcon className="w-4 h-4 fill-emerald-600" />
+              <WhatsAppIcon className="w-4 h-4 fill-charcoal-900" />
               <span>Share Directly to WhatsApp Contacts & Study Groups</span>
             </a>
           </div>
@@ -176,8 +176,8 @@ export const CourseShareModal: React.FC<CourseShareModalProps> = ({
                     key={milestone.pointsNeeded}
                     className={`p-3.5 rounded border transition-colors ${
                       isUnlocked
-                        ? 'bg-emerald-50/60 border-emerald-300'
-                        : 'bg-ivory-200 border-hairline opacity-80'
+                        ? 'bg-ivory-300 border-hairline shadow-quiet'
+                        : 'bg-ivory-200 border-hairline opacity-70'
                     }`}
                   >
                     <div className="flex items-center justify-between mb-1">

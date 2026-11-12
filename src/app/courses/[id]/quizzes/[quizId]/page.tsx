@@ -306,10 +306,10 @@ export default function QuizExamRoomPage() {
                 </h2>
                 <div className="flex items-center justify-center gap-2 mt-2">
                   <span
-                    className={`px-3 py-1 rounded-full text-xs font-mono font-bold border ${
+                    className={`px-3.5 py-1 rounded-full text-xs font-mono font-bold border ${
                       submissionResult?.passed
-                        ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
-                        : 'bg-amber-50 text-amber-800 border-amber-200'
+                        ? 'bg-ivory-200 text-charcoal-900 border-hairline'
+                        : 'bg-ivory-200 text-burgundy-900 border-burgundy-200'
                     }`}
                   >
                     Score: {submissionResult?.percentage}% •{' '}

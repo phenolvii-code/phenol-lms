@@ -175,8 +175,8 @@ export const CourseStudentsModal: React.FC<CourseStudentsModalProps> = ({
               onClick={() => setFilterTab('all')}
               className={`px-3 py-1.5 rounded text-xs font-semibold transition-colors ${
                 filterTab === 'all'
-                  ? 'bg-charcoal-900 text-ivory-100'
-                  : 'bg-white border border-hairline text-charcoal-100 hover:text-charcoal-900'
+                  ? 'bg-burgundy-900 text-ivory-100 shadow-quiet'
+                  : 'bg-ivory-200 border border-hairline text-charcoal-700 hover:text-charcoal-900 hover:bg-ivory-300'
               }`}
             >
               All Students ({enrollments.length})
@@ -185,13 +185,15 @@ export const CourseStudentsModal: React.FC<CourseStudentsModalProps> = ({
               onClick={() => setFilterTab('pending')}
               className={`px-3 py-1.5 rounded text-xs font-semibold transition-colors flex items-center gap-1.5 ${
                 filterTab === 'pending'
-                  ? 'bg-amber-600 text-white'
-                  : 'bg-white border border-hairline text-amber-800 hover:bg-amber-50'
+                  ? 'bg-burgundy-900 text-ivory-100 shadow-quiet'
+                  : 'bg-ivory-200 border border-hairline text-charcoal-700 hover:text-charcoal-900 hover:bg-ivory-300'
               }`}
             >
               <span>Pending Requests</span>
               {pendingList.length > 0 && (
-                <span className="px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-white text-amber-800">
+                <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
+                  filterTab === 'pending' ? 'bg-ochre-500 text-charcoal-900' : 'bg-ivory-300 text-charcoal-900'
+                }`}>
                   {pendingList.length}
                 </span>
               )}
@@ -200,8 +202,8 @@ export const CourseStudentsModal: React.FC<CourseStudentsModalProps> = ({
               onClick={() => setFilterTab('active')}
               className={`px-3 py-1.5 rounded text-xs font-semibold transition-colors ${
                 filterTab === 'active'
-                  ? 'bg-emerald-700 text-white'
-                  : 'bg-white border border-hairline text-emerald-800 hover:bg-emerald-50'
+                  ? 'bg-burgundy-900 text-ivory-100 shadow-quiet'
+                  : 'bg-ivory-200 border border-hairline text-charcoal-700 hover:text-charcoal-900 hover:bg-ivory-300'
               }`}
             >
               Active Enrolled Students ({activeList.length})
@@ -286,7 +288,7 @@ export const CourseStudentsModal: React.FC<CourseStudentsModalProps> = ({
                         href={whatsappLink}
                         target="_blank"
                         rel="noreferrer"
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-xs font-semibold transition-colors"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-ivory-200 hover:bg-ivory-300 text-charcoal-900 border border-hairline text-xs font-semibold transition-colors"
                         title="Chat with student on WhatsApp"
                       >
                         <WhatsAppIcon className="w-3.5 h-3.5" />

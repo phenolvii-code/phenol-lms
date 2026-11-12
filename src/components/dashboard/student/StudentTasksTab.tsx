@@ -39,26 +39,26 @@ export function StudentTasksTab({
                   {sub.taskTitle}
                 </h3>
                 {sub.status === 'graded' ? (
-                  <span className="font-formula font-bold text-xs px-2.5 py-1 rounded bg-emerald-50 text-emerald-800 border border-emerald-200">
+                  <span className="font-formula font-bold text-xs px-2.5 py-1 rounded bg-ivory-200 text-charcoal-900 border border-hairline">
                     Grade: {sub.grade} / {sub.maxGrade}
                   </span>
                 ) : (
-                  <span className="font-formula font-semibold text-xs px-2.5 py-1 rounded bg-amber-50 text-amber-800 border border-amber-200">
+                  <span className="font-formula font-semibold text-xs px-2.5 py-1 rounded bg-ivory-200 text-ochre-600 border border-hairline">
                     Pending Review
                   </span>
                 )}
               </div>
 
-              <p className="text-xs text-charcoal-100 font-sans bg-ivory-200 p-3 rounded leading-relaxed">
+              <p className="text-xs text-charcoal-100 font-sans bg-ivory-200/80 p-3 rounded leading-relaxed border border-hairline">
                 {sub.solutionNotes}
               </p>
 
               {sub.drFeedback && (
-                <div className="bg-burgundy-50/70 border-l-2 border-burgundy-500 p-3 rounded-r text-xs leading-relaxed">
-                  <span className="font-bold text-burgundy-900 block font-sans">
-                    Dr. Omar Magdi Feedback:
+                <div className="bg-ivory-200 border border-hairline p-3.5 rounded-lg text-xs leading-relaxed shadow-quiet space-y-1">
+                  <span className="font-formula text-[10px] uppercase tracking-wider font-bold text-burgundy-500 block">
+                    Feedback — Dr. Omar Magdi
                   </span>
-                  <p className="text-burgundy-950 font-sans mt-0.5">
+                  <p className="text-charcoal-900 font-sans">
                     {sub.drFeedback}
                   </p>
                 </div>

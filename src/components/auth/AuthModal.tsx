@@ -236,9 +236,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         <div className="p-6 overflow-y-auto flex-1">
           {/* Error Message */}
           {errorMessage && (
-            <div className="mb-5 p-3.5 bg-burgundy-50 border border-burgundy-200 text-burgundy-900 rounded text-xs flex items-center gap-2.5">
+            <div className="mb-5 p-3.5 bg-ivory-200 border border-burgundy-200 text-burgundy-900 rounded-lg text-xs flex items-center gap-2.5 shadow-quiet">
               <ShieldAlert className="w-4 h-4 text-burgundy-500 shrink-0" />
-              <span>{errorMessage}</span>
+              <span className="leading-relaxed">{errorMessage}</span>
             </div>
           )}
 
@@ -316,18 +316,18 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
               {resetStatus && (
                 <div
-                  className={`p-3 rounded text-xs flex items-start gap-2 ${
+                  className={`p-3.5 rounded-lg text-xs flex items-start gap-2.5 border shadow-quiet ${
                     resetStatus.type === 'success'
-                      ? 'bg-emerald-50 border border-emerald-200 text-emerald-900'
-                      : 'bg-burgundy-50 border border-burgundy-200 text-burgundy-900'
+                      ? 'bg-ivory-200 border-hairline text-charcoal-900'
+                      : 'bg-ivory-200 border-burgundy-200 text-burgundy-900'
                   }`}
                 >
                   {resetStatus.type === 'success' ? (
-                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                    <CheckCircle2 className="w-4 h-4 text-ochre-500 shrink-0 mt-0.5" />
                   ) : (
                     <ShieldAlert className="w-4 h-4 text-burgundy-500 shrink-0 mt-0.5" />
                   )}
-                  <span>{resetStatus.text}</span>
+                  <span className="leading-relaxed">{resetStatus.text}</span>
                 </div>
               )}
 

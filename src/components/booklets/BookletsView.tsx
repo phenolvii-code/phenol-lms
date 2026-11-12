@@ -77,13 +77,13 @@ export const BookletsView: React.FC<BookletsViewProps> = ({ booklets }) => {
                 onClick={() => handleDownload(b.id, b.title)}
                 className={`inline-flex items-center gap-2 px-4 py-2 rounded text-xs font-semibold font-sans transition-colors ${
                   downloadedIds[b.id]
-                    ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
+                    ? 'bg-ivory-300 text-charcoal-900 border border-hairline'
                     : 'bg-burgundy-500 hover:bg-burgundy-800 text-ivory-100 shadow-quiet'
                 }`}
               >
                 {downloadedIds[b.id] ? (
                   <>
-                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                    <CheckCircle2 className="w-3.5 h-3.5 text-ochre-500" />
                     <span>Dossier Ready</span>
                   </>
                 ) : (

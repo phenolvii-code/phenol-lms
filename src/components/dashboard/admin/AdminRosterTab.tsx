@@ -194,7 +194,7 @@ export function AdminRosterTab({
                       href={waLink}
                       target="_blank"
                       rel="noreferrer"
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-xs font-semibold transition-colors"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded bg-ivory-200 hover:bg-ivory-300 text-charcoal-900 border border-hairline text-xs font-semibold transition-colors"
                     >
                       <WhatsAppIcon className="w-3.5 h-3.5" />
                       <span>WhatsApp Chat</span>
@@ -232,17 +232,17 @@ export function AdminRosterTab({
       {filteredStudents.length > 0 ? (
         <div className="border border-hairline rounded bg-ivory-100 overflow-hidden shadow-quiet">
           <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
+            <table className="w-full text-left border-collapse min-w-[980px]">
               <thead>
-                <tr className="border-b border-hairline bg-ivory-200/80 text-[11px] font-formula uppercase tracking-wider text-charcoal-50">
-                  <th className="py-3 px-4">Forensic Code</th>
-                  <th className="py-3 px-4">Scholar Name</th>
-                  <th className="py-3 px-4">WhatsApp Contact</th>
-                  <th className="py-3 px-4">Track</th>
-                  <th className="py-3 px-4">Active Courses</th>
-                  <th className="py-3 px-4">Syllabus Progress</th>
-                  <th className="py-3 px-4">Quiz Avg</th>
-                  <th className="py-3 px-4 text-right">Actions</th>
+                <tr className="border-b border-hairline bg-ivory-200/80 text-[11px] font-formula uppercase tracking-wider text-charcoal-50 whitespace-nowrap">
+                  <th className="py-3.5 px-4">Forensic Code</th>
+                  <th className="py-3.5 px-4 min-w-[200px]">Scholar Name</th>
+                  <th className="py-3.5 px-4">WhatsApp Contact</th>
+                  <th className="py-3.5 px-4">Track</th>
+                  <th className="py-3.5 px-4">Active Courses</th>
+                  <th className="py-3.5 px-4">Syllabus Progress</th>
+                  <th className="py-3.5 px-4">Quiz Avg</th>
+                  <th className="py-3.5 px-4 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-hairline text-xs font-sans">
@@ -254,7 +254,7 @@ export function AdminRosterTab({
 
                   return (
                     <tr key={st.email} className="hover:bg-ivory-300/30 transition-colors">
-                      <td className="py-3.5 px-4 font-mono font-bold text-burgundy-600">
+                      <td className="py-3.5 px-4 font-mono font-bold text-burgundy-600 whitespace-nowrap">
                         <span className="bg-burgundy-50 border border-burgundy-200 px-2 py-0.5 rounded">
                           {st.code}
                         </span>
@@ -267,30 +267,30 @@ export function AdminRosterTab({
                           {st.email}
                         </span>
                       </td>
-                      <td className="py-3.5 px-4 text-charcoal-100 font-mono text-[11px]">
+                      <td className="py-3.5 px-4 text-charcoal-100 font-mono text-[11px] whitespace-nowrap">
                         <a
                           href={waLink}
                           target="_blank"
                           rel="noreferrer"
-                          className="inline-flex items-center gap-1 text-emerald-800 hover:text-emerald-950 font-semibold"
+                          className="inline-flex items-center gap-1.5 text-charcoal-900 hover:text-burgundy-600 font-semibold"
                           title="Open WhatsApp Chat"
                         >
-                          <WhatsAppIcon className="w-3.5 h-3.5" />
+                          <WhatsAppIcon className="w-3.5 h-3.5 text-emerald-600" />
                           <span>{st.phone}</span>
                         </a>
                       </td>
-                      <td className="py-3.5 px-4">
+                      <td className="py-3.5 px-4 whitespace-nowrap">
                         <span className="font-formula font-bold text-burgundy-500">
                           {st.track}
                         </span>
                       </td>
-                      <td className="py-3.5 px-4">
+                      <td className="py-3.5 px-4 whitespace-nowrap">
                         {st.activeCoursesCount > 0 ? (
-                          <span className="px-2 py-0.5 rounded bg-emerald-50 text-emerald-800 font-mono font-semibold text-xs border border-emerald-200">
+                          <span className="px-2 py-0.5 rounded bg-ivory-300 text-charcoal-900 font-mono font-semibold text-xs border border-hairline">
                             {st.activeCoursesCount} Active Courses
                           </span>
                         ) : (
-                          <span className="px-2 py-0.5 rounded bg-amber-50 text-amber-800 font-mono text-[11px] border border-amber-200">
+                          <span className="px-2 py-0.5 rounded bg-ivory-200 text-charcoal-50 font-mono text-[11px] border border-hairline">
                             Awaiting Course Activation
                           </span>
                         )}
@@ -341,10 +341,10 @@ export function AdminRosterTab({
                             href={waLink}
                             target="_blank"
                             rel="noreferrer"
-                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded border border-emerald-300 bg-emerald-50 text-emerald-800 text-[11px] hover:bg-emerald-100 font-semibold transition-colors"
+                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded border border-hairline bg-ivory-200 text-charcoal-900 text-[11px] hover:bg-ivory-300 font-semibold transition-colors"
                             title="Chat via WhatsApp"
                           >
-                            <WhatsAppIcon className="w-3 h-3" />
+                            <WhatsAppIcon className="w-3 h-3 text-emerald-600" />
                             <span>Message</span>
                           </a>
                         </div>

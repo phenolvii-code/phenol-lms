@@ -185,7 +185,7 @@ export const StudentProfileModal: React.FC<StudentProfileModalProps> = ({
                 <h2 className="text-base sm:text-lg font-bold text-charcoal-900 font-display">
                   {name || user.name}
                 </h2>
-                <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-50 text-emerald-800 border border-emerald-200">
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-ivory-300 text-charcoal-900 border border-hairline font-semibold">
                   Enrolled Scholar
                 </span>
               </div>
@@ -375,11 +375,12 @@ export const StudentProfileModal: React.FC<StudentProfileModalProps> = ({
                       className="p-4 rounded-xl bg-white border border-hairline space-y-2 shadow-quiet"
                     >
                       <div className="flex items-center justify-between">
-                        <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-burgundy-50 text-burgundy-900 font-bold">
+                        <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-ivory-200 text-charcoal-900 border border-hairline font-bold">
                           {enr.course_code || 'CHEM'}
                         </span>
-                        <span className="text-[10px] font-mono text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
-                          Active
+                        <span className="text-[10px] font-mono text-charcoal-900 bg-ivory-200 px-2 py-0.5 rounded border border-hairline flex items-center gap-1 font-semibold">
+                          <span className="w-1.5 h-1.5 rounded-full bg-ochre-500"></span>
+                          <span>Active</span>
                         </span>
                       </div>
                       <h4 className="text-xs font-bold text-charcoal-900">{enr.course_title}</h4>
@@ -442,14 +443,14 @@ export const StudentProfileModal: React.FC<StudentProfileModalProps> = ({
                         key={m.pointsNeeded}
                         className={`p-3.5 rounded-xl border space-y-1.5 transition-all ${
                           isUnlocked
-                            ? 'bg-emerald-50/70 border-emerald-200 text-emerald-950'
-                            : 'bg-white border-hairline text-charcoal-900 opacity-80'
+                            ? 'bg-ivory-200 border-hairline text-charcoal-900 shadow-quiet'
+                            : 'bg-white border-hairline text-charcoal-900 opacity-70'
                         }`}
                       >
                         <div className="flex items-center justify-between">
                           <span
                             className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded ${
-                              isUnlocked ? 'bg-emerald-200/60 text-emerald-900' : 'bg-ivory-200 text-charcoal-100'
+                              isUnlocked ? 'bg-ivory-300 text-charcoal-900 border border-hairline' : 'bg-ivory-200 text-charcoal-100'
                             }`}
                           >
                             {m.badge}
@@ -473,10 +474,10 @@ export const StudentProfileModal: React.FC<StudentProfileModalProps> = ({
             <form onSubmit={handleChangePassword} className="space-y-3.5">
               {passwordStatus.type !== 'idle' && (
                 <div
-                  className={`p-3 rounded text-xs ${
+                  className={`p-3.5 rounded-lg text-xs border shadow-quiet ${
                     passwordStatus.type === 'success'
-                      ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
-                      : 'bg-burgundy-50 text-burgundy-900 border border-burgundy-200'
+                      ? 'bg-ivory-200 text-charcoal-900 border-hairline'
+                      : 'bg-ivory-200 text-burgundy-900 border-burgundy-200'
                   }`}
                 >
                   {passwordStatus.message}

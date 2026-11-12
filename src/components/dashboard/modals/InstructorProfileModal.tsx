@@ -229,16 +229,16 @@ export function InstructorProfileModal({
             </div>
 
             {passwordChangeStatus.type === 'error' && (
-              <div className="p-3 bg-rose-50 border border-rose-200 text-rose-800 text-xs rounded flex items-start gap-2">
-                <X className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
-                <span>{passwordChangeStatus.message}</span>
+              <div className="p-3 bg-ivory-200 border border-burgundy-200 text-burgundy-900 text-xs rounded-lg flex items-start gap-2.5 shadow-quiet">
+                <X className="w-4 h-4 text-burgundy-600 shrink-0 mt-0.5" />
+                <span className="leading-relaxed">{passwordChangeStatus.message}</span>
               </div>
             )}
 
             {passwordChangeStatus.type === 'success' && (
-              <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs rounded flex items-start gap-2">
-                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                <span>{passwordChangeStatus.message}</span>
+              <div className="p-3 bg-ivory-200 border border-hairline text-charcoal-900 text-xs rounded-lg flex items-start gap-2.5 shadow-quiet">
+                <CheckCircle2 className="w-4 h-4 text-ochre-500 shrink-0 mt-0.5" />
+                <span className="leading-relaxed">{passwordChangeStatus.message}</span>
               </div>
             )}
 

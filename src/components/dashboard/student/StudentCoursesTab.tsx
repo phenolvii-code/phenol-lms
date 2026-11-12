@@ -71,14 +71,15 @@ export function StudentCoursesTab({
 
       {/* Course Activation Toast Banner */}
       {enrollmentToast && (
-        <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs sm:text-sm flex items-center justify-between gap-3 shadow-sm animate-fade-in">
-          <div className="flex items-center gap-2">
-            <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
-            <span>{enrollmentToast}</span>
+        <div className="p-4 rounded-xl bg-ivory-100 border border-hairline text-charcoal-900 text-xs sm:text-sm flex items-center justify-between gap-3 shadow-quiet animate-fade-in">
+          <div className="flex items-center gap-3">
+            <CheckCircle2 className="w-4 h-4 text-ochre-500 shrink-0" />
+            <span className="font-sans leading-relaxed">{enrollmentToast}</span>
           </div>
           <button
             onClick={() => setEnrollmentToast(null)}
-            className="text-emerald-800 hover:text-emerald-950 font-bold"
+            className="text-charcoal-500 hover:text-charcoal-900 text-sm font-bold px-1 transition-colors"
+            aria-label="Close notification"
           >
             ✕
           </button>
@@ -96,21 +97,21 @@ export function StudentCoursesTab({
             >
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="font-formula text-xs font-bold text-burgundy-500 bg-burgundy-50 px-2 py-0.5 rounded border border-burgundy-200">
+                  <span className="font-formula text-xs font-bold text-charcoal-900 bg-ivory-200 px-2 py-0.5 rounded border border-hairline">
                     {course.code}
                   </span>
                   {status === 'ACTIVE' ? (
-                    <span className="text-[10px] font-mono font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded flex items-center gap-1">
-                      <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                    <span className="text-[10px] font-mono font-bold text-charcoal-900 bg-ivory-200 border border-hairline px-2.5 py-0.5 rounded flex items-center gap-1.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-ochre-500"></span>
                       <span>Active Access</span>
                     </span>
                   ) : status === 'PENDING' ? (
-                    <span className="text-[10px] font-mono font-bold text-amber-800 bg-amber-50 border border-amber-200 px-2.5 py-0.5 rounded flex items-center gap-1">
-                      <Clock className="w-3 h-3 text-amber-600" />
+                    <span className="text-[10px] font-mono font-bold text-ochre-600 bg-ivory-200 border border-hairline px-2.5 py-0.5 rounded flex items-center gap-1.5">
+                      <Clock className="w-3 h-3 text-ochre-500" />
                       <span>Pending Review</span>
                     </span>
                   ) : (
-                    <span className="text-[10px] font-mono font-bold text-charcoal-100 bg-ivory-200 border border-hairline px-2.5 py-0.5 rounded flex items-center gap-1">
+                    <span className="text-[10px] font-mono font-bold text-charcoal-100 bg-ivory-200 border border-hairline px-2.5 py-0.5 rounded flex items-center gap-1.5">
                       <Lock className="w-3 h-3 text-charcoal-50" />
                       <span>Activation Required</span>
                     </span>

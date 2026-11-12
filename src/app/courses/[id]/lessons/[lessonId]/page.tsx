@@ -417,11 +417,11 @@ export default function LessonExperiencePage() {
                         onClick={toggleCompleted}
                         className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded text-xs font-semibold transition-colors border font-sans ${
                           isCompleted
-                            ? 'bg-emerald-50 border-emerald-300 text-emerald-800'
+                            ? 'bg-ivory-300 border-hairline text-charcoal-900'
                             : 'bg-ivory-200 border-hairline text-charcoal-100 hover:text-charcoal-900'
                         }`}
                       >
-                        <CheckCircle2 className={`w-3.5 h-3.5 ${isCompleted ? 'text-emerald-600' : 'text-charcoal-50'}`} />
+                        <CheckCircle2 className={`w-3.5 h-3.5 ${isCompleted ? 'text-ochre-500' : 'text-charcoal-50'}`} />
                         <span>{isCompleted ? 'Completed' : 'Mark as Completed'}</span>
                       </button>
 
@@ -577,12 +577,18 @@ export default function LessonExperiencePage() {
                       </div>
                     )}
 
-                    <div className="p-4 bg-burgundy-50/50 border border-burgundy-100 rounded space-y-1 text-xs text-charcoal-100 leading-relaxed font-sans">
-                      <strong className="text-burgundy-900 font-semibold flex items-center gap-1.5">
-                        <Sparkles className="w-3.5 h-3.5 text-burgundy-500" />
-                        <span>Dr. Omar Magdi Analytical Note:</span>
-                      </strong>
-                      <p className="text-burgundy-950">
+                    <div className="p-5 bg-ivory-100 border border-hairline rounded-xl space-y-2.5 shadow-quiet font-sans">
+                      <div className="flex items-center gap-2">
+                        <span className="font-formula text-[10px] text-burgundy-500 font-bold uppercase tracking-widest px-2 py-0.5 rounded bg-ivory-200 border border-hairline flex items-center gap-1">
+                          <Sparkles className="w-3 h-3 text-ochre" />
+                          <span>ANALYTICAL DIRECTIVE</span>
+                        </span>
+                        <span className="text-hairline-strong">•</span>
+                        <span className="text-xs font-semibold text-charcoal-900">
+                          Dr. Omar Magdi
+                        </span>
+                      </div>
+                      <p className="text-xs sm:text-sm text-charcoal-100 leading-relaxed">
                         Never memorize reaction products in isolation. Follow the electron trajectory (curved arrows) from the nucleophile to the electrophilic carbon to understand why the transformation is thermodynamically favorable.
                       </p>
                     </div>

@@ -50,11 +50,11 @@ export function AdminSubmissionsTab({
 
                 <div>
                   {sub.status === 'graded' ? (
-                    <span className="font-formula font-bold text-xs px-2.5 py-1 rounded bg-emerald-50 text-emerald-800 border border-emerald-200">
+                    <span className="font-formula font-bold text-xs px-2.5 py-1 rounded bg-ivory-200 text-charcoal-900 border border-hairline">
                       Grade: {sub.grade} / {sub.maxGrade}
                     </span>
                   ) : (
-                    <span className="font-formula font-semibold text-xs px-2.5 py-1 rounded bg-amber-50 text-amber-800 border border-amber-200">
+                    <span className="font-formula font-semibold text-xs px-2.5 py-1 rounded bg-ivory-200 text-ochre-600 border border-hairline">
                       Awaiting Grade
                     </span>
                   )}

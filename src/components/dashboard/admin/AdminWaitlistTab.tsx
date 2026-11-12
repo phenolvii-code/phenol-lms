@@ -87,16 +87,16 @@ export function AdminWaitlistTab({
       {displayedWaitlist.length > 0 ? (
         <div className="border border-hairline rounded bg-ivory-100 overflow-hidden shadow-quiet">
           <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
+            <table className="w-full text-left border-collapse min-w-[920px]">
               <thead>
-                <tr className="border-b border-hairline bg-ivory-200/80 text-[11px] font-formula uppercase tracking-wider text-charcoal-50">
-                  <th className="py-3 px-4">Applicant</th>
-                  <th className="py-3 px-4">Contact (WhatsApp)</th>
-                  <th className="py-3 px-4">Academic Track</th>
-                  <th className="py-3 px-4">Target Course</th>
-                  <th className="py-3 px-4">Date</th>
-                  <th className="py-3 px-4">Status</th>
-                  <th className="py-3 px-4 text-right">Actions</th>
+                <tr className="border-b border-hairline bg-ivory-200/80 text-[11px] font-formula uppercase tracking-wider text-charcoal-50 whitespace-nowrap">
+                  <th className="py-3.5 px-4 min-w-[200px]">Applicant</th>
+                  <th className="py-3.5 px-4">Contact (WhatsApp)</th>
+                  <th className="py-3.5 px-4">Academic Track</th>
+                  <th className="py-3.5 px-4">Target Course</th>
+                  <th className="py-3.5 px-4">Date</th>
+                  <th className="py-3.5 px-4">Status</th>
+                  <th className="py-3.5 px-4 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-hairline text-xs font-sans">
@@ -114,46 +114,46 @@ export function AdminWaitlistTab({
                           {app.email}
                         </span>
                       </td>
-                      <td className="py-3.5 px-4 font-formula text-charcoal-900">
+                      <td className="py-3.5 px-4 font-formula text-charcoal-900 whitespace-nowrap">
                         <a
                           href={waUrl}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1.5 text-emerald-700 hover:text-emerald-900 font-semibold"
+                          className="inline-flex items-center gap-1.5 text-charcoal-900 hover:text-burgundy-600 font-semibold"
                         >
-                          <MessageCircle className="w-3.5 h-3.5" />
+                          <MessageCircle className="w-3.5 h-3.5 text-emerald-600" />
                           <span>{app.phone}</span>
                         </a>
                       </td>
-                      <td className="py-3.5 px-4 text-charcoal-900 font-medium">
+                      <td className="py-3.5 px-4 text-charcoal-900 font-medium whitespace-nowrap">
                         {app.academicTrack}
                       </td>
-                      <td className="py-3.5 px-4">
+                      <td className="py-3.5 px-4 whitespace-nowrap">
                         <span className="font-formula font-semibold text-burgundy-500 bg-burgundy-50 px-2 py-0.5 rounded border border-burgundy-200 text-[11px]">
                           {app.targetCourse.split(' - ')[0]}
                         </span>
                       </td>
-                      <td className="py-3.5 px-4 font-formula text-charcoal-50">
+                      <td className="py-3.5 px-4 font-formula text-charcoal-50 whitespace-nowrap">
                         {app.appliedAt}
                       </td>
-                      <td className="py-3.5 px-4">
+                      <td className="py-3.5 px-4 whitespace-nowrap">
                         {app.status === 'pending' && (
-                          <span className="px-2 py-0.5 rounded bg-amber-50 text-amber-800 border border-amber-200 text-[11px] font-semibold">
+                          <span className="px-2 py-0.5 rounded bg-ivory-200 text-charcoal-100 border border-hairline text-[11px] font-semibold">
                             Under Review
                           </span>
                         )}
                         {app.status === 'approved' && (
-                          <span className="px-2 py-0.5 rounded bg-emerald-50 text-emerald-800 border border-emerald-200 text-[11px] font-semibold">
+                          <span className="px-2 py-0.5 rounded bg-burgundy-50 text-burgundy-900 border border-burgundy-200 text-[11px] font-semibold">
                             Enrolled
                           </span>
                         )}
                         {app.status === 'contacted' && (
-                          <span className="px-2 py-0.5 rounded bg-blue-50 text-blue-800 border border-blue-200 text-[11px] font-semibold">
+                          <span className="px-2 py-0.5 rounded bg-ivory-300 text-charcoal-900 border border-hairline text-[11px] font-semibold">
                             Contacted
                           </span>
                         )}
                         {app.status === 'declined' && (
-                          <span className="px-2 py-0.5 rounded bg-rose-50 text-rose-800 border border-rose-200 text-[11px] font-semibold">
+                          <span className="px-2 py-0.5 rounded bg-ivory-300 text-burgundy-900 border border-burgundy-200 text-[11px] font-semibold">
                             Declined
                           </span>
                         )}
@@ -165,7 +165,7 @@ export function AdminWaitlistTab({
                             target="_blank"
                             rel="noopener noreferrer"
                             title="Open WhatsApp chat"
-                            className="p-1.5 rounded hover:bg-emerald-50 text-emerald-700 border border-transparent hover:border-emerald-200 transition-colors"
+                            className="p-1.5 rounded hover:bg-ivory-300 text-charcoal-700 border border-transparent hover:border-hairline transition-colors"
                           >
                             <MessageCircle className="w-3.5 h-3.5" />
                           </a>
@@ -174,7 +174,7 @@ export function AdminWaitlistTab({
                             <button
                               onClick={() => handleUpdateWaitlistStatus(app.id, 'approved')}
                               title="Approve & Enroll"
-                              className="p-1.5 rounded hover:bg-emerald-50 text-emerald-700 border border-transparent hover:border-emerald-200 transition-colors"
+                              className="p-1.5 rounded hover:bg-ivory-300 text-ochre-600 border border-transparent hover:border-hairline transition-colors"
                             >
                               <Check className="w-3.5 h-3.5" />
                             </button>
@@ -184,7 +184,7 @@ export function AdminWaitlistTab({
                             <button
                               onClick={() => handleUpdateWaitlistStatus(app.id, 'declined')}
                               title="Decline Application"
-                              className="p-1.5 rounded hover:bg-rose-50 text-rose-700 border border-transparent hover:border-rose-200 transition-colors"
+                              className="p-1.5 rounded hover:bg-ivory-300 text-burgundy-600 border border-transparent hover:border-hairline transition-colors"
                             >
                               <X className="w-3.5 h-3.5" />
                             </button>

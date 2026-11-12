@@ -283,14 +283,15 @@ export default function CourseDetailsPage() {
 
           {/* Enrollment Request Toast */}
           {requestToast && (
-            <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs sm:text-sm flex items-center justify-between gap-3 shadow-sm animate-fade-in">
-              <div className="flex items-center gap-2">
-                <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
-                <span>Course activation request submitted to Dr. Omar Magdi. Your access will be reviewed and activated shortly.</span>
+            <div className="p-4 rounded-xl bg-ivory-100 border border-hairline text-charcoal-900 text-xs sm:text-sm flex items-center justify-between gap-3 shadow-quiet animate-fade-in">
+              <div className="flex items-center gap-3">
+                <CheckCircle2 className="w-4 h-4 text-ochre-500 shrink-0" />
+                <span className="font-sans leading-relaxed">Course activation request submitted to Dr. Omar Magdi. Your access will be reviewed and activated shortly.</span>
               </div>
               <button
                 onClick={() => setRequestToast(false)}
-                className="text-emerald-800 hover:text-emerald-950 font-bold"
+                className="text-charcoal-500 hover:text-charcoal-900 text-sm font-bold px-1 transition-colors"
+                aria-label="Close notification"
               >
                 ✕
               </button>

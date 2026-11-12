@@ -145,18 +145,18 @@ export default function LoginPage() {
 
               {resetStatus && (
                 <div
-                  className={`p-3 rounded text-xs flex items-start gap-2 ${
+                  className={`p-3.5 rounded-lg text-xs flex items-start gap-2.5 border shadow-quiet ${
                     resetStatus.type === 'success'
-                      ? 'bg-emerald-50 border border-emerald-200 text-emerald-900'
-                      : 'bg-burgundy-50 border border-burgundy-200 text-burgundy-900'
+                      ? 'bg-ivory-100 border-hairline text-charcoal-900'
+                      : 'bg-ivory-100 border-burgundy-200 text-burgundy-900'
                   }`}
                 >
                   {resetStatus.type === 'success' ? (
-                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                    <CheckCircle2 className="w-4 h-4 text-ochre-500 shrink-0 mt-0.5" />
                   ) : (
                     <ShieldAlert className="w-4 h-4 text-burgundy-500 shrink-0 mt-0.5" />
                   )}
-                  <span>{resetStatus.text}</span>
+                  <span className="leading-relaxed">{resetStatus.text}</span>
                 </div>
               )}
 
@@ -218,9 +218,9 @@ export default function LoginPage() {
               </div>
 
               {errorMessage && (
-                <div className="p-3 rounded bg-burgundy-50 border border-burgundy-200 text-burgundy-900 text-xs flex items-start gap-2">
+                <div className="p-3.5 rounded-lg bg-ivory-100 border border-burgundy-200 text-burgundy-900 text-xs flex items-start gap-2.5 shadow-quiet">
                   <ShieldAlert className="w-4 h-4 text-burgundy-500 shrink-0 mt-0.5" />
-                  <span>{errorMessage}</span>
+                  <span className="leading-relaxed">{errorMessage}</span>
                 </div>
               )}
 

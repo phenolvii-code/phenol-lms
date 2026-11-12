@@ -56,16 +56,16 @@ export const ComparisonSection: React.FC = () => {
 
         {/* 3 Rows Highlight Matrix */}
         <div className="overflow-x-auto -mx-4 sm:mx-0 border-t border-hairline pt-6">
-          <table className="w-full text-left border-collapse min-w-[620px]">
+          <table className="w-full text-left border-collapse min-w-[820px] lg:min-w-full table-fixed">
             <thead>
-              <tr className="border-b border-hairline">
-                <th className="py-3 pr-4 font-display text-xs font-bold uppercase tracking-wider text-charcoal-900 w-1/4">
+              <tr className="border-b border-hairline bg-ivory-100/60 text-xs">
+                <th className="py-3.5 pr-6 pl-2 font-display font-bold uppercase tracking-wider text-charcoal-900 w-[22%] whitespace-nowrap">
                   Dimension
                 </th>
-                <th className="py-3 px-4 font-display text-xs font-semibold uppercase tracking-wider text-charcoal-50 w-3/8">
+                <th className="py-3.5 px-6 font-display font-semibold uppercase tracking-wider text-charcoal-50 w-[39%]">
                   • Traditional Rote Learning
                 </th>
-                <th className="py-3 pl-4 font-display text-xs font-bold uppercase tracking-wider text-burgundy-500 w-3/8">
+                <th className="py-3.5 pl-6 pr-2 font-display font-bold uppercase tracking-wider text-burgundy-500 w-[39%]">
                   • PHENOL First-Principles Pedagogy
                 </th>
               </tr>
@@ -73,14 +73,14 @@ export const ComparisonSection: React.FC = () => {
             <tbody className="divide-y divide-hairline">
               {previewRows.map((r, i) => (
                 <tr key={i} className="hover:bg-ivory-300/40 transition-colors">
-                  <td className="py-3.5 pr-4 font-sans text-xs sm:text-sm font-bold text-charcoal-900 align-top">
+                  <td className="py-4 sm:py-5 pr-6 pl-2 font-sans text-xs sm:text-sm font-bold text-charcoal-900 align-top whitespace-nowrap">
                     {r.dim}
                   </td>
-                  <td className="py-3.5 px-4 font-sans text-xs text-charcoal-100/80 align-top leading-relaxed">
+                  <td className="py-4 sm:py-5 px-6 font-sans text-xs sm:text-sm text-charcoal-100/90 align-top leading-relaxed">
                     <span className="text-charcoal-50 font-bold mr-1.5">✕</span>
                     {r.traditional}
                   </td>
-                  <td className="py-3.5 pl-4 font-sans text-xs text-charcoal-900 font-medium align-top leading-relaxed">
+                  <td className="py-4 sm:py-5 pl-6 pr-2 font-sans text-xs sm:text-sm text-charcoal-900 font-medium align-top leading-relaxed">
                     <span className="text-burgundy-500 font-bold mr-1.5">✓</span>
                     {r.phenol}
                   </td>
