@@ -114,6 +114,7 @@ export default function DashboardPage() {
   // Profile Modal State (Instructor)
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [profileModalTab, setProfileModalTab] = useState<'info' | 'security'>('info');
+  const [profileAvatar, setProfileAvatar] = useState(currentUser?.avatar || '');
   const [profileName, setProfileName] = useState('');
   const [profileTitle, setProfileTitle] = useState('');
   const [profileSpecialization, setProfileSpecialization] = useState('');
@@ -298,10 +299,11 @@ export default function DashboardPage() {
     if (currentUser.role === 'STUDENT') {
       setIsStudentProfileOpen(true);
     } else {
+      setProfileAvatar(currentUser.avatar || '');
       setProfileName(currentUser.name || 'Dr. Omar Magdi');
       setProfileTitle(currentUser.title || 'Academic Director & Senior Fellow');
       setProfileSpecialization(currentUser.specialization || 'Organic Reaction Mechanisms & Physical Chemistry');
-      setProfileBio(currentUser.bio || 'Specialist in organic mechanisms, reaction kinetics, and first-principles pedagogy across 4 Core Tracks.');
+      setProfileBio(currentUser.bio || 'PharmD graduate and chemistry educator. Focused on first-principles causality, physical chemistry, reaction mechanisms, and intellectual scientific pedagogy.');
       setProfilePhone(currentUser.phone || '');
       setIsProfileModalOpen(true);
     }
@@ -310,7 +312,51 @@ export default function DashboardPage() {
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!currentUser) return;
-    setIsProfileModalOpen(false);
+    try {
+      const updatedUser: AuthUser = {
+        ...currentUser,
+        name: profileName.trim(),
+        title: profileTitle.trim(),
+        specialization: profileSpecialization.trim(),
+        bio: profileBio.trim(),
+        phone: profilePhone.trim(),
+        avatar: profileAvatar,
+      };
+
+      // 1. Supabase User Metadata
+      await supabase.auth.updateUser({
+        data: {
+          full_name: profileName.trim(),
+          title: profileTitle.trim(),
+          specialization: profileSpecialization.trim(),
+          bio: profileBio.trim(),
+          phone: profilePhone.trim(),
+          avatar: profileAvatar,
+          avatar_url: profileAvatar,
+        },
+      });
+
+      // 2. Profiles table
+      try {
+        await supabase.from('profiles').update({
+          full_name: profileName.trim(),
+          phone: profilePhone.trim(),
+          avatar_url: profileAvatar,
+        }).eq('id', currentUser.id);
+      } catch (e) {}
+
+      // 3. Local Cache
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(`phenol_instructor_profile_${currentUser.id}`, JSON.stringify(updatedUser));
+        localStorage.setItem(`phenol_avatar_${currentUser.id}`, profileAvatar);
+      }
+
+      setEnrollmentToast('Profile and photograph updated successfully!');
+      setTimeout(() => setEnrollmentToast(null), 4000);
+      setIsProfileModalOpen(false);
+    } catch (err: any) {
+      alert(err.message || 'Error updating profile');
+    }
   };
 
   const handleChangePassword = async (e: React.FormEvent) => {
@@ -420,6 +466,9 @@ export default function DashboardPage() {
   const handleCreateCourse = async (e: React.FormEvent) => {
     e.preventDefault();
     const trackObj = ACADEMIC_TRACKS.find((t) => t.id === newCourseCategory);
+    const isSuperAdmin = currentUser?.email?.toLowerCase() === 'phenolvii@gmail.com' || currentUser?.isSuperAdmin;
+    const approvalStatus = isSuperAdmin ? ('APPROVED' as const) : ('PENDING' as const);
+
     const newCourse: ChemistryCourse = {
       id: `chem-${Date.now()}`,
       code: newCourseCode.trim() || `CHEM-${newCourseCategory.toUpperCase()}`,
@@ -434,6 +483,12 @@ export default function DashboardPage() {
       totalHours: newCourseHours,
       colorAccent: '#641C32',
       accentBg: 'bg-burgundy-950',
+      instructorId: currentUser?.id,
+      instructorName: currentUser?.name || 'Academic Instructor',
+      instructorEmail: currentUser?.email,
+      instructorAvatar: profileAvatar || currentUser?.avatar,
+      approvalStatus,
+      submittedAt: new Date().toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }),
       lessons: [],
     };
 
@@ -448,6 +503,59 @@ export default function DashboardPage() {
     setNewCourseLevel('');
     setNewCourseFormula('');
     setNewCourseDesc('');
+
+    if (approvalStatus === 'APPROVED') {
+      setEnrollmentToast('Course created and published live on the platform.');
+    } else {
+      setEnrollmentToast('Course proposal submitted! It is now pending approval by Academic Director Dr. Omar Magdi.');
+    }
+    setTimeout(() => setEnrollmentToast(null), 4500);
+  };
+
+  const handleApproveCourse = async (courseId: string) => {
+    const updated = courses.map((c) =>
+      c.id === courseId ? { ...c, approvalStatus: 'APPROVED' as const } : c
+    );
+    setCourses(updated);
+    await saveStoredCourses(updated);
+    setEnrollmentToast('Course approved and published live.');
+    setTimeout(() => setEnrollmentToast(null), 4000);
+  };
+
+  const handleRejectCourse = async (courseId: string) => {
+    const updated = courses.map((c) =>
+      c.id === courseId ? { ...c, approvalStatus: 'REJECTED' as const } : c
+    );
+    setCourses(updated);
+    await saveStoredCourses(updated);
+    setEnrollmentToast('Course proposal rejected.');
+    setTimeout(() => setEnrollmentToast(null), 4000);
+  };
+
+  const handleToggleUserRole = async (userId: string, email: string, currentRole: 'instructor' | 'student') => {
+    const newRole = currentRole === 'instructor' ? 'student' : 'instructor';
+    try {
+      await supabase.from('profiles').update({ role: newRole }).eq('email', email);
+      if (userId) {
+        await supabase.from('profiles').update({ role: newRole }).eq('id', userId);
+      }
+    } catch (e) {}
+
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(`phenol_user_role_${email.toLowerCase()}`, newRole);
+      const raw = localStorage.getItem('phenol_registered_students');
+      if (raw) {
+        const list = JSON.parse(raw);
+        const updatedList = list.map((st: any) =>
+          st.email?.toLowerCase() === email.toLowerCase() ? { ...st, role: newRole } : st
+        );
+        localStorage.setItem('phenol_registered_students', JSON.stringify(updatedList));
+      }
+      window.dispatchEvent(new Event('phenol_students_updated'));
+    }
+
+    setEnrollmentToast(`User ${email} role switched to ${newRole === 'instructor' ? 'Academic Instructor' : 'Student / Scholar'}`);
+    setTimeout(() => setEnrollmentToast(null), 4000);
   };
 
   const handleOpenEditCourse = (course: ChemistryCourse) => {
@@ -829,6 +937,9 @@ export default function DashboardPage() {
                 setIsDirectEnrollModalOpen(true);
               }}
               onManualAddStudent={() => setIsManualAddStudentModalOpen(true)}
+              onApproveCourse={handleApproveCourse}
+              onRejectCourse={handleRejectCourse}
+              onToggleUserRole={handleToggleUserRole}
             />
           ) : (
           <div className="space-y-8">
@@ -836,12 +947,16 @@ export default function DashboardPage() {
             <div className="p-6 sm:p-7 rounded-2xl bg-ivory-100 border border-hairline shadow-quiet flex flex-col md:flex-row md:items-center justify-between gap-6">
               <div className="flex items-start sm:items-center gap-4 sm:gap-5">
                 <div className="relative group shrink-0">
-                  <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl overflow-hidden border border-hairline shadow-quiet bg-ivory-200">
-                    <img
-                      src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80"
-                      alt={currentUser.name || 'Dr. Omar Magdi'}
-                      className="w-full h-full object-cover"
-                    />
+                  <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl overflow-hidden border border-hairline shadow-quiet bg-ivory-200 flex items-center justify-center">
+                    {profileAvatar || currentUser.avatar ? (
+                      <img
+                        src={profileAvatar || currentUser.avatar}
+                        alt={currentUser.name || 'Dr. Omar Magdi'}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <Initials name={currentUser.name || 'Dr. Omar Magdi'} size="lg" />
+                    )}
                   </div>
                   <button
                     onClick={handleOpenProfileModal}
@@ -1239,6 +1354,8 @@ export default function DashboardPage() {
         onClose={() => setIsProfileModalOpen(false)}
         tab={profileModalTab}
         setTab={setProfileModalTab}
+        avatar={profileAvatar}
+        setAvatar={setProfileAvatar}
         name={profileName}
         setName={setProfileName}
         title={profileTitle}

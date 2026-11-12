@@ -78,6 +78,9 @@ export interface ChemistryCourse {
   instructorTitle?: string;
   instructorAvatar?: string;
   instructorWhatsapp?: string;
+  instructorEmail?: string;
+  approvalStatus?: 'APPROVED' | 'PENDING' | 'REJECTED';
+  submittedAt?: string;
   level: string;
   molecularFormula?: string;
   thumbnail: string;

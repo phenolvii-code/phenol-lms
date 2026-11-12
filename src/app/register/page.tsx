@@ -6,13 +6,14 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { PhenolLogo } from '@/components/brand/PhenolLogo';
 import { GoogleIcon, WhatsAppIcon } from '@/components/auth/AuthIcons';
-import { Lock, Mail, User, Phone, ShieldAlert, ArrowRight } from 'lucide-react';
+import { Lock, Mail, User, Phone, ShieldAlert, ArrowRight, GraduationCap, ShieldCheck } from 'lucide-react';
 
 function RegisterFormContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirectParam = searchParams?.get('redirect') || '/dashboard';
 
+  const [accountType, setAccountType] = useState<'STUDENT' | 'INSTRUCTOR'>('STUDENT');
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
@@ -46,7 +47,8 @@ function RegisterFormContent() {
         : null;
 
     try {
-      const { error } = await supabase.auth.signUp({
+      const isInst = accountType === 'INSTRUCTOR';
+      const { data: authData, error } = await supabase.auth.signUp({
         email: cleanEmail,
         password,
         options: {
@@ -54,6 +56,8 @@ function RegisterFormContent() {
             full_name: fullName.trim(),
             phone: phone.trim(),
             academic_level: academicLevel,
+            role: isInst ? 'instructor' : 'student',
+            account_type: accountType,
             referred_by: refCode || undefined,
           },
         },
@@ -62,6 +66,19 @@ function RegisterFormContent() {
       if (error) {
         setErrorMessage(error.message);
         return;
+      }
+
+      // Upsert profile role
+      if (authData?.user) {
+        try {
+          await supabase.from('profiles').upsert({
+            id: authData.user.id,
+            role: isInst ? 'instructor' : 'student',
+            full_name: fullName.trim(),
+            phone: phone.trim(),
+            created_at: new Date().toISOString(),
+          });
+        } catch (e) {}
       }
 
       router.push(redirectParam);
@@ -150,8 +167,41 @@ function RegisterFormContent() {
 
           <form onSubmit={handleRegister} className="space-y-3.5">
             <div>
+              <label className="block text-xs font-semibold text-charcoal-900 font-sans mb-1.5">
+                Registering As
+              </label>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setAccountType('STUDENT')}
+                  className={`py-2 px-3 text-xs font-bold rounded-lg border transition-all flex items-center justify-center gap-1.5 ${
+                    accountType === 'STUDENT'
+                      ? 'bg-burgundy-500 text-ivory-100 border-burgundy-500 shadow-quiet'
+                      : 'bg-ivory-50 text-charcoal-100 border-hairline hover:text-charcoal-900'
+                  }`}
+                >
+                  <GraduationCap className="w-3.5 h-3.5" />
+                  <span>Student / Scholar</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setAccountType('INSTRUCTOR')}
+                  className={`py-2 px-3 text-xs font-bold rounded-lg border transition-all flex items-center justify-center gap-1.5 ${
+                    accountType === 'INSTRUCTOR'
+                      ? 'bg-burgundy-500 text-ivory-100 border-burgundy-500 shadow-quiet'
+                      : 'bg-ivory-50 text-charcoal-100 border-hairline hover:text-charcoal-900'
+                  }`}
+                >
+                  <ShieldCheck className="w-3.5 h-3.5" />
+                  <span>Academic Instructor</span>
+                </button>
+              </div>
+            </div>
+
+            <div>
               <label className="block text-xs font-semibold text-charcoal-900 font-sans mb-1">
-                Full Scholar Name
+                {accountType === 'INSTRUCTOR' ? 'Instructor Full Name' : 'Full Scholar Name'}
               </label>
               <div className="relative">
                 <User className="w-4 h-4 text-charcoal-50 absolute left-3 top-2.5 pointer-events-none" />

@@ -79,17 +79,6 @@ export const INSTRUCTOR: InstructorProfile = {
 
 export const FACULTY_MEMBERS: InstructorProfile[] = [
   INSTRUCTOR,
-  {
-    id: 'faculty-physics-fellow',
-    name: 'Academic Faculty Fellow',
-    title: 'Senior Fellow in Theoretical Physics & Mathematics',
-    bio: 'Dedicated to deconstructing Newtonian dynamics, electromagnetism, and calculus into intuitive first-principles causality.',
-    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300&auto=format&fit=crop&q=80',
-    specialization: 'Theoretical Physics, Calculus & Applied Mechanics',
-    supervisionScope: 'Secondary & British Curriculum Tracks',
-    subjects: ['Physics', 'Applied Mechanics'],
-    coursesCount: 1,
-  },
 ];
 
 export const CHEMISTRY_COURSES: ChemistryCourse[] = [];

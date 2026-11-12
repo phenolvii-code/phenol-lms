@@ -1,9 +1,9 @@
 'use client';
 
-import React from 'react';
+import React, { useRef } from 'react';
 import { AuthUser } from '@/types/auth';
 import { Initials } from '@/components/ui/Initials';
-import { X, Lock, KeyRound, CheckCircle2 } from 'lucide-react';
+import { X, Lock, KeyRound, CheckCircle2, Upload, Trash2, Camera, Link as LinkIcon } from 'lucide-react';
 
 interface InstructorProfileModalProps {
   isOpen: boolean;
@@ -66,9 +66,31 @@ export function InstructorProfileModal({
   setPasswordChangeStatus,
   onChangePassword,
   currentUser,
-  setCurrentUser,
 }: InstructorProfileModalProps) {
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
   if (!isOpen) return null;
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      alert('Please select a valid image file (PNG, JPG, WEBP).');
+      return;
+    }
+    // Limit to 5MB
+    if (file.size > 5 * 1024 * 1024) {
+      alert('Image file size must be less than 5MB.');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === 'string' && setAvatar) {
+        setAvatar(reader.result);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-charcoal-900/60 backdrop-blur-sm animate-fade-in font-sans">
@@ -76,10 +98,10 @@ export function InstructorProfileModal({
         <div className="p-5 border-b border-hairline bg-ivory-200 flex items-center justify-between shrink-0">
           <div>
             <span className="font-formula text-xs text-burgundy-500 font-bold uppercase tracking-wider block">
-              PROFILE SETTINGS
+              INSTRUCTOR SETTINGS
             </span>
             <h3 className="font-bold text-charcoal-900 font-display text-sm sm:text-base">
-              Edit Personal & Academic Profile
+              Edit Instructor Profile & Photo
             </h3>
           </div>
           <button
@@ -101,7 +123,7 @@ export function InstructorProfileModal({
                 : 'border-transparent text-charcoal-100 hover:text-charcoal-900'
             }`}
           >
-            Personal Details
+            Personal & Academic Details
           </button>
           <button
             type="button"
@@ -121,13 +143,85 @@ export function InstructorProfileModal({
         </div>
 
         {tab === 'info' ? (
-          <form onSubmit={onSaveProfile} className="p-6 overflow-y-auto space-y-4 flex-1">
-            <div className="p-4 rounded-xl bg-ivory-200/70 border border-hairline flex flex-col sm:flex-row items-center gap-4">
-              <Initials name={name || 'Dr. Omar Magdi'} size="xl" />
-              <div className="flex-1 space-y-1 text-center sm:text-left">
-                <h4 className="font-bold text-sm text-charcoal-900">{name || 'Dr. Omar Magdi'}</h4>
-                <p className="text-xs text-charcoal-100">{title || 'Academic Director & Senior Fellow'}</p>
-                <p className="text-[11px] font-mono text-charcoal-50">{specialization}</p>
+          <form onSubmit={onSaveProfile} className="p-6 overflow-y-auto space-y-5 flex-1">
+            {/* AVATAR UPLOAD SECTION (Instructors Only) */}
+            <div className="p-4 rounded-2xl bg-ivory-200/70 border border-hairline flex flex-col sm:flex-row items-center gap-5">
+              <div className="relative group shrink-0">
+                <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl overflow-hidden border-2 border-hairline shadow-quiet bg-ivory-100 flex items-center justify-center">
+                  {avatar ? (
+                    <img
+                      src={avatar}
+                      alt={name || 'Instructor'}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <Initials name={name || 'Dr. Omar Magdi'} size="xl" />
+                  )}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-burgundy-500 hover:bg-burgundy-900 text-ivory-100 flex items-center justify-center border-2 border-ivory-100 shadow-sm transition-all"
+                  title="Upload New Photo"
+                >
+                  <Camera className="w-3.5 h-3.5" />
+                </button>
+
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  accept="image/png,image/jpeg,image/webp,image/jpg"
+                  onChange={handleFileSelect}
+                  className="hidden"
+                />
+              </div>
+
+              <div className="flex-1 space-y-2 text-center sm:text-left">
+                <div>
+                  <h4 className="font-bold text-sm text-charcoal-900 font-display">
+                    Profile Photograph
+                  </h4>
+                  <p className="text-xs text-charcoal-100 font-sans">
+                    Instructors can upload their portrait photo or provide an external image link. Students do not have this privilege.
+                  </p>
+                </div>
+
+                <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-burgundy-500 hover:bg-burgundy-900 text-ivory-100 text-xs font-semibold shadow-quiet transition-colors"
+                  >
+                    <Upload className="w-3.5 h-3.5" />
+                    <span>Upload Image File</span>
+                  </button>
+
+                  {avatar && (
+                    <button
+                      type="button"
+                      onClick={() => setAvatar && setAvatar('')}
+                      className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-ivory-100 hover:bg-ivory-300 text-charcoal-100 hover:text-burgundy-600 border border-hairline text-xs font-medium transition-colors"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      <span>Remove</span>
+                    </button>
+                  )}
+                </div>
+
+                {/* Direct Image URL input option */}
+                <div className="pt-2">
+                  <div className="relative">
+                    <LinkIcon className="w-3.5 h-3.5 text-charcoal-50 absolute left-2.5 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="url"
+                      placeholder="Or paste direct image URL (https://...)"
+                      value={avatar || ''}
+                      onChange={(e) => setAvatar && setAvatar(e.target.value)}
+                      className="w-full pl-8 pr-3 py-1.5 text-xs bg-white border border-hairline rounded font-mono text-charcoal-900 focus:outline-none focus:border-burgundy-500"
+                    />
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -168,7 +262,7 @@ export function InstructorProfileModal({
                   type="text"
                   value={specialization}
                   onChange={(e) => setSpecialization(e.target.value)}
-                  placeholder="Organic Reaction Mechanisms"
+                  placeholder="Organic Reaction Mechanisms & Physical Chemistry"
                   className="w-full px-3 py-2 text-xs bg-white border border-hairline rounded text-charcoal-900 focus:outline-none focus:border-burgundy-500"
                 />
               </div>
@@ -195,7 +289,7 @@ export function InstructorProfileModal({
                 rows={3}
                 value={bio}
                 onChange={(e) => setBio(e.target.value)}
-                placeholder="Specialist in organic mechanisms and advanced physical chemistry..."
+                placeholder="PharmD graduate and chemistry educator. Focused on first-principles causality..."
                 className="w-full px-3 py-2 text-xs bg-white border border-hairline rounded text-charcoal-900 font-sans focus:outline-none focus:border-burgundy-500 leading-relaxed"
               />
             </div>
@@ -210,7 +304,7 @@ export function InstructorProfileModal({
               </button>
               <button
                 type="submit"
-                className="px-5 py-2 rounded bg-burgundy-900 hover:bg-black text-ivory-100 text-xs font-semibold shadow-quiet transition-colors"
+                className="px-6 py-2.5 rounded-xl bg-burgundy-500 hover:bg-burgundy-900 text-ivory-100 text-xs font-bold shadow-md hover:shadow-lg transition-all ring-2 ring-burgundy-500/20"
               >
                 Save Profile Changes
               </button>
@@ -252,38 +346,36 @@ export function InstructorProfileModal({
                 value={currentPasswordInput}
                 onChange={(e) => setCurrentPasswordInput(e.target.value)}
                 placeholder="Enter current password"
-                className="w-full px-3 py-2 text-xs bg-white border border-hairline rounded text-charcoal-900 focus:outline-none focus:border-burgundy-500 font-mono"
+                className="w-full px-3 py-2 text-xs bg-white border border-hairline rounded text-charcoal-900 font-mono focus:outline-none focus:border-burgundy-500"
               />
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-semibold text-charcoal-900 font-sans mb-1">
-                  New Password
-                </label>
-                <input
-                  type="password"
-                  required
-                  value={newPasswordInput}
-                  onChange={(e) => setNewPasswordInput(e.target.value)}
-                  placeholder="At least 6 characters"
-                  className="w-full px-3 py-2 text-xs bg-white border border-hairline rounded text-charcoal-900 focus:outline-none focus:border-burgundy-500 font-mono"
-                />
-              </div>
+            <div>
+              <label className="block text-xs font-semibold text-charcoal-900 font-sans mb-1">
+                New Password
+              </label>
+              <input
+                type="password"
+                required
+                value={newPasswordInput}
+                onChange={(e) => setNewPasswordInput(e.target.value)}
+                placeholder="Minimum 6 characters"
+                className="w-full px-3 py-2 text-xs bg-white border border-hairline rounded text-charcoal-900 font-mono focus:outline-none focus:border-burgundy-500"
+              />
+            </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-charcoal-900 font-sans mb-1">
-                  Confirm New Password
-                </label>
-                <input
-                  type="password"
-                  required
-                  value={confirmPasswordInput}
-                  onChange={(e) => setConfirmPasswordInput(e.target.value)}
-                  placeholder="Repeat new password"
-                  className="w-full px-3 py-2 text-xs bg-white border border-hairline rounded text-charcoal-900 focus:outline-none focus:border-burgundy-500 font-mono"
-                />
-              </div>
+            <div>
+              <label className="block text-xs font-semibold text-charcoal-900 font-sans mb-1">
+                Confirm New Password
+              </label>
+              <input
+                type="password"
+                required
+                value={confirmPasswordInput}
+                onChange={(e) => setConfirmPasswordInput(e.target.value)}
+                placeholder="Repeat new password"
+                className="w-full px-3 py-2 text-xs bg-white border border-hairline rounded text-charcoal-900 font-mono focus:outline-none focus:border-burgundy-500"
+              />
             </div>
 
             <div className="flex justify-end gap-2 pt-4 border-t border-hairline shrink-0">

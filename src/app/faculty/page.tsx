@@ -49,47 +49,53 @@ export default function FacultyPage() {
 
         {/* Faculty Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          {FACULTY_MEMBERS.map((faculty, idx) => (
-            <div
-              key={faculty.id || idx}
-              className="p-6 sm:p-8 rounded-2xl bg-ivory-100 border border-hairline shadow-quiet hover:shadow-editorial transition-all space-y-6 flex flex-col justify-between"
-            >
-              <div className="space-y-5">
-                {/* Header with Avatar & Title */}
-                <div className="flex items-start gap-4 sm:gap-5">
-                  <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl overflow-hidden border border-hairline shrink-0 shadow-quiet bg-ivory-200">
-                    <img
-                      src={faculty.avatar}
-                      alt={faculty.name}
-                      className="w-full h-full object-cover"
-                      loading="lazy"
-                    />
-                  </div>
+          {FACULTY_MEMBERS.map((faculty, idx) => {
+            const displayAvatar = (idx === 0 && currentUser?.avatar) ? currentUser.avatar : faculty.avatar;
+            const displayName = (idx === 0 && currentUser?.name) ? currentUser.name : faculty.name;
+            const displayBio = (idx === 0 && currentUser?.bio) ? currentUser.bio : faculty.bio;
+            const displayTitle = (idx === 0 && currentUser?.title) ? currentUser.title : faculty.title;
 
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <h2 className="text-lg sm:text-xl font-bold text-charcoal-900 font-display">
-                        {faculty.name}
-                      </h2>
-                      {idx === 0 && (
-                        <span className="font-formula text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded bg-ivory-200 border border-hairline text-burgundy-900">
-                          Founder & Chair
-                        </span>
-                      )}
+            return (
+              <div
+                key={faculty.id || idx}
+                className="p-6 sm:p-8 rounded-2xl bg-ivory-100 border border-hairline shadow-quiet hover:shadow-editorial transition-all space-y-6 flex flex-col justify-between"
+              >
+                <div className="space-y-5">
+                  {/* Header with Avatar & Title */}
+                  <div className="flex items-start gap-4 sm:gap-5">
+                    <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl overflow-hidden border border-hairline shrink-0 shadow-quiet bg-ivory-200">
+                      <img
+                        src={displayAvatar}
+                        alt={displayName}
+                        className="w-full h-full object-cover"
+                        loading="lazy"
+                      />
                     </div>
-                    <p className="text-xs text-charcoal-100 font-sans font-medium leading-snug">
-                      {faculty.title}
-                    </p>
-                    <span className="font-formula text-[11px] text-ochre-600 block pt-0.5">
-                      {faculty.supervisionScope}
-                    </span>
-                  </div>
-                </div>
 
-                {/* Bio text */}
-                <p className="text-xs sm:text-sm text-charcoal-100 font-sans leading-relaxed">
-                  {faculty.bio}
-                </p>
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h2 className="text-lg sm:text-xl font-bold text-charcoal-900 font-display">
+                          {displayName}
+                        </h2>
+                        {idx === 0 && (
+                          <span className="font-formula text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded bg-ivory-200 border border-hairline text-burgundy-900">
+                            Founder & Chair
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-charcoal-100 font-sans font-medium leading-snug">
+                        {displayTitle}
+                      </p>
+                      <span className="font-formula text-[11px] text-ochre-600 block pt-0.5">
+                        {faculty.supervisionScope}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Bio text */}
+                  <p className="text-xs sm:text-sm text-charcoal-100 font-sans leading-relaxed">
+                    {displayBio}
+                  </p>
 
                 {/* Specializations & Subjects */}
                 <div className="space-y-2 pt-2 border-t border-hairline">
@@ -145,7 +151,8 @@ export default function FacultyPage() {
                 </div>
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
       </main>
 

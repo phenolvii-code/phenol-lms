@@ -18,15 +18,21 @@ export function useCurrentUser() {
         return;
       }
 
-      // 1. Fetch role from public.profiles (ONLY source of truth)
+      // 1. Fetch role from public.profiles (or user_metadata or fallback)
       const { data: profile } = await supabase
         .from('profiles')
-        .select('role')
+        .select('*')
         .eq('id', authUser.id)
         .single();
 
-      const isInstructor = profile?.role === 'instructor';
-      const role: UserRole = isInstructor ? 'INSTRUCTOR' : 'STUDENT';
+      const isSuperAdmin = authUser.email?.toLowerCase() === 'phenolvii@gmail.com';
+      const isInstructor =
+        isSuperAdmin ||
+        profile?.role === 'instructor' ||
+        authUser.user_metadata?.role === 'instructor' ||
+        authUser.user_metadata?.account_type === 'INSTRUCTOR';
+
+      const role: UserRole = isSuperAdmin ? 'SUPER_ADMIN' : isInstructor ? 'INSTRUCTOR' : 'STUDENT';
 
       // 2. Fetch student details from public.registered_students if student
       let studentDetails: {
@@ -36,7 +42,7 @@ export function useCurrentUser() {
         academic_track?: string;
       } | null = null;
 
-      if (!isInstructor) {
+      if (!isInstructor && !isSuperAdmin) {
         const { data: student } = await supabase
           .from('registered_students')
           .select('name, phone, academic_code, academic_track')
@@ -45,11 +51,34 @@ export function useCurrentUser() {
         studentDetails = student;
       }
 
-      const displayName = isInstructor
-        ? 'Dr. Omar Magdi'
-        : (studentDetails?.name || authUser.user_metadata?.full_name || authUser.email?.split('@')[0] || 'Student');
+      // Check local cache for custom instructor profile updates
+      let localProfile: any = null;
+      if (typeof window !== 'undefined') {
+        try {
+          const raw = localStorage.getItem(`phenol_instructor_profile_${authUser.id}`);
+          if (raw) localProfile = JSON.parse(raw);
+        } catch (e) {}
+      }
 
-      const phone = studentDetails?.phone || authUser.user_metadata?.phone || authUser.user_metadata?.whatsapp;
+      const localAvatar = typeof window !== 'undefined' ? localStorage.getItem(`phenol_avatar_${authUser.id}`) : null;
+      const avatar =
+        localProfile?.avatar ||
+        localAvatar ||
+        profile?.avatar_url ||
+        authUser.user_metadata?.avatar_url ||
+        authUser.user_metadata?.avatar ||
+        (isSuperAdmin ? 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80' : undefined);
+
+      const displayName =
+        localProfile?.name ||
+        authUser.user_metadata?.full_name ||
+        (isSuperAdmin ? 'Dr. Omar Magdi' : studentDetails?.name || authUser.email?.split('@')[0] || 'Scholar');
+
+      const phone =
+        localProfile?.phone ||
+        studentDetails?.phone ||
+        authUser.user_metadata?.phone ||
+        authUser.user_metadata?.whatsapp;
 
       const appUser: AuthUser = {
         id: authUser.id,
@@ -57,12 +86,15 @@ export function useCurrentUser() {
         name: displayName,
         phone,
         whatsapp: phone,
-        role,
+        role: isInstructor ? 'INSTRUCTOR' : 'STUDENT',
+        isSuperAdmin,
+        avatar,
         academicCode: studentDetails?.academic_code,
-        academicTrack: studentDetails?.academic_track || 'Public Secondary AR',
+        academicTrack: studentDetails?.academic_track || 'Secondary & Baccalaureate',
         registeredAt: authUser.created_at,
-        title: isInstructor ? 'Academic Director & Senior Fellow' : undefined,
-        specialization: isInstructor ? 'Organic Reaction Mechanisms & Physical Chemistry' : undefined,
+        title: localProfile?.title || authUser.user_metadata?.title || (isSuperAdmin ? 'Academic Director & Senior Fellow' : isInstructor ? 'Academic Instructor' : undefined),
+        bio: localProfile?.bio || authUser.user_metadata?.bio || (isSuperAdmin ? 'PharmD graduate and chemistry educator. Focused on first-principles causality, physical chemistry, reaction mechanisms, and intellectual scientific pedagogy.' : undefined),
+        specialization: localProfile?.specialization || authUser.user_metadata?.specialization || (isSuperAdmin ? 'Organic Reaction Mechanisms & Physical Chemistry' : undefined),
       };
 
       setUser(appUser);

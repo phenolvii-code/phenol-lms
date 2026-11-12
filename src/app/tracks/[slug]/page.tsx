@@ -52,8 +52,11 @@ export default function TrackPage() {
     };
   }, []);
 
-  // Filter courses that belong to this track
+  // Filter courses that belong to this track and are approved
   const trackCourses = coursesList.filter((c) => {
+    if (c.approvalStatus === 'PENDING' || c.approvalStatus === 'REJECTED') {
+      return false;
+    }
     const norm = normalizeTrackSlug(c.category);
     return norm === track.id || c.trackSlug === track.id;
   });

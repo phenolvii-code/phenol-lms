@@ -133,6 +133,19 @@ export function AdminCurriculumTab({
                     <span className="text-xs font-semibold text-charcoal-900 bg-ivory-300 px-2 py-0.5 rounded border border-hairline">
                       {course.categoryName}
                     </span>
+                    {course.approvalStatus === 'PENDING' ? (
+                      <span className="font-formula text-xs font-bold text-amber-800 bg-amber-100 px-2.5 py-0.5 rounded border border-amber-300">
+                        Pending Super Admin Approval
+                      </span>
+                    ) : course.approvalStatus === 'REJECTED' ? (
+                      <span className="font-formula text-xs font-bold text-red-800 bg-red-100 px-2.5 py-0.5 rounded border border-red-300">
+                        Proposal Rejected
+                      </span>
+                    ) : (
+                      <span className="font-formula text-xs font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                        Live & Active
+                      </span>
+                    )}
                     <span className="text-xs text-charcoal-50 font-sans">
                       {course.level}
                     </span>
