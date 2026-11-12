@@ -1,6 +1,7 @@
 import {
   AcademicCategory,
   AcademicTrackCategory,
+  AcademicTrackSlug,
   InstructorProfile,
   ChemistryCourse,
   ChemistryQuiz,
@@ -12,43 +13,84 @@ import {
 
 export const ACADEMIC_TRACKS: AcademicTrackCategory[] = [
   {
-    id: 'thanaweya-arabic',
-    name: 'Public Secondary AR',
-    nameAr: 'Public Secondary AR',
-    description: 'The complete Egyptian Public Secondary Chemistry curriculum in Arabic, deconstructing organic mechanisms, physical equilibria, and electrochemistry from first principles.',
-    badge: 'Public Secondary AR',
+    id: 'secondary-baccalaureate',
+    name: 'Secondary & Baccalaureate',
+    nameAr: 'الثانوية العامة والبكالوريا (عربي ولغات)',
+    description: 'The National Curriculum (Egyptian Public Secondary Arabic & Language Schools) and the French Baccalaureate. Systematic decomposition of physical sciences, chemistry, and mathematics from first principles.',
+    badge: 'Secondary & Baccalaureate',
+    romanNumeral: 'TRACK I',
+    subjects: ['Chemistry', 'Physics', 'Biology', 'Mathematics'],
   },
   {
-    id: 'thanaweya-languages',
-    name: 'Public Secondary EN',
-    nameAr: 'Public Secondary EN',
-    description: 'Egyptian Public Secondary Chemistry curriculum taught in English for experimental and language schools, with structured focus on conceptual problem solving and ministerial exam mastery.',
-    badge: 'Public Secondary EN',
+    id: 'igcse-alevels',
+    name: 'IGCSE & A-Levels',
+    nameAr: 'الشهادة البريطانية الدولية (Cambridge & Edexcel)',
+    description: 'International British Curriculum (Cambridge Assessment, Pearson Edexcel & Oxford AQA). Complete syllabus deconstruction, past-paper forensics, and mark scheme precision.',
+    badge: 'IGCSE • A-Levels',
+    romanNumeral: 'TRACK II',
+    subjects: ['Chemistry (0620/9701)', 'Physics', 'Biology', 'Pure Mathematics'],
   },
   {
-    id: 'igcse-stem',
-    name: 'IGCSE & A-Level Chemistry',
-    nameAr: 'IGCSE & A-Level (Cambridge & Edexcel)',
-    description: 'International British Curriculum (Cambridge & Pearson Edexcel IGCSE, AS & A2 Level Chemistry), covering theoretical depth, reaction mechanisms, and past paper analytics.',
-    badge: 'IGCSE • A-Level Chemistry',
+    id: 'undergrads',
+    name: 'Undergrads',
+    nameAr: 'التعليم الجامعي التخصصي (صيدلة، طب، علوم، هندسة)',
+    description: 'Advanced undergraduate university modules for faculties of Pharmacy, Medicine, Science, and Engineering covering organic reaction mechanisms, spectroscopy, physical kinetics, and biochemistry.',
+    badge: 'University Undergrads',
+    romanNumeral: 'TRACK III',
+    subjects: ['Organic Chemistry', 'Physical Chemistry', 'Pharmaceutical Chemistry', 'Spectroscopy'],
   },
   {
-    id: 'university',
-    name: 'University Chemistry',
-    nameAr: 'University Chemistry (Undergraduate)',
-    description: 'Advanced undergraduate university modules for faculties of Pharmacy, Medicine, Science, and Engineering covering organic reaction mechanisms, spectroscopy, and physical kinetics.',
-    badge: 'University Chemistry',
+    id: 'public-courses',
+    name: 'Public Courses',
+    nameAr: 'المساقات العامة والمفتوحة للجميع',
+    description: 'Open scientific masterclasses for scholars, educators, and lifelong learners. First-principles exploration of natural laws, epistemology, and foundational scientific cognition.',
+    badge: 'Public Masterclasses',
+    romanNumeral: 'TRACK IV',
+    subjects: ['Scientific Thinking', 'Foundational Chemistry', 'Natural Philosophy'],
   },
 ];
 
-export const INSTRUCTOR: InstructorProfile = {
-  name: 'Dr. Omar Magdi',
-  title: 'Academic Director & Senior Chemistry Fellow',
-  bio: 'Specialist in organic reaction mechanisms and physical chemistry. Dedicated to demystifying the discipline through first-principles pedagogy, causal logic, and the Feynman technique.',
-  avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80',
-  specialization: 'Organic Reaction Mechanisms, Chemical Kinetics & Spectroscopy',
-  supervisionScope: 'Direct Academic Mentorship across 4 Core Tracks',
+export const normalizeTrackSlug = (cat: string): AcademicTrackSlug => {
+  if (cat === 'thanaweya-arabic' || cat === 'thanaweya-languages' || cat === 'secondary-baccalaureate') {
+    return 'secondary-baccalaureate';
+  }
+  if (cat === 'igcse-stem' || cat === 'igcse-alevels') {
+    return 'igcse-alevels';
+  }
+  if (cat === 'university' || cat === 'undergrads') {
+    return 'undergrads';
+  }
+  return 'public-courses';
 };
+
+export const INSTRUCTOR: InstructorProfile = {
+  id: 'dr-omar-magdi',
+  name: 'Dr. Omar Magdi',
+  title: 'Academic Director & Senior Chemistry Fellow (PharmD)',
+  bio: 'PharmD graduate and chemistry educator. Focused on first-principles causality, physical chemistry, reaction mechanisms, and intellectual scientific pedagogy.',
+  avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80',
+  specialization: 'Organic Reaction Mechanisms, Chemical Kinetics & Pharmaceutical Sciences',
+  supervisionScope: 'Academic Director across All 4 Tracks',
+  whatsapp: 'https://wa.me/201019688457',
+  email: 'phenolvii@gmail.com',
+  subjects: ['Organic Chemistry', 'Physical Chemistry', 'General Chemistry'],
+  coursesCount: 3,
+};
+
+export const FACULTY_MEMBERS: InstructorProfile[] = [
+  INSTRUCTOR,
+  {
+    id: 'faculty-physics-fellow',
+    name: 'Academic Faculty Fellow',
+    title: 'Senior Fellow in Theoretical Physics & Mathematics',
+    bio: 'Dedicated to deconstructing Newtonian dynamics, electromagnetism, and calculus into intuitive first-principles causality.',
+    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300&auto=format&fit=crop&q=80',
+    specialization: 'Theoretical Physics, Calculus & Applied Mechanics',
+    supervisionScope: 'Secondary & British Curriculum Tracks',
+    subjects: ['Physics', 'Applied Mechanics'],
+    coursesCount: 1,
+  },
+];
 
 export const CHEMISTRY_COURSES: ChemistryCourse[] = [];
 

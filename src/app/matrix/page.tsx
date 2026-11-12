@@ -87,7 +87,7 @@ export default function MatrixPage() {
                     Conventional Rote Learning
                   </th>
                   <th className="py-4 px-6 font-bold text-burgundy-500 border-l border-hairline bg-ivory-200/50 w-[38%]">
-                    PHENOL First Principles Protocol
+                    Phenol Academy First Principles Protocol
                   </th>
                 </tr>
               </thead>

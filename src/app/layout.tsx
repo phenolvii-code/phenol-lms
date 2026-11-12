@@ -3,8 +3,8 @@ import Script from "next/script";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "PHENOL | Dr. Omar Magdi — Academic Chemistry Education",
-  description: "PHENOL Academic Chemistry Platform directed by Dr. Omar Magdi. Find the Simple. Master the Complex. First-principles scientific reasoning.",
+  title: "Phenol Academy | First-Principles Academic Institution — Dr. Omar Magdi",
+  description: "Phenol Academy — An elite academic institution dedicated to first-principles scientific cognition, rigorous mechanism-first learning, and higher scientific education.",
   icons: {
     icon: "/icon.png",
   },

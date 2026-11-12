@@ -47,30 +47,28 @@ export const FinalCtaSection: React.FC<FinalCtaSectionProps> = ({
                 <ArrowRight className="w-5 h-5" />
               </Link>
               <Link
-                href="/courses"
+                href="/#tracks"
                 className="w-full sm:w-auto min-w-[190px] inline-flex items-center justify-center gap-2 px-8 py-4 rounded-lg bg-ivory-100 hover:bg-ivory-300 active:scale-[0.98] border-2 border-burgundy-500 text-burgundy-500 hover:text-burgundy-900 font-sans font-bold text-base sm:text-lg transition-all duration-200 shadow-md hover:shadow-lg hover:-translate-y-0.5 cursor-pointer"
               >
-                <span>Browse Courses</span>
+                <span>Explore Academic Tracks</span>
               </Link>
             </>
           ) : (
             <>
-              <button
-                type="button"
-                onClick={handleSignUp}
-                className="w-full sm:w-auto min-w-[190px] inline-flex items-center justify-center gap-2.5 px-8 py-4 rounded-lg bg-burgundy-500 hover:bg-burgundy-900 active:scale-[0.98] text-ivory-100 font-sans font-bold text-base sm:text-lg transition-all duration-200 shadow-lg hover:shadow-xl hover:-translate-y-0.5 cursor-pointer ring-2 ring-burgundy-500/20"
+              <Link
+                href="/register"
+                className="w-full sm:w-auto min-w-[190px] inline-flex items-center justify-center gap-2.5 px-8 py-4 rounded-lg bg-burgundy-500 hover:bg-burgundy-900 active:scale-[0.98] text-ivory-100 font-sans font-bold text-base sm:text-lg transition-all duration-200 shadow-lg hover:shadow-xl hover:-translate-y-0.5 ring-2 ring-burgundy-500/20"
               >
-                <span>Sign Up</span>
+                <span>Register as Scholar</span>
                 <ArrowRight className="w-5 h-5" />
-              </button>
+              </Link>
 
-              <button
-                type="button"
-                onClick={onSignIn}
-                className="w-full sm:w-auto min-w-[190px] inline-flex items-center justify-center gap-2 px-8 py-4 rounded-lg bg-ivory-100 hover:bg-ivory-300 active:scale-[0.98] border-2 border-burgundy-500 text-burgundy-500 hover:text-burgundy-900 font-sans font-bold text-base sm:text-lg transition-all duration-200 shadow-md hover:shadow-lg hover:-translate-y-0.5 cursor-pointer"
+              <Link
+                href="/login"
+                className="w-full sm:w-auto min-w-[190px] inline-flex items-center justify-center gap-2 px-8 py-4 rounded-lg bg-ivory-100 hover:bg-ivory-300 active:scale-[0.98] border-2 border-burgundy-500 text-burgundy-500 hover:text-burgundy-900 font-sans font-bold text-base sm:text-lg transition-all duration-200 shadow-md hover:shadow-lg hover:-translate-y-0.5"
               >
-                <span>Sign In</span>
-              </button>
+                <span>Sign In to Portal</span>
+              </Link>
             </>
           )}
         </div>

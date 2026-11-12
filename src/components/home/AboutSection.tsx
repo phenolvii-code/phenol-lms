@@ -53,7 +53,7 @@ export const AboutSection: React.FC = () => {
                 Dr. Omar Magdi
               </span>
               <span className="block text-xs font-semibold text-burgundy-500 font-sans tracking-wide">
-                PharmD • Chemistry Educator & Founder, PHENOL
+                PharmD • Founder & Academic Director, Phenol Academy
               </span>
             </div>
 

@@ -4,7 +4,7 @@ import React from 'react';
 import Link from 'next/link';
 import { AcademicCategory, ChemistryCourse, ChemistryLesson } from '@/types/lms';
 import { CourseEnrollmentRecord } from '@/lib/data/enrollments';
-import { ACADEMIC_TRACKS } from '@/data/mock-data';
+import { ACADEMIC_TRACKS, normalizeTrackSlug } from '@/data/mock-data';
 import {
   GraduationCap,
   Plus,
@@ -48,7 +48,12 @@ export function AdminCurriculumTab({
   const displayedCourses =
     trackFilter === 'all'
       ? courses
-      : courses.filter((c) => c.category === trackFilter);
+      : courses.filter(
+          (c) =>
+            c.category === trackFilter ||
+            c.trackSlug === trackFilter ||
+            normalizeTrackSlug(c.category) === trackFilter
+        );
 
   return (
     <div className="space-y-6">

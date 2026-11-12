@@ -1,26 +1,41 @@
 export type ViewMode = 'STUDENT' | 'INSTRUCTOR';
 
+export type AcademicTrackSlug =
+  | 'secondary-baccalaureate'
+  | 'igcse-alevels'
+  | 'undergrads'
+  | 'public-courses';
+
 export type AcademicCategory =
+  | AcademicTrackSlug
+  // Legacy aliases for backward compatibility
   | 'thanaweya-arabic'
   | 'thanaweya-languages'
   | 'igcse-stem'
   | 'university';
 
 export interface AcademicTrackCategory {
-  id: AcademicCategory;
+  id: AcademicTrackSlug;
   name: string;
   nameAr: string;
   description: string;
   badge: string;
+  romanNumeral: string;
+  subjects: string[];
 }
 
 export interface InstructorProfile {
+  id?: string;
   name: string;
   title: string;
   bio: string;
   avatar: string;
   specialization: string;
   supervisionScope: string;
+  whatsapp?: string;
+  email?: string;
+  subjects?: string[];
+  coursesCount?: number;
 }
 
 export interface LectureTimestamp {
@@ -56,6 +71,13 @@ export interface ChemistryCourse {
   description: string;
   category: AcademicCategory;
   categoryName: string;
+  trackSlug?: AcademicTrackSlug;
+  subject?: string;
+  instructorId?: string;
+  instructorName?: string;
+  instructorTitle?: string;
+  instructorAvatar?: string;
+  instructorWhatsapp?: string;
   level: string;
   molecularFormula?: string;
   thumbnail: string;

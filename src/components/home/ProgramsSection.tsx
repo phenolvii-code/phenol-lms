@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { CHEMISTRY_COURSES, ACADEMIC_TRACKS } from '@/data/mock-data';
+import { CHEMISTRY_COURSES, ACADEMIC_TRACKS, normalizeTrackSlug } from '@/data/mock-data';
 import { ChemistryCourse } from '@/types/lms';
 import { getStoredCourses, syncWithServerCourses } from '@/lib/courses-storage';
 import { ArrowRight, BookOpen, Clock, Layers, Sparkles } from 'lucide-react';
@@ -58,10 +58,10 @@ export const ProgramsSection: React.FC<ProgramsSectionProps> = ({ onOpenWaitlist
           </div>
 
           <Link
-            href="/courses"
+            href="/#tracks"
             className="inline-flex items-center gap-2 px-5 py-2.5 rounded bg-burgundy-900 hover:bg-black text-ivory-100 text-xs font-semibold transition-colors shadow-quiet shrink-0"
           >
-            <span>Explore All Courses & Syllabi</span>
+            <span>Browse All 4 Academic Tracks</span>
             <ArrowRight className="w-4 h-4" />
           </Link>
         </div>
@@ -69,16 +69,19 @@ export const ProgramsSection: React.FC<ProgramsSectionProps> = ({ onOpenWaitlist
         {/* 4 Academic Programs Cards Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 pt-2">
           {ACADEMIC_TRACKS.map((track) => {
-            const count = coursesList.filter((c) => c.category === track.id).length;
+            const count = coursesList.filter((c) => {
+              const norm = normalizeTrackSlug(c.category);
+              return norm === track.id || c.trackSlug === track.id;
+            }).length;
             return (
               <div
                 key={track.id}
-                className="p-5 rounded-xl bg-ivory-100 border border-hairline hover:border-burgundy-500/40 transition-all flex flex-col justify-between space-y-4 shadow-sm"
+                className="p-5 rounded-xl bg-ivory-100 border border-hairline hover:border-burgundy-500/40 transition-all flex flex-col justify-between space-y-4 shadow-quiet"
               >
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-formula font-bold uppercase tracking-wider text-burgundy-500 bg-burgundy-50 px-2 py-0.5 rounded border border-burgundy-200">
-                      PROGRAM TRACK
+                    <span className="text-[10px] font-formula font-bold uppercase tracking-wider text-charcoal-900 bg-ivory-200 px-2 py-0.5 rounded border border-hairline">
+                      {track.romanNumeral}
                     </span>
                     <span className="text-xs font-mono font-bold text-charcoal-50">
                       {count} {count === 1 ? 'Course' : 'Courses'}
@@ -89,16 +92,16 @@ export const ProgramsSection: React.FC<ProgramsSectionProps> = ({ onOpenWaitlist
                     {track.name}
                   </h3>
 
-                  <p className="text-xs text-charcoal-100 font-sans leading-relaxed">
+                  <p className="text-xs text-charcoal-100 font-sans leading-relaxed line-clamp-3">
                     {track.description}
                   </p>
                 </div>
 
                 <Link
-                  href="/courses"
-                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-burgundy-900 hover:text-black pt-2 border-t border-hairline"
+                  href={`/tracks/${track.id}`}
+                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-charcoal-900 hover:text-burgundy-500 pt-2 border-t border-hairline transition-colors"
                 >
-                  <span>Browse Program Syllabus</span>
+                  <span>Explore Track Curricula</span>
                   <ArrowRight className="w-3.5 h-3.5" />
                 </Link>
               </div>

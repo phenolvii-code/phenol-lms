@@ -103,10 +103,16 @@ export default function AboutPage() {
 
           <div className="flex items-center gap-2">
             <Link
-              href="/courses"
+              href="/#tracks"
               className="px-4 py-2 rounded-lg bg-burgundy-500 hover:bg-burgundy-900 text-ivory-100 text-xs font-bold transition-all shadow-sm hover:shadow"
             >
-              Explore Courses
+              Academic Tracks
+            </Link>
+            <Link
+              href="/academy"
+              className="hidden sm:inline-flex px-3.5 py-2 rounded-lg border border-hairline bg-ivory-100 hover:bg-ivory-300 text-charcoal-900 text-xs font-semibold transition-colors"
+            >
+              Phenol Academy
             </Link>
             {currentUser && (
               <Link
@@ -127,7 +133,7 @@ export default function AboutPage() {
           <div className="inline-flex items-center gap-2.5 px-3.5 py-1.5 rounded-full border border-hairline bg-ivory-100">
             <GraduationCap className="w-3.5 h-3.5 text-burgundy-500" />
             <span className="font-editorial uppercase text-burgundy-500 font-bold tracking-widest text-xs">
-              PHENOL
+              PHENOL ACADEMY
             </span>
             <span className="text-hairline-strong">•</span>
             <span className="text-charcoal-900 font-sans font-semibold text-xs tracking-wide">
@@ -361,7 +367,7 @@ export default function AboutPage() {
           </p>
         </section>
 
-        {/* Section 05: The Purpose Behind PHENOL */}
+        {/* Section 05: The Purpose Behind Phenol Academy */}
         <section className="space-y-6 border-t border-hairline pt-12 sm:pt-16">
           <div className="flex items-center gap-2">
             <span className="font-formula text-xs text-burgundy-500 font-bold uppercase tracking-widest flex items-center gap-1.5">
@@ -371,25 +377,25 @@ export default function AboutPage() {
           </div>
 
           <h2 className="text-2xl sm:text-3xl font-extrabold text-charcoal-900 font-display">
-            The Purpose Behind PHENOL
+            The Purpose Behind Phenol Academy
           </h2>
 
           <div className="space-y-5 text-base sm:text-lg text-charcoal-100 leading-relaxed font-sans">
             <p>
-              PHENOL is an educational platform built around a particular conviction: chemistry deserves to be understood as a connected science, not experienced as a burden of disconnected information.
+              Phenol Academy is an educational institution built around a particular conviction: science deserves to be understood as a connected discipline governed by causal principles, not experienced as a burden of disconnected information.
             </p>
             <p>
               It is intended to provide a structured learning environment where scientific concepts are presented with clarity, where explanations move beyond superficial descriptions, and where students are encouraged to develop the ability to reason independently.
             </p>
             <p>
-              The platform brings together educational content, organized learning materials, and digital tools designed to support a more coherent learning experience.
+              The academy brings together verified curricula, organized learning materials, and digital tools designed to support a more coherent learning experience.
             </p>
             <div className="p-6 sm:p-8 rounded-2xl bg-burgundy-900 text-ivory-100 shadow-lift space-y-3">
               <span className="font-formula text-xs font-bold text-ochre-light uppercase tracking-widest block">
                 The Foundational Goal
               </span>
               <p className="font-display font-medium text-lg sm:text-xl leading-relaxed text-ivory-100">
-                “Ultimately, I want PHENOL to encourage a different relationship with scientific knowledge—one in which students do not simply ask what they need to remember, but begin to ask what they need to understand.”
+                “Ultimately, I want Phenol Academy to encourage a different relationship with scientific knowledge—one in which students do not simply ask what they need to remember, but begin to ask what they need to understand.”
               </p>
             </div>
           </div>

@@ -335,19 +335,23 @@ export default function LessonExperiencePage() {
                     </div>
 
                     <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
-                      {isPending ? (
-                        <span className="px-5 py-2.5 rounded bg-amber-500/20 text-amber-300 text-xs font-semibold border border-amber-500/30 flex items-center gap-1.5">
-                          <Clock className="w-4 h-4" />
+                      {!currentUser ? (
+                        <Link
+                          href={`/login?redirect=/courses/${courseId}/lessons/${lessonId}`}
+                          className="px-6 py-2.5 rounded bg-burgundy-900 hover:bg-black text-ivory-100 text-xs font-semibold transition-colors shadow-sm flex items-center gap-2"
+                        >
+                          <Lock className="w-4 h-4" />
+                          <span>Sign In to Access Lecture</span>
+                        </Link>
+                      ) : isPending ? (
+                        <span className="px-5 py-2.5 rounded bg-ivory-300 text-charcoal-900 text-xs font-semibold border border-hairline flex items-center gap-1.5">
+                          <Clock className="w-4 h-4 text-ochre-500" />
                           <span>Course activation request is currently pending review</span>
                         </span>
                       ) : (
                         <button
                           type="button"
                           onClick={async () => {
-                            if (!currentUser) {
-                              alert('Please sign in first to request course activation.');
-                              return;
-                            }
                             try {
                               await requestEnrollment(courseId);
                               const myEnrs = await listMyEnrollments();
@@ -358,16 +362,16 @@ export default function LessonExperiencePage() {
                           }}
                           className="px-6 py-2.5 rounded bg-burgundy-900 hover:bg-black text-ivory-100 text-xs font-semibold transition-colors shadow-sm flex items-center gap-2"
                         >
-                          <Sparkles className="w-4 h-4" />
+                          <Sparkles className="w-4 h-4 text-ochre-500" />
                           <span>Request Course Activation Now</span>
                         </button>
                       )}
 
                       <Link
-                        href="/dashboard"
+                        href={`/courses/${courseId}`}
                         className="px-5 py-2.5 rounded bg-white/10 hover:bg-white/15 text-ivory-100 text-xs font-semibold transition-colors"
                       >
-                        Return to Dashboard
+                        Return to Syllabus
                       </Link>
                     </div>
                   </div>

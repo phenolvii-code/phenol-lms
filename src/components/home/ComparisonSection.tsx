@@ -66,7 +66,7 @@ export const ComparisonSection: React.FC = () => {
                   • Traditional Rote Learning
                 </th>
                 <th className="py-3.5 pl-6 pr-2 font-display font-bold uppercase tracking-wider text-burgundy-500 w-[39%]">
-                  • PHENOL First-Principles Pedagogy
+                  • Phenol Academy First-Principles Pedagogy
                 </th>
               </tr>
             </thead>

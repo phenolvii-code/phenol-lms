@@ -45,10 +45,15 @@ export const PhenolLogo: React.FC<PhenolLogoProps> = ({
 
       {withText && (
         <div className="flex flex-col text-left justify-center leading-tight">
-          <span className="font-editorial text-base sm:text-lg tracking-[0.18em] text-charcoal-900 font-bold uppercase">
-            PHENOL
-          </span>
-          <span className="text-[11px] sm:text-xs font-semibold text-charcoal-100 font-sans tracking-wide mt-0.5">
+          <div className="flex items-baseline gap-1.5">
+            <span className="font-editorial text-base sm:text-lg tracking-[0.16em] text-charcoal-900 font-bold uppercase">
+              PHENOL
+            </span>
+            <span className="font-editorial text-[11px] sm:text-xs tracking-[0.22em] text-burgundy-500 font-bold uppercase">
+              ACADEMY
+            </span>
+          </div>
+          <span className="text-[10px] sm:text-[11px] font-medium text-charcoal-100 font-sans tracking-wide mt-0.5">
             {subtitle}
           </span>
         </div>

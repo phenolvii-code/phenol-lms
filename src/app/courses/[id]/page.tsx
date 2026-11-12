@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { CHEMISTRY_COURSES } from '@/data/mock-data';
 import { getStoredCourses, syncWithServerCourses } from '@/lib/courses-storage';
 import { requestEnrollment, listMyEnrollments } from '@/lib/data/enrollments';
@@ -30,6 +30,7 @@ import { getCourseQuestionBank } from '@/data/question-banks';
 import { CourseQuestionBankView } from '@/components/courses/CourseQuestionBankView';
 
 export default function CourseDetailsPage() {
+  const router = useRouter();
   const params = useParams();
   const courseId = params?.id as string;
 
@@ -108,10 +109,11 @@ export default function CourseDetailsPage() {
     : null;
 
   const handleRequestActivation = async () => {
-    if (!currentUser || !course) {
-      alert('Please sign in first to request course activation.');
+    if (!currentUser) {
+      router.push(`/login?redirect=/courses/${courseId}`);
       return;
     }
+    if (!course) return;
     try {
       setErrorMessage('');
       await requestEnrollment(courseId);
@@ -120,7 +122,6 @@ export default function CourseDetailsPage() {
     } catch (err: any) {
       console.error('Error requesting enrollment:', err);
       setErrorMessage(err.message || 'Failed to submit activation request');
-      alert(err.message || 'Failed to submit activation request');
     }
   };
 
