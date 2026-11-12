@@ -17,7 +17,7 @@ export const PhenolLogo: React.FC<PhenolLogoProps> = ({
   withText = true,
   variant = 'burgundy',
   monochrome = false,
-  subtitle = 'Dr. Omar Magdi',
+  subtitle,
 }) => {
   const iconSrc =
     monochrome
@@ -37,7 +37,7 @@ export const PhenolLogo: React.FC<PhenolLogoProps> = ({
       >
         <img
           src={iconSrc}
-          alt={`PHENOL • ${subtitle}`}
+          alt="Phenol Academy"
           className="w-full h-full object-contain"
           loading="eager"
         />
@@ -45,17 +45,14 @@ export const PhenolLogo: React.FC<PhenolLogoProps> = ({
 
       {withText && (
         <div className="flex flex-col text-left justify-center leading-tight">
-          <div className="flex items-baseline gap-1.5">
-            <span className="font-editorial text-base sm:text-lg tracking-[0.16em] text-charcoal-900 font-bold uppercase">
-              PHENOL
-            </span>
-            <span className="font-editorial text-[11px] sm:text-xs tracking-[0.22em] text-burgundy-500 font-bold uppercase">
-              ACADEMY
-            </span>
-          </div>
-          <span className="text-[10px] sm:text-[11px] font-medium text-charcoal-100 font-sans tracking-wide mt-0.5">
-            {subtitle}
+          <span className="font-editorial text-base sm:text-lg tracking-[0.16em] text-charcoal-900 font-bold uppercase">
+            PHENOL ACADEMY
           </span>
+          {subtitle && (
+            <span className="text-[10px] sm:text-[11px] font-medium text-charcoal-100 font-sans tracking-wide mt-0.5">
+              {subtitle}
+            </span>
+          )}
         </div>
       )}
     </div>

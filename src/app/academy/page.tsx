@@ -4,16 +4,9 @@ import React from 'react';
 import Link from 'next/link';
 import { useCurrentUser } from '@/lib/auth/useCurrentUser';
 import { Navbar } from '@/components/layout/Navbar';
-import { PhilosophySection } from '@/components/home/PhilosophySection';
-import { FeynmanMethodSection } from '@/components/home/FeynmanMethodSection';
-import { ComparisonSection } from '@/components/home/ComparisonSection';
-import { ProblemSolvingSection } from '@/components/home/ProblemSolvingSection';
-import { ResourcesSection } from '@/components/home/ResourcesSection';
-import { FacultySection } from '@/components/home/FacultySection';
-import { AboutSection } from '@/components/home/AboutSection';
-import { FinalCtaSection } from '@/components/home/FinalCtaSection';
 import { PhenolLogo } from '@/components/brand/PhenolLogo';
-import { Sparkles, ArrowRight, GraduationCap, Compass, Layers } from 'lucide-react';
+import { OurPhilosophySection } from '@/components/academy/OurPhilosophySection';
+import { Sparkles, ArrowRight, GraduationCap, Users } from 'lucide-react';
 
 export default function AcademyPage() {
   const { user: currentUser, signOut } = useCurrentUser();
@@ -26,111 +19,106 @@ export default function AcademyPage() {
         onLogout={signOut}
       />
 
-      <main className="flex-1">
-        {/* Academy Deep-Dive Banner */}
-        <section className="py-16 sm:py-24 border-b border-hairline px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
-          <div className="max-w-3xl space-y-6">
+      <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-16 w-full space-y-12">
+        {/* Navigation Breadcrumb */}
+        <nav className="flex items-center gap-2 text-xs sm:text-sm text-charcoal-100 font-sans">
+          <Link href="/" className="hover:text-charcoal-900 transition-colors">
+            Home
+          </Link>
+          <span>/</span>
+          <span className="font-semibold text-charcoal-900 font-formula">
+            Phenol Academy
+          </span>
+        </nav>
+
+        {/* Masthead Banner */}
+        <section className="p-8 sm:p-12 rounded-3xl bg-ivory-100 border border-hairline shadow-quiet space-y-6">
+          <div className="max-w-3xl space-y-4">
             <div className="flex items-center gap-2">
               <span className="font-formula text-xs text-burgundy-500 font-bold uppercase tracking-widest flex items-center gap-1.5">
                 <Sparkles className="w-3.5 h-3.5 text-ochre-500" />
-                ACADEMIC DISCIPLINE & METHODOLOGY
+                FIRST-PRINCIPLES SCIENTIFIC COGNITION
               </span>
             </div>
 
-            <h1 className="text-3xl sm:text-5xl lg:text-6xl font-extrabold text-charcoal-900 font-display tracking-tight leading-[1.1]">
+            <h1 className="text-3xl sm:text-5xl font-extrabold text-charcoal-900 font-display tracking-tight leading-tight">
               Phenol Academy
             </h1>
 
             <p className="text-base sm:text-lg text-charcoal-100 font-sans leading-relaxed">
-              We reject the industrialization of rote memorization. Phenol Academy is structured as an intellectual sanctuary where complex physical, chemical, and mathematical phenomena are derived from first principles.
+              We reject the industrialization of rote memorization. Phenol Academy is an intellectual sanctuary where the foundational natural sciences—chemistry, physics, and biology—are derived from causal mechanisms, conservation laws, and intuitive first principles.
             </p>
 
             <div className="pt-2 flex flex-wrap items-center gap-4">
               <Link
                 href="/#tracks"
-                className="inline-flex items-center gap-2.5 px-6 py-3.5 rounded-xl bg-burgundy-500 hover:bg-burgundy-900 active:scale-[0.98] text-ivory-100 font-sans font-bold text-sm transition-all shadow-md hover:shadow-lg"
+                className="inline-flex items-center gap-2.5 px-6 py-3 rounded-xl bg-burgundy-500 hover:bg-burgundy-900 active:scale-[0.98] text-ivory-100 font-sans font-bold text-xs sm:text-sm transition-all shadow-md hover:shadow-lg ring-2 ring-burgundy-500/20"
               >
                 <GraduationCap className="w-4 h-4" />
-                <span>Browse Academic Tracks & Courses</span>
+                <span>Explore The 4 Academic Tracks</span>
                 <ArrowRight className="w-4 h-4" />
               </Link>
 
               <Link
-                href="/about"
-                className="inline-flex items-center gap-2 px-6 py-3.5 rounded-xl bg-ivory-100 hover:bg-ivory-300 text-charcoal-900 font-sans font-bold text-sm border border-hairline transition-colors shadow-quiet"
+                href="/faculty"
+                className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-ivory-200 hover:bg-ivory-300 text-charcoal-900 font-sans font-bold text-xs sm:text-sm border border-hairline transition-colors shadow-quiet"
               >
-                <Compass className="w-4 h-4 text-burgundy-500" />
-                <span>Dr. Omar Magdi Manifesto</span>
+                <Users className="w-4 h-4 text-burgundy-500" />
+                <span>Faculty & Teaching Chairs</span>
               </Link>
             </div>
           </div>
         </section>
 
-        {/* Section 01: Core Philosophy */}
-        <PhilosophySection />
+        {/* Consolidated Single Philosophy Section with Dr. Omar & Feynman Quotes */}
+        <div id="philosophy">
+          <OurPhilosophySection />
+        </div>
 
-        {/* Section 02: Feynman Method */}
-        <FeynmanMethodSection />
+        {/* Faculty Direct Callout */}
+        <section className="p-8 sm:p-10 rounded-3xl bg-ivory-100 border border-hairline shadow-quiet flex flex-col md:flex-row items-center justify-between gap-6">
+          <div className="space-y-2 max-w-2xl text-center md:text-left">
+            <span className="font-formula text-xs text-ochre-600 font-bold uppercase tracking-wider block">
+              ACADEMIC LEADERSHIP
+            </span>
+            <h3 className="text-xl sm:text-2xl font-bold text-charcoal-900 font-display">
+              Meet Our Teaching Chairs & Faculty Fellows
+            </h3>
+            <p className="text-xs sm:text-sm text-charcoal-100 font-sans leading-relaxed">
+              Dedicated educators across secondary, international, and university levels committed to conceptual clarity and student mastery.
+            </p>
+          </div>
 
-        {/* Section 03: Pedagogical Comparison Matrix */}
-        <ComparisonSection />
-
-        {/* Section 04: Analytical Problem Solving */}
-        <ProblemSolvingSection />
-
-        {/* Section 05: Learning Resources & Dossiers */}
-        <ResourcesSection />
-
-        {/* Section 06: Faculty & Fellows */}
-        <FacultySection />
-
-        {/* Section 07: The Educator / About Dr. Omar */}
-        <AboutSection />
-
-        {/* Section 08: Final Directive */}
-        <FinalCtaSection
-          currentUser={currentUser}
-          onSignUp={() => {}}
-          onSignIn={() => {}}
-        />
+          <Link
+            href="/faculty"
+            className="shrink-0 inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-charcoal-900 hover:bg-burgundy-900 text-ivory-100 font-sans text-xs sm:text-sm font-bold transition-all shadow-md"
+          >
+            <span>View Faculty Directory</span>
+            <ArrowRight className="w-4 h-4" />
+          </Link>
+        </section>
       </main>
 
-      {/* Footer */}
-      <footer className="border-t border-hairline bg-ivory-100 py-12 text-sm text-charcoal-100">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-6 pb-6 border-b border-hairline">
-            <PhenolLogo size={36} subtitle="First Principles Institution" />
+      {/* Clean Footer */}
+      <footer className="border-t border-hairline bg-ivory-100 py-8 text-xs text-charcoal-100">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <PhenolLogo size={28} />
 
-            <nav className="flex flex-wrap items-center justify-center gap-6 text-xs sm:text-sm font-medium">
-              <Link href="/#tracks" className="hover:text-burgundy-500 transition-colors">
-                Academic Tracks
-              </Link>
-              <Link href="/academy" className="hover:text-burgundy-500 transition-colors font-bold text-charcoal-900">
-                Phenol Academy
-              </Link>
-              <Link href="/academy#faculty" className="hover:text-burgundy-500 transition-colors">
-                Faculty
-              </Link>
-              <Link href="/matrix" className="hover:text-burgundy-500 transition-colors">
-                Analytical Matrix
-              </Link>
-              <Link href="/problem-solving" className="hover:text-burgundy-500 transition-colors">
-                Problem Solving
-              </Link>
-              <Link href="/about" className="hover:text-burgundy-500 transition-colors">
-                About Dr. Omar
-              </Link>
-            </nav>
-          </div>
+          <nav className="flex items-center gap-6 font-medium">
+            <Link href="/#tracks" className="hover:text-burgundy-500 transition-colors">
+              Academic Tracks
+            </Link>
+            <Link href="/academy" className="hover:text-burgundy-500 transition-colors font-bold text-charcoal-900">
+              Phenol Academy
+            </Link>
+            <Link href="/faculty" className="hover:text-burgundy-500 transition-colors">
+              Faculty
+            </Link>
+          </nav>
 
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-xs font-formula text-charcoal-50">
-            <span>© {new Date().getFullYear()} Phenol Academy • All academic curricula preserved.</span>
-            <div className="flex items-center gap-4">
-              <Link href="/privacy" className="hover:text-charcoal-900 transition-colors">Privacy</Link>
-              <span>•</span>
-              <Link href="/terms" className="hover:text-charcoal-900 transition-colors">Terms of Academic Access</Link>
-            </div>
-          </div>
+          <span className="text-charcoal-50 font-formula text-[11px]">
+            © {new Date().getFullYear()} Phenol Academy. All rights reserved.
+          </span>
         </div>
       </footer>
     </div>

@@ -59,6 +59,7 @@ import {
   Send,
   Settings,
   ExternalLink,
+  Edit3,
 } from 'lucide-react';
 
 // Subcomponents: Admin Tabs
@@ -66,6 +67,7 @@ import { AdminCurriculumTab } from '@/components/dashboard/admin/AdminCurriculum
 import { AdminWaitlistTab } from '@/components/dashboard/admin/AdminWaitlistTab';
 import { AdminSubmissionsTab } from '@/components/dashboard/admin/AdminSubmissionsTab';
 import { AdminRosterTab } from '@/components/dashboard/admin/AdminRosterTab';
+import { SuperAdministrationView } from '@/components/dashboard/admin/SuperAdministrationView';
 
 // Subcomponents: Student Tabs
 import { StudentCoursesTab } from '@/components/dashboard/student/StudentCoursesTab';
@@ -94,6 +96,7 @@ export default function DashboardPage() {
 
   // Instructor Admin Tabs
   const [adminTab, setAdminTab] = useState<'curriculum' | 'waitlist' | 'submissions' | 'roster'>('curriculum');
+  const [isSuperAdminCockpitOpen, setIsSuperAdminCockpitOpen] = useState(false);
 
   // Student Tabs
   const [studentTab, setStudentTab] = useState<'courses' | 'tasks' | 'booklets' | 'quizzes'>('courses');
@@ -736,7 +739,7 @@ export default function DashboardPage() {
           <div className="flex items-center justify-between h-16 sm:h-20">
             <div className="flex items-center gap-6">
               <Link href="/" aria-label="PHENOL Home">
-                <PhenolLogo size={36} subtitle="Dr. Omar Magdi" />
+                <PhenolLogo size={36} />
               </Link>
             </div>
 
@@ -811,7 +814,84 @@ export default function DashboardPage() {
       {/* Main Container */}
       <main className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8 space-y-8">
         {showAdminInterface ? (
+          isSuperAdminCockpitOpen ? (
+            <SuperAdministrationView
+              courses={courses}
+              enrollments={enrollments}
+              onBackToInstructor={() => setIsSuperAdminCockpitOpen(false)}
+              onOpenCourseStudents={(course) => {
+                setSelectedCourseForStudents(course);
+                setIsCourseStudentsOpen(true);
+              }}
+              onDirectEnrollStudent={(st) => {
+                setDirectEnrollStudent(st);
+                setSelectedCourseIdToEnroll(courses[0]?.id || '');
+                setIsDirectEnrollModalOpen(true);
+              }}
+              onManualAddStudent={() => setIsManualAddStudentModalOpen(true)}
+            />
+          ) : (
           <div className="space-y-8">
+            {/* Instructor Personal Profile Card with Super Administration Button */}
+            <div className="p-6 sm:p-7 rounded-2xl bg-ivory-100 border border-hairline shadow-quiet flex flex-col md:flex-row md:items-center justify-between gap-6">
+              <div className="flex items-start sm:items-center gap-4 sm:gap-5">
+                <div className="relative group shrink-0">
+                  <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl overflow-hidden border border-hairline shadow-quiet bg-ivory-200">
+                    <img
+                      src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80"
+                      alt={currentUser.name || 'Dr. Omar Magdi'}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  <button
+                    onClick={handleOpenProfileModal}
+                    className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-burgundy-500 text-ivory-100 flex items-center justify-center border-2 border-ivory-100 shadow-sm hover:bg-burgundy-900 transition-colors"
+                    title="Change Photo & Bio"
+                  >
+                    <Edit3 className="w-3 h-3" />
+                  </button>
+                </div>
+
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h2 className="text-lg sm:text-xl font-bold text-charcoal-900 font-display">
+                      {currentUser.name || 'Dr. Omar Magdi'}
+                    </h2>
+                    <span className="font-formula text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-burgundy-50 text-burgundy-800 border border-burgundy-200">
+                      Instructor Cockpit
+                    </span>
+                  </div>
+                  <p className="text-xs text-charcoal-100 font-sans font-medium">
+                    {currentUser.title || 'Academic Director & Senior Chemistry Fellow (PharmD)'}
+                  </p>
+                  <p className="text-[11px] text-charcoal-50 font-sans line-clamp-1 max-w-xl">
+                    {currentUser.bio || 'Dedicated to first-principles causality, reaction mechanisms, and intellectual scientific pedagogy.'}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3 flex-wrap">
+                <button
+                  type="button"
+                  onClick={handleOpenProfileModal}
+                  className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-ivory-200 hover:bg-ivory-300 text-charcoal-900 border border-hairline text-xs font-semibold transition-colors"
+                >
+                  <Settings className="w-3.5 h-3.5 text-charcoal-100" />
+                  <span>Edit Profile</span>
+                </button>
+
+                {/* Super Administration Button */}
+                <button
+                  type="button"
+                  onClick={() => setIsSuperAdminCockpitOpen(true)}
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-burgundy-500 hover:bg-burgundy-900 active:scale-[0.98] text-ivory-100 font-sans text-xs font-bold transition-all shadow-md hover:shadow-lg ring-2 ring-burgundy-500/20"
+                >
+                  <ShieldCheck className="w-4 h-4 text-ochre-400" />
+                  <span>Super Administration</span>
+                </button>
+              </div>
+            </div>
+
             {/* Admin Metrics Dashboard Ribbon */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="bg-ivory-100 border border-hairline rounded p-5 space-y-1.5 shadow-quiet">
@@ -1033,6 +1113,7 @@ export default function DashboardPage() {
               />
             )}
           </div>
+          )
         ) : (
           <div className="space-y-8">
             {/* Student Welcome Banner */}

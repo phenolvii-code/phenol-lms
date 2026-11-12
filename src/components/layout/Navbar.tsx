@@ -42,10 +42,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   const navLinks = [
     { label: 'Academic Tracks', href: '/#tracks' },
     { label: 'Phenol Academy', href: '/academy' },
-    { label: 'Faculty & Fellows', href: '/academy#faculty' },
-    { label: 'Analytical Matrix', href: '/matrix' },
-    { label: 'Problem Solving', href: '/problem-solving' },
-    { label: 'About Dr. Omar', href: '/about' },
+    { label: 'Faculty', href: '/faculty' },
   ];
 
   const handleNavClick = (href: string) => {
@@ -60,7 +57,7 @@ export const Navbar: React.FC<NavbarProps> = ({
     }
   };
 
-  const isInstructor = currentUser?.role === 'INSTRUCTOR';
+  const isInstructor = currentUser?.role === 'INSTRUCTOR' || currentUser?.role === 'SUPER_ADMIN';
 
   return (
     <header
@@ -77,9 +74,9 @@ export const Navbar: React.FC<NavbarProps> = ({
             <Link
               href="/"
               className="text-left focus:outline-none focus-visible:ring-1 focus-visible:ring-burgundy-500 rounded py-1"
-              aria-label="PHENOL - Dr. Omar Magdi"
+              aria-label="Phenol Academy Home"
             >
-              <PhenolLogo size={36} subtitle="Dr. Omar Magdi" />
+              <PhenolLogo size={36} />
             </Link>
 
             {/* Desktop Navigation Links */}
