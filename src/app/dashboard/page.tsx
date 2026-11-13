@@ -16,6 +16,7 @@ import {
   WAITLIST_APPLICANTS,
   ENROLLED_STUDENTS,
   ACADEMIC_TRACKS,
+  setGlobalInstructorAvatar,
 } from '@/data/mock-data';
 import {
   AcademicCategory,
@@ -41,6 +42,8 @@ import {
   requestEnrollment,
   setEnrollmentStatus,
   adminEnrollStudent,
+  adminRevokeEnrollment,
+  adminDeleteStudentAccount,
   CourseEnrollmentRecord,
 } from '@/lib/data/enrollments';
 import { recordRegisteredStudent } from '@/lib/enrollment-storage';
@@ -345,7 +348,10 @@ export default function DashboardPage() {
         }).eq('id', currentUser.id);
       } catch (e) {}
 
-      // 3. Local Cache
+      // 3. Local Cache & Global In-Memory Sync
+      if (profileAvatar) {
+        setGlobalInstructorAvatar(profileAvatar);
+      }
       if (typeof window !== 'undefined') {
         localStorage.setItem(`phenol_instructor_profile_${currentUser.id}`, JSON.stringify(updatedUser));
         localStorage.setItem(`phenol_avatar_${currentUser.id}`, profileAvatar);
@@ -404,6 +410,34 @@ export default function DashboardPage() {
       setTimeout(() => setEnrollmentToast(null), 4000);
     } catch (err: any) {
       alert(err.message || 'Error approving enrollment');
+    }
+  };
+
+  const handleRevokeEnrollment = async (enrId: string) => {
+    if (typeof window !== 'undefined' && !window.confirm('Are you sure you want to revoke student access to this course?')) return;
+    try {
+      await adminRevokeEnrollment(enrId);
+      await loadEnrollments();
+      setEnrollmentToast('Course access revoked successfully.');
+      setTimeout(() => setEnrollmentToast(null), 4000);
+    } catch (err: any) {
+      alert(err.message || 'Error revoking access');
+    }
+  };
+
+  const handleExpelUser = async (userEmail: string, userId?: string) => {
+    if (userEmail.toLowerCase() === 'phenolvii@gmail.com') {
+      alert('Super Admin cannot be expelled.');
+      return;
+    }
+    if (typeof window !== 'undefined' && !window.confirm(`Are you sure you want to completely expel user (${userEmail}) from the platform? This will wipe all their enrollments.`)) return;
+    try {
+      await adminDeleteStudentAccount(userEmail, userId);
+      await loadEnrollments();
+      setEnrollmentToast(`User (${userEmail}) has been expelled from the platform.`);
+      setTimeout(() => setEnrollmentToast(null), 4000);
+    } catch (err: any) {
+      alert(err.message || 'Error expelling user');
     }
   };
 
@@ -898,7 +932,17 @@ export default function DashboardPage() {
                   </div>
 
                   <div className="relative">
-                    <Initials name={currentUser?.name || (isInstructor ? 'Dr. Omar Magdi' : 'Scholar')} size="sm" />
+                    {profileAvatar || currentUser?.avatar ? (
+                      <div className="w-8 h-8 rounded-full overflow-hidden border border-hairline shadow-quiet">
+                        <img
+                          src={profileAvatar || currentUser.avatar}
+                          alt={currentUser?.name || 'Instructor'}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                    ) : (
+                      <Initials name={currentUser?.name || (isInstructor ? 'Dr. Omar Magdi' : 'Scholar')} size="sm" />
+                    )}
                     <div className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-burgundy-500 text-ivory-100 flex items-center justify-center border border-ivory-100 shadow-sm">
                       <Settings className="w-2.5 h-2.5" />
                     </div>
@@ -940,6 +984,12 @@ export default function DashboardPage() {
               onApproveCourse={handleApproveCourse}
               onRejectCourse={handleRejectCourse}
               onToggleUserRole={handleToggleUserRole}
+              onDeleteCourse={handleDeleteCourse}
+              onExpelUser={handleExpelUser}
+              onOpenCreateCourse={(trackId, instName) => {
+                if (trackId) setNewCourseCategory(trackId as any);
+                setIsCreateCourseOpen(true);
+              }}
             />
           ) : (
           <div className="space-y-8">
@@ -1225,6 +1275,7 @@ export default function DashboardPage() {
                 setDirectEnrollStudent={setDirectEnrollStudent}
                 setSelectedCourseIdToEnroll={setSelectedCourseIdToEnroll}
                 setIsDirectEnrollModalOpen={setIsDirectEnrollModalOpen}
+                handleRevokeEnrollment={handleRevokeEnrollment}
               />
             )}
           </div>

@@ -18,19 +18,36 @@ import {
 interface AdminResetPasswordModalProps {
   isOpen: boolean;
   onClose: () => void;
-  student: {
+  student?: {
     name: string;
     email: string;
     phone?: string;
     code?: string;
   } | null;
+  studentEmail?: string;
+  studentName?: string;
+  studentPhone?: string;
+  studentCode?: string;
+  onSuccess?: () => void;
 }
 
 export function AdminResetPasswordModal({
   isOpen,
   onClose,
-  student,
+  student: studentProp,
+  studentEmail,
+  studentName,
+  studentPhone,
+  studentCode,
+  onSuccess,
 }: AdminResetPasswordModalProps) {
+  const student = studentProp || (studentEmail ? {
+    name: studentName || 'Account',
+    email: studentEmail,
+    phone: studentPhone || '',
+    code: studentCode || '',
+  } : null);
+
   const [newPassword, setNewPassword] = useState('Phenol@2026');
   const [showPassword, setShowPassword] = useState(true);
   const [isLoading, setIsLoading] = useState(false);

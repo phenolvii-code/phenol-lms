@@ -4,6 +4,7 @@ import React, { useState, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
+import { recordRegisteredStudent } from '@/lib/enrollment-storage';
 import { PhenolLogo } from '@/components/brand/PhenolLogo';
 import { GoogleIcon, WhatsAppIcon } from '@/components/auth/AuthIcons';
 import { Lock, Mail, User, Phone, ShieldAlert, ArrowRight, GraduationCap, ShieldCheck } from 'lucide-react';
@@ -68,7 +69,7 @@ function RegisterFormContent() {
         return;
       }
 
-      // Upsert profile role
+      // Upsert profile and registered_students record
       if (authData?.user) {
         try {
           await supabase.from('profiles').upsert({
@@ -79,6 +80,29 @@ function RegisterFormContent() {
             created_at: new Date().toISOString(),
           });
         } catch (e) {}
+
+        const studentCode = `PH-${Math.floor(1000 + Math.random() * 9000)}`;
+        try {
+          await supabase.from('registered_students').upsert({
+            id: authData.user.id,
+            name: fullName.trim(),
+            email: cleanEmail,
+            phone: phone.trim(),
+            academic_code: studentCode,
+            academic_track: academicLevel,
+            role: isInst ? 'instructor' : 'student',
+            created_at: new Date().toISOString(),
+          }, { onConflict: 'email' });
+        } catch (e) {}
+
+        await recordRegisteredStudent({
+          id: authData.user.id,
+          name: fullName.trim(),
+          email: cleanEmail,
+          phone: phone.trim(),
+          academicTrack: academicLevel,
+          role: isInst ? 'instructor' : 'student',
+        });
       }
 
       router.push(redirectParam);

@@ -77,6 +77,25 @@ export const INSTRUCTOR: InstructorProfile = {
   coursesCount: 3,
 };
 
+// Sync avatar from local storage cache if available
+if (typeof window !== 'undefined') {
+  const cachedAvatar = localStorage.getItem('phenol_global_instructor_avatar');
+  if (cachedAvatar) {
+    INSTRUCTOR.avatar = cachedAvatar;
+  }
+}
+
+export const setGlobalInstructorAvatar = (newAvatar: string) => {
+  if (!newAvatar) return;
+  INSTRUCTOR.avatar = newAvatar;
+  if (FACULTY_MEMBERS[0]) {
+    FACULTY_MEMBERS[0].avatar = newAvatar;
+  }
+  if (typeof window !== 'undefined') {
+    localStorage.setItem('phenol_global_instructor_avatar', newAvatar);
+  }
+};
+
 export const FACULTY_MEMBERS: InstructorProfile[] = [
   INSTRUCTOR,
 ];

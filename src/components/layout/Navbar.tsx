@@ -148,13 +148,20 @@ export const Navbar: React.FC<NavbarProps> = ({
                   </span>
                 </Link>
 
-                <div className="hidden md:flex flex-col text-left leading-tight pl-2 border-l border-hairline">
-                  <span className="text-xs sm:text-sm font-bold text-charcoal-900">
-                    {currentUser.name}
-                  </span>
-                  <span className="text-[11px] text-charcoal-100 font-sans">
-                    {isInstructor ? 'Academic Director' : 'Enrolled Student'}
-                  </span>
+                <div className="hidden md:flex items-center gap-2 pl-2 border-l border-hairline">
+                  {currentUser.avatar ? (
+                    <div className="w-8 h-8 rounded-full overflow-hidden border border-hairline shrink-0 shadow-quiet">
+                      <img src={currentUser.avatar} alt={currentUser.name} className="w-full h-full object-cover" />
+                    </div>
+                  ) : null}
+                  <div className="flex flex-col text-left leading-tight">
+                    <span className="text-xs sm:text-sm font-bold text-charcoal-900">
+                      {currentUser.name}
+                    </span>
+                    <span className="text-[11px] text-charcoal-100 font-sans">
+                      {isInstructor ? 'Academic Director' : 'Enrolled Student'}
+                    </span>
+                  </div>
                 </div>
 
                 <button

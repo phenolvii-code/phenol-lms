@@ -94,3 +94,45 @@ export async function adminSetStudentPassword(
     return { success: false, error: err?.message || 'Failed to update student password.' };
   }
 }
+
+/**
+ * Admin-only: Revoke or unenroll student from a course
+ */
+export async function adminRevokeEnrollment(enrollmentId: string): Promise<void> {
+  try {
+    const { error } = await supabase.from('course_enrollments').delete().eq('id', enrollmentId);
+    if (error) {
+      await setEnrollmentStatus(enrollmentId, 'REJECTED');
+    }
+  } catch (e) {
+    await setEnrollmentStatus(enrollmentId, 'REJECTED');
+  }
+}
+
+/**
+ * Super Admin: Expel / permanently delete user and their enrollments
+ */
+export async function adminDeleteStudentAccount(studentEmail: string, studentId?: string): Promise<void> {
+  const cleanEmail = studentEmail.trim().toLowerCase();
+  try {
+    await supabase.from('course_enrollments').delete().eq('student_email', cleanEmail);
+    await supabase.from('registered_students').delete().eq('email', cleanEmail);
+    if (studentId) {
+      await supabase.from('profiles').delete().eq('id', studentId);
+      await supabase.from('registered_students').delete().eq('id', studentId);
+    }
+  } catch (e) {}
+
+  if (typeof window !== 'undefined') {
+    try {
+      const raw = localStorage.getItem('phenol_registered_students');
+      if (raw) {
+        const list = JSON.parse(raw);
+        const filtered = list.filter((st: any) => (st.email || '').toLowerCase() !== cleanEmail);
+        localStorage.setItem('phenol_registered_students', JSON.stringify(filtered));
+      }
+      localStorage.removeItem(`phenol_user_role_${cleanEmail}`);
+      window.dispatchEvent(new Event('phenol_students_updated'));
+    } catch (e) {}
+  }
+}
