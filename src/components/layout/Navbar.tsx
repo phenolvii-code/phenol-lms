@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation';
 import { AuthUser } from '@/types/auth';
 import { PhenolLogo } from '@/components/brand/PhenolLogo';
 import { NotificationBell } from '@/components/notifications/NotificationBell';
+import { Initials } from '@/components/ui/Initials';
 import {
   Menu,
   X,
@@ -149,11 +150,13 @@ export const Navbar: React.FC<NavbarProps> = ({
                 </Link>
 
                 <div className="hidden md:flex items-center gap-2 pl-2 border-l border-hairline">
-                  {currentUser.avatar ? (
-                    <div className="w-8 h-8 rounded-full overflow-hidden border border-hairline shrink-0 shadow-quiet">
+                  <div className="w-8 h-8 rounded-full overflow-hidden border border-hairline shrink-0 shadow-quiet flex items-center justify-center">
+                    {currentUser.avatar ? (
                       <img src={currentUser.avatar} alt={currentUser.name} className="w-full h-full object-cover" />
-                    </div>
-                  ) : null}
+                    ) : (
+                      <Initials name={currentUser.name} size="sm" />
+                    )}
+                  </div>
                   <div className="flex flex-col text-left leading-tight">
                     <span className="text-xs sm:text-sm font-bold text-charcoal-900">
                       {currentUser.name}

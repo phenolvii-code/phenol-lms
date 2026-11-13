@@ -68,7 +68,7 @@ export const INSTRUCTOR: InstructorProfile = {
   name: 'Dr. Omar Magdi',
   title: 'Academic Director & Senior Chemistry Fellow (PharmD)',
   bio: 'PharmD graduate and chemistry educator. Focused on first-principles causality, physical chemistry, reaction mechanisms, and intellectual scientific pedagogy.',
-  avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80',
+  avatar: '',
   specialization: 'Organic Reaction Mechanisms, Chemical Kinetics & Pharmaceutical Sciences',
   supervisionScope: 'Academic Director across All 4 Tracks',
   whatsapp: 'https://wa.me/201019688457',
@@ -93,6 +93,7 @@ export const setGlobalInstructorAvatar = (newAvatar: string) => {
   }
   if (typeof window !== 'undefined') {
     localStorage.setItem('phenol_global_instructor_avatar', newAvatar);
+    window.dispatchEvent(new Event('phenol_user_profile_updated'));
   }
 };
 

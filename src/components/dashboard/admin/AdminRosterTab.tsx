@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { ChemistryCourse } from '@/types/lms';
 import { CourseEnrollmentRecord } from '@/lib/data/enrollments';
+import { AuthUser } from '@/types/auth';
 import {
   getAggregatedStudentsDirectory,
   syncWithServerStudents,
@@ -15,14 +16,12 @@ import {
   ShieldCheck,
   CheckCircle2,
   Users,
-  KeyRound,
   UserCheck,
   Clock,
   X,
   AlertCircle,
   GraduationCap,
 } from 'lucide-react';
-import { AdminResetPasswordModal } from '@/components/dashboard/modals/AdminResetPasswordModal';
 
 interface AdminRosterTabProps {
   enrollments: CourseEnrollmentRecord[];
@@ -35,6 +34,7 @@ interface AdminRosterTabProps {
   setSelectedCourseIdToEnroll: (id: string) => void;
   setIsDirectEnrollModalOpen: (val: boolean) => void;
   handleRevokeEnrollment?: (enrId: string) => void;
+  currentUser?: AuthUser | null;
 }
 
 export function AdminRosterTab({
@@ -48,13 +48,56 @@ export function AdminRosterTab({
   setSelectedCourseIdToEnroll,
   setIsDirectEnrollModalOpen,
   handleRevokeEnrollment,
+  currentUser,
 }: AdminRosterTabProps) {
   const [activeSubTab, setActiveSubTab] = useState<'roster' | 'requests'>('roster');
-  const pendingRequests = enrollments.filter((e) => e.status === 'PENDING');
   const [studentDirectory, setStudentDirectory] = useState<StudentOverview[]>(() =>
     getAggregatedStudentsDirectory(enrollments)
   );
-  const [resetPasswordStudent, setResetPasswordStudent] = useState<StudentOverview | null>(null);
+
+  const isSuperAdmin =
+    currentUser?.isSuperAdmin || currentUser?.email?.toLowerCase() === 'phenolvii@gmail.com';
+
+  // Compute courses that belong to THIS instructor
+  const myCourses = useMemo(() => {
+    return courses.filter((c) => {
+      if (isSuperAdmin) {
+        // In Dr. Omar's instructor cockpit, show courses taught by Dr. Omar (or default courses)
+        if (
+          !c.instructorEmail ||
+          c.instructorEmail.toLowerCase() === 'phenolvii@gmail.com' ||
+          c.instructorName?.includes('Omar') ||
+          !c.instructorName
+        ) {
+          return true;
+        }
+        return false;
+      }
+      if (c.instructorId && currentUser?.id && c.instructorId === currentUser.id) return true;
+      if (
+        c.instructorEmail &&
+        currentUser?.email &&
+        c.instructorEmail.toLowerCase() === currentUser.email.toLowerCase()
+      )
+        return true;
+      if (
+        c.instructorName &&
+        currentUser?.name &&
+        c.instructorName.toLowerCase() === currentUser.name.toLowerCase()
+      )
+        return true;
+      return false;
+    });
+  }, [courses, currentUser, isSuperAdmin]);
+
+  const myCourseIds = useMemo(() => new Set(myCourses.map((c) => c.id)), [myCourses]);
+
+  // Pending requests strictly for THIS instructor's courses
+  const pendingRequests = useMemo(() => {
+    return enrollments.filter(
+      (e) => e.status === 'PENDING' && myCourseIds.has(e.course_id)
+    );
+  }, [enrollments, myCourseIds]);
 
   useEffect(() => {
     let isMounted = true;
@@ -82,7 +125,18 @@ export function AdminRosterTab({
     };
   }, [enrollments]);
 
-  const filteredStudents = studentDirectory.filter((st) => {
+  // Filter student directory: ONLY show students enrolled in at least one course taught by THIS instructor
+  const myStudents = useMemo(() => {
+    const studentEmailsWithMyCourses = new Set(
+      enrollments
+        .filter((e) => myCourseIds.has(e.course_id) && (e.status === 'ACTIVE' || e.status === 'PENDING'))
+        .map((e) => e.student_email.toLowerCase())
+    );
+
+    return studentDirectory.filter((st) => studentEmailsWithMyCourses.has(st.email.toLowerCase()));
+  }, [studentDirectory, enrollments, myCourseIds]);
+
+  const filteredStudents = myStudents.filter((st) => {
     if (!rosterSearchQuery.trim()) return true;
     const q = rosterSearchQuery.trim().toLowerCase();
     return (
@@ -100,123 +154,127 @@ export function AdminRosterTab({
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-xl font-bold text-charcoal-900 font-display">
-            Student Cohort Roster & Course Access
+            Course Scholars Roster & Access Controls
           </h2>
           <p className="text-xs text-charcoal-100 font-sans mt-0.5">
-            Full directory of scholars with contact numbers, academic tracks, and 1-click course enrollment / revocation.
+            Directory of scholars enrolled in your courses. Manage course access and student contact details.
           </p>
         </div>
 
         <div className="flex items-center gap-3 w-full sm:w-auto">
-          {/* Search Input */}
-          <div className="w-full sm:w-72 relative">
-            <Search className="w-4 h-4 text-charcoal-50 absolute left-3 top-2.5 pointer-events-none" />
-            <input
-              type="text"
-              value={rosterSearchQuery}
-              onChange={(e) => setRosterSearchQuery(e.target.value)}
-              placeholder="Search by name, phone, code, track..."
-              className="w-full pl-9 pr-3 py-2 text-xs bg-ivory-100 border border-hairline rounded text-charcoal-900 font-sans focus:outline-none focus:border-burgundy-500 shadow-quiet"
-            />
-          </div>
+          {/* Sub-tab Switcher */}
+          <div className="flex items-center p-1 rounded-xl bg-ivory-100 border border-hairline">
+            <button
+              type="button"
+              onClick={() => setActiveSubTab('roster')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 ${
+                activeSubTab === 'roster'
+                  ? 'bg-burgundy-500 text-ivory-100 shadow-sm'
+                  : 'text-charcoal-100 hover:text-charcoal-900'
+              }`}
+            >
+              <Users className="w-3.5 h-3.5" />
+              <span>Enrolled Scholars ({myStudents.length})</span>
+            </button>
 
-          <button
-            type="button"
-            onClick={() => setIsManualAddStudentModalOpen(true)}
-            className="px-3.5 py-2 rounded-xl bg-burgundy-500 hover:bg-burgundy-900 text-ivory-100 text-xs font-bold shadow-quiet flex items-center gap-1.5 shrink-0 transition-colors"
-          >
-            <Plus className="w-3.5 h-3.5" />
-            <span>Register Student</span>
-          </button>
+            <button
+              type="button"
+              onClick={() => setActiveSubTab('requests')}
+              className={`relative px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 ${
+                activeSubTab === 'requests'
+                  ? 'bg-burgundy-500 text-ivory-100 shadow-sm'
+                  : 'text-charcoal-100 hover:text-charcoal-900'
+              }`}
+            >
+              <Clock className="w-3.5 h-3.5" />
+              <span>Access Requests</span>
+              {pendingRequests.length > 0 && (
+                <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse ml-0.5" />
+              )}
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* Roster Navigation Sub-Tabs */}
-      <div className="border-b border-hairline flex items-center gap-6 text-sm font-semibold">
-        <button
-          onClick={() => setActiveSubTab('roster')}
-          className={`pb-3 border-b-2 transition-all flex items-center gap-2 ${
-            activeSubTab === 'roster'
-              ? 'border-burgundy-500 text-burgundy-500 font-bold'
-              : 'border-transparent text-charcoal-100 hover:text-charcoal-900'
-          }`}
-        >
-          <Users className="w-4 h-4" />
-          <span>All Students Roster</span>
-          <span className="font-formula text-xs px-2 py-0.5 rounded-full bg-ivory-300 text-charcoal-900">
-            {studentDirectory.length}
-          </span>
-        </button>
-
-        <button
-          onClick={() => setActiveSubTab('requests')}
-          className={`pb-3 border-b-2 transition-all flex items-center gap-2 ${
-            activeSubTab === 'requests'
-              ? 'border-amber-500 text-amber-700 font-bold'
-              : 'border-transparent text-charcoal-100 hover:text-charcoal-900'
-          }`}
-        >
-          <Clock className="w-4 h-4" />
-          <span>Course Access Requests</span>
-          <span
-            className={`font-formula text-xs px-2 py-0.5 rounded-full font-bold ${
-              pendingRequests.length > 0
-                ? 'bg-amber-100 text-amber-800 animate-pulse'
-                : 'bg-ivory-300 text-charcoal-900'
-            }`}
-          >
-            {pendingRequests.length}
-          </span>
-        </button>
-      </div>
-
-      {/* VIEW 1: ALL STUDENTS ROSTER */}
+      {/* VIEW 1: ENROLLED SCHOLARS ROSTER */}
       {activeSubTab === 'roster' && (
         <div className="space-y-4">
+          {/* Search bar */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="relative flex-1 max-w-md">
+              <Search className="w-4 h-4 text-charcoal-50 absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                placeholder="Search scholars by name, code, phone, or track..."
+                value={rosterSearchQuery}
+                onChange={(e) => setRosterSearchQuery(e.target.value)}
+                className="w-full pl-9 pr-4 py-2 text-xs bg-ivory-100 border border-hairline rounded-xl text-charcoal-900 placeholder:text-charcoal-50 focus:outline-none focus:border-burgundy-500 transition-colors"
+              />
+            </div>
+
+            <div className="text-xs text-charcoal-100 font-mono">
+              Showing {filteredStudents.length} of {myStudents.length} enrolled scholars
+            </div>
+          </div>
+
+          {/* Scholars Table */}
           {filteredStudents.length > 0 ? (
             <div className="border border-hairline rounded-2xl bg-ivory-100 overflow-hidden shadow-quiet">
               <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse text-xs">
+                <table className="w-full text-left text-xs border-collapse">
                   <thead>
-                    <tr className="border-b border-hairline bg-ivory-200/80 text-[11px] font-formula uppercase tracking-wider text-charcoal-50 whitespace-nowrap">
-                      <th className="py-3.5 px-4">Code</th>
-                      <th className="py-3.5 px-4 min-w-[180px]">Scholar Name</th>
-                      <th className="py-3.5 px-4">WhatsApp / Phone</th>
-                      <th className="py-3.5 px-4">Academic Track</th>
-                      <th className="py-3.5 px-4">Enrolled Courses</th>
-                      <th className="py-3.5 px-4 text-right">Access Actions</th>
+                    <tr className="border-b border-hairline bg-ivory-200/60 font-formula text-[10px] text-charcoal-50 uppercase tracking-wider">
+                      <th className="py-3 px-4 font-bold">Academic Code</th>
+                      <th className="py-3 px-4 font-bold">Scholar Name & Email</th>
+                      <th className="py-3 px-4 font-bold">Phone / WhatsApp</th>
+                      <th className="py-3 px-4 font-bold">Track</th>
+                      <th className="py-3 px-4 font-bold">Your Enrolled Courses</th>
+                      <th className="py-3 px-4 font-bold text-right">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-hairline">
                     {filteredStudents.map((st) => {
-                      const cleanPhone = (st.phone || '').replace(/[^0-9]/g, '');
+                      const cleanPhone = st.phone ? st.phone.replace(/[^0-9]/g, '') : '';
                       const waLink = cleanPhone
                         ? `https://wa.me/${cleanPhone}?text=${encodeURIComponent(
-                            `Hello ${st.name}, regarding your coursework at Phenol Academy:`
+                            `Hello ${st.name}, regarding your curriculum at Phenol Academy:`
                           )}`
                         : null;
 
-                      // Active enrollments for this student
-                      const activeEnr = st.enrollments?.filter((e: any) => e.status === 'ACTIVE') || [];
+                      // Active courses taught by THIS instructor ONLY
+                      const myActiveEnr = enrollments.filter(
+                        (e) =>
+                          e.student_email.toLowerCase() === st.email.toLowerCase() &&
+                          e.status === 'ACTIVE' &&
+                          myCourseIds.has(e.course_id)
+                      );
 
                       return (
-                        <tr key={st.email} className="hover:bg-ivory-200/50 transition-colors">
-                          <td className="py-3.5 px-4 font-mono font-bold text-burgundy-600 whitespace-nowrap">
-                            <span className="bg-burgundy-50 border border-burgundy-200 px-2 py-0.5 rounded">
+                        <tr
+                          key={st.email}
+                          className="hover:bg-ivory-200/40 transition-colors group"
+                        >
+                          {/* Academic Code */}
+                          <td className="py-3.5 px-4 whitespace-nowrap">
+                            <span className="font-mono text-[11px] font-bold text-burgundy-900 bg-burgundy-50 px-2 py-0.5 rounded border border-burgundy-200">
                               {st.code}
                             </span>
                           </td>
 
-                          <td className="py-3.5 px-4 font-bold text-charcoal-900">
-                            <div>
-                              <span className="font-display text-sm">{st.name}</span>
-                              <span className="text-[11px] text-charcoal-50 font-mono block font-normal">
+                          {/* Scholar Name */}
+                          <td className="py-3.5 px-4 whitespace-nowrap">
+                            <div className="flex flex-col">
+                              <span className="font-bold text-charcoal-900 text-xs sm:text-sm font-display">
+                                {st.name}
+                              </span>
+                              <span className="font-mono text-[11px] text-charcoal-100">
                                 {st.email}
                               </span>
                             </div>
                           </td>
 
-                          <td className="py-3.5 px-4 text-charcoal-100 font-mono text-xs whitespace-nowrap">
+                          {/* Phone / WhatsApp */}
+                          <td className="py-3.5 px-4 whitespace-nowrap">
                             {waLink ? (
                               <a
                                 href={waLink}
@@ -233,17 +291,18 @@ export function AdminRosterTab({
                             )}
                           </td>
 
+                          {/* Track */}
                           <td className="py-3.5 px-4 whitespace-nowrap">
                             <span className="font-formula font-semibold text-charcoal-900 bg-ivory-200 px-2 py-0.5 rounded border border-hairline text-[11px]">
                               {st.track}
                             </span>
                           </td>
 
-                          {/* Enrolled Courses list with 1-click unenroll */}
+                          {/* Enrolled Courses taught by this instructor with 1-click revoke */}
                           <td className="py-3.5 px-4">
-                            {activeEnr.length > 0 ? (
+                            {myActiveEnr.length > 0 ? (
                               <div className="flex flex-wrap gap-1.5 max-w-xs">
-                                {activeEnr.map((enr: any) => (
+                                {myActiveEnr.map((enr: any) => (
                                   <div
                                     key={enr.id}
                                     className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-emerald-50 text-emerald-900 border border-emerald-200 text-[10px] font-mono"
@@ -269,30 +328,21 @@ export function AdminRosterTab({
                             )}
                           </td>
 
-                          {/* Actions: 1-Click Enroll / Revoke */}
+                          {/* Actions: 1-Click Enroll in this instructor's courses */}
                           <td className="py-3.5 px-4 text-right">
                             <div className="flex items-center justify-end gap-1.5 flex-wrap">
                               <button
                                 type="button"
                                 onClick={() => {
                                   setDirectEnrollStudent(st);
-                                  setSelectedCourseIdToEnroll(courses[0]?.id || '');
+                                  setSelectedCourseIdToEnroll(myCourses[0]?.id || '');
                                   setIsDirectEnrollModalOpen(true);
                                 }}
                                 className="px-2.5 py-1 rounded-lg bg-burgundy-500 hover:bg-burgundy-900 text-ivory-100 text-xs font-bold transition-colors shadow-sm flex items-center gap-1"
-                                title="Enroll student in course"
+                                title="Enroll student in one of your courses"
                               >
                                 <Plus className="w-3 h-3" />
                                 <span>Enroll in Course</span>
-                              </button>
-
-                              <button
-                                type="button"
-                                onClick={() => setResetPasswordStudent(st)}
-                                className="p-1.5 rounded-lg border border-hairline bg-ivory-200 text-charcoal-900 hover:bg-ivory-300 text-xs transition-colors"
-                                title="Reset Student Password"
-                              >
-                                <KeyRound className="w-3.5 h-3.5 text-burgundy-600" />
                               </button>
                             </div>
                           </td>
@@ -307,10 +357,14 @@ export function AdminRosterTab({
             <div className="border border-dashed border-hairline rounded-2xl bg-ivory-100 p-12 text-center space-y-3">
               <Users className="w-10 h-10 text-charcoal-50 mx-auto" />
               <h3 className="text-base font-bold text-charcoal-900 font-display">
-                No students match your search
+                {myStudents.length === 0
+                  ? 'No Students Enrolled in Your Courses Yet'
+                  : 'No scholars match your search query'}
               </h3>
               <p className="text-xs text-charcoal-100 font-sans max-w-sm mx-auto">
-                Try searching with a different name, phone number, or academic code.
+                {myStudents.length === 0
+                  ? 'When students enroll in or request access to your courses, they will appear here.'
+                  : 'Try searching with a different name, phone number, or academic code.'}
               </p>
             </div>
           )}
@@ -326,7 +380,7 @@ export function AdminRosterTab({
               <h3 className="text-sm font-bold text-charcoal-900 font-display">
                 No Pending Access Requests
               </h3>
-              <p>All student course enrollments are reviewed and active.</p>
+              <p>All student course enrollments for your courses are reviewed and active.</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -413,18 +467,6 @@ export function AdminRosterTab({
             </div>
           )}
         </div>
-      )}
-
-      {/* Reset Password Modal */}
-      {resetPasswordStudent && (
-        <AdminResetPasswordModal
-          isOpen={true}
-          studentEmail={resetPasswordStudent.email}
-          studentName={resetPasswordStudent.name}
-          studentCode={resetPasswordStudent.code}
-          onClose={() => setResetPasswordStudent(null)}
-          onSuccess={() => setResetPasswordStudent(null)}
-        />
       )}
     </div>
   );

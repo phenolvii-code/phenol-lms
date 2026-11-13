@@ -61,13 +61,15 @@ export function useCurrentUser() {
       }
 
       const localAvatar = typeof window !== 'undefined' ? localStorage.getItem(`phenol_avatar_${authUser.id}`) : null;
+      const globalCached = typeof window !== 'undefined' ? localStorage.getItem('phenol_global_instructor_avatar') : null;
       const avatar =
         localProfile?.avatar ||
         localAvatar ||
+        globalCached ||
         profile?.avatar_url ||
         authUser.user_metadata?.avatar_url ||
         authUser.user_metadata?.avatar ||
-        (isSuperAdmin ? 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80' : undefined);
+        undefined;
 
       const displayName =
         localProfile?.name ||
@@ -109,6 +111,13 @@ export function useCurrentUser() {
   useEffect(() => {
     fetchUserProfile();
 
+    const handleProfileUpdate = () => {
+      fetchUserProfile();
+    };
+    if (typeof window !== 'undefined') {
+      window.addEventListener('phenol_user_profile_updated', handleProfileUpdate);
+    }
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
       if (event === 'SIGNED_IN' || event === 'USER_UPDATED' || event === 'TOKEN_REFRESHED') {
         fetchUserProfile();
@@ -119,6 +128,9 @@ export function useCurrentUser() {
     });
 
     return () => {
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('phenol_user_profile_updated', handleProfileUpdate);
+      }
       subscription.unsubscribe();
     };
   }, [fetchUserProfile]);

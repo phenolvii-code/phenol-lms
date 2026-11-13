@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useCurrentUser } from '@/lib/auth/useCurrentUser';
 import { Navbar } from '@/components/layout/Navbar';
@@ -8,9 +8,18 @@ import { PhenolLogo } from '@/components/brand/PhenolLogo';
 import { FACULTY_MEMBERS } from '@/data/mock-data';
 import { Sparkles, Mail, GraduationCap, ArrowRight, BookOpen, Layers } from 'lucide-react';
 import { WhatsAppIcon } from '@/components/auth/AuthIcons';
+import { Initials } from '@/components/ui/Initials';
 
 export default function FacultyPage() {
   const { user: currentUser, signOut } = useCurrentUser();
+  const [cachedAvatar, setCachedAvatar] = useState('');
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const a = localStorage.getItem('phenol_global_instructor_avatar');
+      if (a) setCachedAvatar(a);
+    }
+  }, []);
 
   return (
     <div className="min-h-screen bg-ivory-200 text-charcoal-900 flex flex-col font-sans selection:bg-burgundy-500 selection:text-ivory-100 antialiased">
@@ -50,7 +59,9 @@ export default function FacultyPage() {
         {/* Faculty Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           {FACULTY_MEMBERS.map((faculty, idx) => {
-            const displayAvatar = (idx === 0 && currentUser?.avatar) ? currentUser.avatar : faculty.avatar;
+            const displayAvatar = (idx === 0)
+              ? (currentUser?.avatar || cachedAvatar || faculty.avatar)
+              : faculty.avatar;
             const displayName = (idx === 0 && currentUser?.name) ? currentUser.name : faculty.name;
             const displayBio = (idx === 0 && currentUser?.bio) ? currentUser.bio : faculty.bio;
             const displayTitle = (idx === 0 && currentUser?.title) ? currentUser.title : faculty.title;
@@ -63,13 +74,17 @@ export default function FacultyPage() {
                 <div className="space-y-5">
                   {/* Header with Avatar & Title */}
                   <div className="flex items-start gap-4 sm:gap-5">
-                    <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl overflow-hidden border border-hairline shrink-0 shadow-quiet bg-ivory-200">
-                      <img
-                        src={displayAvatar}
-                        alt={displayName}
-                        className="w-full h-full object-cover"
-                        loading="lazy"
-                      />
+                    <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl overflow-hidden border border-hairline shrink-0 shadow-quiet bg-ivory-200 flex items-center justify-center">
+                      {displayAvatar ? (
+                        <img
+                          src={displayAvatar}
+                          alt={displayName}
+                          className="w-full h-full object-cover"
+                          loading="lazy"
+                        />
+                      ) : (
+                        <Initials name={displayName} size="lg" />
+                      )}
                     </div>
 
                     <div className="space-y-1">

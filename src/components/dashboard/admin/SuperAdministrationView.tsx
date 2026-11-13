@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { ChemistryCourse } from '@/types/lms';
 import { CourseEnrollmentRecord } from '@/lib/data/enrollments';
 import { FACULTY_MEMBERS, ACADEMIC_TRACKS, normalizeTrackSlug } from '@/data/mock-data';
@@ -72,6 +72,22 @@ export const SuperAdministrationView: React.FC<SuperAdministrationViewProps> = (
     phone?: string;
     code?: string;
   } | null>(null);
+  const [globalInstructorAvatar, setGlobalInstructorAvatar] = useState('');
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const a = localStorage.getItem('phenol_global_instructor_avatar');
+      if (a) setGlobalInstructorAvatar(a);
+    }
+    const handleUpdate = () => {
+      if (typeof window !== 'undefined') {
+        const a = localStorage.getItem('phenol_global_instructor_avatar');
+        if (a) setGlobalInstructorAvatar(a);
+      }
+    };
+    window.addEventListener('phenol_user_profile_updated', handleUpdate);
+    return () => window.removeEventListener('phenol_user_profile_updated', handleUpdate);
+  }, []);
 
   // Compute student directory (all users, enrolled or not)
   const studentDirectory = useMemo(() => {
@@ -798,20 +814,30 @@ export const SuperAdministrationView: React.FC<SuperAdministrationViewProps> = (
 
           {!selectedInstructorId ? (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {instructorStats.map((inst, idx) => (
-                <div
-                  key={inst.id || idx}
-                  className="p-6 rounded-2xl bg-ivory-100 border border-hairline shadow-quiet hover:shadow-editorial transition-all space-y-5 flex flex-col justify-between"
-                >
-                  <div className="space-y-4">
-                    <div className="flex items-start gap-4">
-                      <div className="w-16 h-16 rounded-2xl overflow-hidden border border-hairline shrink-0 shadow-quiet bg-ivory-200">
-                        <img
-                          src={inst.avatar}
-                          alt={inst.name}
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
+              {instructorStats.map((inst, idx) => {
+                const displayAvatar =
+                  inst.id === 'dr-omar-magdi' || inst.email === 'phenolvii@gmail.com'
+                    ? globalInstructorAvatar || inst.avatar
+                    : inst.avatar;
+
+                return (
+                  <div
+                    key={inst.id || idx}
+                    className="p-6 rounded-2xl bg-ivory-100 border border-hairline shadow-quiet hover:shadow-editorial transition-all space-y-5 flex flex-col justify-between"
+                  >
+                    <div className="space-y-4">
+                      <div className="flex items-start gap-4">
+                        <div className="w-16 h-16 rounded-2xl overflow-hidden border border-hairline shrink-0 shadow-quiet bg-ivory-200 flex items-center justify-center">
+                          {displayAvatar ? (
+                            <img
+                              src={displayAvatar}
+                              alt={inst.name}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <Initials name={inst.name} size="md" />
+                          )}
+                        </div>
 
                       <div className="space-y-1">
                         <div className="flex items-center gap-2 flex-wrap">
@@ -871,20 +897,29 @@ export const SuperAdministrationView: React.FC<SuperAdministrationViewProps> = (
                     </button>
                   </div>
                 </div>
-              ))}
+              );
+            })}
             </div>
           ) : (
             /* Selected Instructor Dossier & Courses Cockpit */
             (() => {
               const inst = instructorStats.find((i) => i.id === selectedInstructorId) || instructorStats[0];
+              const displayAvatar =
+                inst.id === 'dr-omar-magdi' || inst.email === 'phenolvii@gmail.com'
+                  ? globalInstructorAvatar || inst.avatar
+                  : inst.avatar;
 
               return (
                 <div className="space-y-6">
                   {/* Instructor Bio Banner */}
                   <div className="p-6 rounded-2xl bg-ivory-100 border border-hairline flex flex-col md:flex-row md:items-center justify-between gap-6">
                     <div className="flex items-start sm:items-center gap-4">
-                      <div className="w-20 h-20 rounded-2xl overflow-hidden border border-hairline shadow-quiet bg-ivory-200 shrink-0">
-                        <img src={inst.avatar} alt={inst.name} className="w-full h-full object-cover" />
+                      <div className="w-20 h-20 rounded-2xl overflow-hidden border border-hairline shadow-quiet bg-ivory-200 shrink-0 flex items-center justify-center">
+                        {displayAvatar ? (
+                          <img src={displayAvatar} alt={inst.name} className="w-full h-full object-cover" />
+                        ) : (
+                          <Initials name={inst.name} size="lg" />
+                        )}
                       </div>
                       <div className="space-y-1">
                         <h3 className="text-xl font-bold text-charcoal-900 font-display">{inst.name}</h3>

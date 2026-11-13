@@ -91,7 +91,7 @@ import { ManualAddStudentModal } from '@/components/dashboard/modals/ManualAddSt
 
 export default function DashboardPage() {
   const router = useRouter();
-  const { user: currentUser, isLoading, signOut } = useCurrentUser();
+  const { user: currentUser, isLoading, signOut, refreshUser } = useCurrentUser();
   const [isWhatsAppRequiredModalOpen, setIsWhatsAppRequiredModalOpen] = useState(false);
 
   // Instructor View Toggle (Admin mode vs Student preview mode)
@@ -123,6 +123,33 @@ export default function DashboardPage() {
   const [profileSpecialization, setProfileSpecialization] = useState('');
   const [profileBio, setProfileBio] = useState('');
   const [profilePhone, setProfilePhone] = useState('');
+
+  const isSuperAdminUser =
+    currentUser?.isSuperAdmin || currentUser?.email?.toLowerCase() === 'phenolvii@gmail.com';
+
+  useEffect(() => {
+    if (currentUser?.avatar) {
+      setProfileAvatar(currentUser.avatar);
+    }
+  }, [currentUser?.avatar]);
+
+  const isCourseOwnedByCurrentInstructor = (c: ChemistryCourse) => {
+    if (isSuperAdminUser) return true;
+    if (c.instructorId && currentUser?.id && c.instructorId === currentUser.id) return true;
+    if (
+      c.instructorEmail &&
+      currentUser?.email &&
+      c.instructorEmail.toLowerCase() === currentUser.email.toLowerCase()
+    )
+      return true;
+    if (
+      c.instructorName &&
+      currentUser?.name &&
+      c.instructorName.toLowerCase() === currentUser.name.toLowerCase()
+    )
+      return true;
+    return false;
+  };
 
   // Student Profile Modal State
   const [isStudentProfileOpen, setIsStudentProfileOpen] = useState(false);
@@ -326,18 +353,22 @@ export default function DashboardPage() {
         avatar: profileAvatar,
       };
 
-      // 1. Supabase User Metadata
-      await supabase.auth.updateUser({
-        data: {
-          full_name: profileName.trim(),
-          title: profileTitle.trim(),
-          specialization: profileSpecialization.trim(),
-          bio: profileBio.trim(),
-          phone: profilePhone.trim(),
-          avatar: profileAvatar,
-          avatar_url: profileAvatar,
-        },
-      });
+      // 1. Supabase User Metadata (wrapped safely)
+      try {
+        await supabase.auth.updateUser({
+          data: {
+            full_name: profileName.trim(),
+            title: profileTitle.trim(),
+            specialization: profileSpecialization.trim(),
+            bio: profileBio.trim(),
+            phone: profilePhone.trim(),
+            avatar: profileAvatar,
+            avatar_url: profileAvatar,
+          },
+        });
+      } catch (authErr) {
+        console.warn('Notice updating auth user metadata:', authErr);
+      }
 
       // 2. Profiles table
       try {
@@ -355,6 +386,12 @@ export default function DashboardPage() {
       if (typeof window !== 'undefined') {
         localStorage.setItem(`phenol_instructor_profile_${currentUser.id}`, JSON.stringify(updatedUser));
         localStorage.setItem(`phenol_avatar_${currentUser.id}`, profileAvatar);
+        localStorage.setItem('phenol_global_instructor_avatar', profileAvatar);
+        window.dispatchEvent(new Event('phenol_user_profile_updated'));
+      }
+
+      if (refreshUser) {
+        refreshUser();
       }
 
       setEnrollmentToast('Profile and photograph updated successfully!');
@@ -414,6 +451,13 @@ export default function DashboardPage() {
   };
 
   const handleRevokeEnrollment = async (enrId: string) => {
+    const targetEnr = enrollments.find((e) => e.id === enrId);
+    if (!targetEnr) return;
+    const targetCourse = courses.find((c) => c.id === targetEnr.course_id);
+    if (!isSuperAdminUser && targetCourse && !isCourseOwnedByCurrentInstructor(targetCourse)) {
+      alert("You are not authorized to revoke access from another instructor's course.");
+      return;
+    }
     if (typeof window !== 'undefined' && !window.confirm('Are you sure you want to revoke student access to this course?')) return;
     try {
       await adminRevokeEnrollment(enrId);
@@ -446,6 +490,11 @@ export default function DashboardPage() {
     if (!directEnrollStudent || !selectedCourseIdToEnroll) return;
     const courseObj = courses.find((c) => c.id === selectedCourseIdToEnroll);
     if (!courseObj) return;
+
+    if (!isSuperAdminUser && !isCourseOwnedByCurrentInstructor(courseObj)) {
+      alert('You are only authorized to enroll students into your own courses.');
+      return;
+    }
 
     try {
       await adminEnrollStudent(directEnrollStudent.email, selectedCourseIdToEnroll);
@@ -966,7 +1015,7 @@ export default function DashboardPage() {
       {/* Main Container */}
       <main className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8 space-y-8">
         {showAdminInterface ? (
-          isSuperAdminCockpitOpen ? (
+          (isSuperAdminCockpitOpen && isSuperAdminUser) ? (
             <SuperAdministrationView
               courses={courses}
               enrollments={enrollments}
@@ -1045,15 +1094,17 @@ export default function DashboardPage() {
                   <span>Edit Profile</span>
                 </button>
 
-                {/* Super Administration Button */}
-                <button
-                  type="button"
-                  onClick={() => setIsSuperAdminCockpitOpen(true)}
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-burgundy-500 hover:bg-burgundy-900 active:scale-[0.98] text-ivory-100 font-sans text-xs font-bold transition-all shadow-md hover:shadow-lg ring-2 ring-burgundy-500/20"
-                >
-                  <ShieldCheck className="w-4 h-4 text-ochre-400" />
-                  <span>Super Administration</span>
-                </button>
+                {/* Super Administration Button - Dr. Omar Magdi ONLY */}
+                {isSuperAdminUser && (
+                  <button
+                    type="button"
+                    onClick={() => setIsSuperAdminCockpitOpen(true)}
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-burgundy-500 hover:bg-burgundy-900 active:scale-[0.98] text-ivory-100 font-sans text-xs font-bold transition-all shadow-md hover:shadow-lg ring-2 ring-burgundy-500/20"
+                  >
+                    <ShieldCheck className="w-4 h-4 text-ochre-400" />
+                    <span>Super Administration</span>
+                  </button>
+                )}
               </div>
             </div>
 
@@ -1276,6 +1327,7 @@ export default function DashboardPage() {
                 setSelectedCourseIdToEnroll={setSelectedCourseIdToEnroll}
                 setIsDirectEnrollModalOpen={setIsDirectEnrollModalOpen}
                 handleRevokeEnrollment={handleRevokeEnrollment}
+                currentUser={currentUser}
               />
             )}
           </div>
@@ -1578,7 +1630,7 @@ export default function DashboardPage() {
         onClose={() => setIsDirectEnrollModalOpen(false)}
         onSubmit={handleDirectEnrollSubmit}
         student={directEnrollStudent}
-        courses={courses}
+        courses={isSuperAdminUser ? courses : courses.filter(isCourseOwnedByCurrentInstructor)}
         selectedCourseId={selectedCourseIdToEnroll}
         setSelectedCourseId={setSelectedCourseIdToEnroll}
       />
