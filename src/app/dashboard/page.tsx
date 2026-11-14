@@ -31,6 +31,7 @@ import { supabase } from '@/lib/supabase';
 import {
   getStoredCourses,
   saveStoredCourses,
+  saveSingleCourse,
   markCourseDeleted,
   syncWithServerCourses,
 } from '@/lib/courses-storage';
@@ -714,7 +715,12 @@ export default function DashboardPage() {
     });
 
     setCourses(updated);
-    await saveStoredCourses(updated);
+    const updatedTarget = updated.find((c) => c.id === editingCourseId);
+    if (updatedTarget) {
+      await saveSingleCourse(updatedTarget);
+    } else {
+      await saveStoredCourses(updated);
+    }
 
     setIsEditCourseOpen(false);
     setEditingCourseId(null);
@@ -777,7 +783,12 @@ export default function DashboardPage() {
     });
 
     setCourses(updated);
-    await saveStoredCourses(updated);
+    const updatedTarget = updated.find((c) => c.id === targetCourseId);
+    if (updatedTarget) {
+      await saveSingleCourse(updatedTarget);
+    } else {
+      await saveStoredCourses(updated);
+    }
 
     // Broadcast notification to all actively enrolled students
     try {
@@ -849,7 +860,12 @@ export default function DashboardPage() {
     });
 
     setCourses(updated);
-    await saveStoredCourses(updated);
+    const updatedTarget = updated.find((c) => c.id === editingLessonCourseId);
+    if (updatedTarget) {
+      await saveSingleCourse(updatedTarget);
+    } else {
+      await saveStoredCourses(updated);
+    }
 
     setIsEditLessonOpen(false);
     setEditingLessonCourseId(null);
@@ -873,7 +889,12 @@ export default function DashboardPage() {
       return course;
     });
     setCourses(updated);
-    await saveStoredCourses(updated);
+    const updatedTarget = updated.find((c) => c.id === courseId);
+    if (updatedTarget) {
+      await saveSingleCourse(updatedTarget);
+    } else {
+      await saveStoredCourses(updated);
+    }
   };
 
   const handleDeleteWaitlist = async (id: string, name: string) => {

@@ -18,19 +18,16 @@ export function useCurrentUser() {
         return;
       }
 
-      // 1. Fetch role from public.profiles (or user_metadata or fallback)
+      // 1. Fetch role STRICTLY from public.profiles (Database source of truth)
       const { data: profile } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', authUser.id)
         .single();
 
-      const isSuperAdmin = authUser.email?.toLowerCase() === 'phenolvii@gmail.com';
-      const isInstructor =
-        isSuperAdmin ||
-        profile?.role === 'instructor' ||
-        authUser.user_metadata?.role === 'instructor' ||
-        authUser.user_metadata?.account_type === 'INSTRUCTOR';
+      const dbRole = (profile?.role || '').toLowerCase().trim();
+      const isSuperAdmin = authUser.email?.toLowerCase() === 'phenolvii@gmail.com' || dbRole === 'super_admin';
+      const isInstructor = isSuperAdmin || dbRole === 'instructor';
 
       const role: UserRole = isSuperAdmin ? 'SUPER_ADMIN' : isInstructor ? 'INSTRUCTOR' : 'STUDENT';
 

@@ -59,6 +59,93 @@ export const getStoredCourses = (): ChemistryCourse[] => {
   return inMemoryCourses;
 };
 
+export const saveSingleCourse = async (c: ChemistryCourse): Promise<void> => {
+  const current = getStoredCourses();
+  const existingIdx = current.findIndex((item) => item.id === c.id);
+  let updatedList: ChemistryCourse[];
+  if (existingIdx >= 0) {
+    updatedList = current.map((item) => (item.id === c.id ? c : item));
+  } else {
+    updatedList = [c, ...current];
+  }
+  inMemoryCourses = updatedList;
+
+  if (typeof window !== 'undefined') {
+    try {
+      localStorage.setItem('phenol_stored_courses', JSON.stringify(updatedList));
+    } catch (e) {}
+    window.dispatchEvent(new Event('phenol_courses_updated'));
+  }
+
+  // Persist single course to Supabase
+  try {
+    const isDrOmar =
+      c.instructorEmail?.toLowerCase() === 'phenolvii@gmail.com' ||
+      c.instructorId === 'dr-omar-magdi' ||
+      !c.instructorEmail;
+
+    const resolvedId = isDrOmar
+      ? 'dr-omar-magdi'
+      : c.instructorId || (c.instructorEmail ? c.instructorEmail.split('@')[0] : 'dr-omar-magdi');
+    const resolvedName = isDrOmar ? 'Dr. Omar Magdi' : c.instructorName || 'Academic Instructor';
+    const resolvedEmail = isDrOmar ? 'phenolvii@gmail.com' : c.instructorEmail || 'phenolvii@gmail.com';
+
+    const cleanDesc = (c.description || '').replace(META_REGEX, '').trim();
+    const metaPayload = {
+      instructorId: resolvedId,
+      instructorName: resolvedName,
+      instructorEmail: resolvedEmail,
+      instructorAvatar: c.instructorAvatar || null,
+      approvalStatus: c.approvalStatus || 'APPROVED',
+      submittedAt: c.submittedAt || null,
+    };
+    const descWithMeta = `${cleanDesc}\n\n<!--PHENOL_META:${JSON.stringify(metaPayload)}-->`;
+
+    await supabase.from('courses').upsert({
+      id: c.id,
+      code: c.code,
+      title: c.title,
+      sub_title: c.subTitle || null,
+      description: descWithMeta,
+      category: c.category,
+      category_name: c.categoryName || 'Academic Program',
+      level: c.level || 'Academic Year 2026/2027',
+      molecular_formula: c.molecularFormula || null,
+      thumbnail: c.thumbnail || null,
+      total_hours: c.totalHours || null,
+      color_accent: c.colorAccent || '#641C32',
+      accent_bg: c.accentBg || 'bg-burgundy-950',
+    });
+
+    if (Array.isArray(c.lessons) && c.lessons.length > 0) {
+      for (let idx = 0; idx < c.lessons.length; idx++) {
+        const l = c.lessons[idx];
+        await supabase.from('lessons').upsert({
+          id: l.id,
+          course_id: c.id,
+          title: l.title,
+          duration: l.duration || '45 min',
+          type: l.type || 'video',
+          summary: l.summary || null,
+          key_formulas: l.keyFormulas || null,
+          sort_order: idx,
+        });
+
+        const editorInput = l as any;
+        if (editorInput.videoUrl || editorInput.pdfNotesUrl) {
+          await supabase.from('lesson_assets').upsert({
+            lesson_id: l.id,
+            video_url: editorInput.videoUrl || null,
+            pdf_notes_path: editorInput.pdfNotesUrl || null,
+          });
+        }
+      }
+    }
+  } catch (err) {
+    console.warn('Notice saving single course to Supabase:', err);
+  }
+};
+
 export const saveStoredCourses = async (courses: ChemistryCourse[]): Promise<void> => {
   inMemoryCourses = courses;
   if (typeof window !== 'undefined') {
@@ -71,11 +158,22 @@ export const saveStoredCourses = async (courses: ChemistryCourse[]): Promise<voi
   // Persist courses with embedded instructor metadata to Supabase
   for (const c of courses) {
     try {
+      const isDrOmar =
+        c.instructorEmail?.toLowerCase() === 'phenolvii@gmail.com' ||
+        c.instructorId === 'dr-omar-magdi' ||
+        !c.instructorEmail;
+
+      const resolvedId = isDrOmar
+        ? 'dr-omar-magdi'
+        : c.instructorId || (c.instructorEmail ? c.instructorEmail.split('@')[0] : 'dr-omar-magdi');
+      const resolvedName = isDrOmar ? 'Dr. Omar Magdi' : c.instructorName || 'Academic Instructor';
+      const resolvedEmail = isDrOmar ? 'phenolvii@gmail.com' : c.instructorEmail || 'phenolvii@gmail.com';
+
       const cleanDesc = (c.description || '').replace(META_REGEX, '').trim();
       const metaPayload = {
-        instructorId: c.instructorId || (c.instructorEmail?.toLowerCase() === 'phenolvii@gmail.com' ? 'dr-omar-magdi' : 'dr-omar-magdi'),
-        instructorName: c.instructorName || 'Dr. Omar Magdi',
-        instructorEmail: c.instructorEmail || 'phenolvii@gmail.com',
+        instructorId: resolvedId,
+        instructorName: resolvedName,
+        instructorEmail: resolvedEmail,
         instructorAvatar: c.instructorAvatar || null,
         approvalStatus: c.approvalStatus || 'APPROVED',
         submittedAt: c.submittedAt || null,
