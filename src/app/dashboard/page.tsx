@@ -677,6 +677,7 @@ export default function DashboardPage() {
           await supabase.from('profiles').update({ role: newRole }).eq('id', st.id);
         }
       }
+      await supabase.from('registered_students').update({ role: newRole.toUpperCase() }).eq('email', email);
     } catch (e) {
       console.warn('Error updating profile role:', e);
     }
@@ -692,6 +693,7 @@ export default function DashboardPage() {
         localStorage.setItem('phenol_registered_students', JSON.stringify(updatedList));
       }
       window.dispatchEvent(new Event('phenol_students_updated'));
+      window.dispatchEvent(new Event('phenol_instructors_updated'));
     }
 
     setEnrollmentToast(`User ${email} role switched to ${newRole === 'instructor' ? 'Academic Instructor' : 'Student / Scholar'}`);

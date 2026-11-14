@@ -55,8 +55,24 @@ export const getPlatformInstructors = (): InstructorProfile[] => {
     if (rawInstructors) {
       const parsed = JSON.parse(rawInstructors);
       if (Array.isArray(parsed) && parsed.length > 0) {
-        inMemoryInstructors = parsed;
+        // Preserve all parsed instructors, but ensure all SEED_INSTRUCTORS (e.g. phenol-loki) remain present
+        const merged = [...parsed];
+        SEED_INSTRUCTORS.forEach((seed) => {
+          const exists = merged.some(
+            (m) =>
+              m.id === seed.id ||
+              (Boolean(seed.email) &&
+                Boolean(m.email) &&
+                m.email!.toLowerCase() === seed.email!.toLowerCase())
+          );
+          if (!exists) {
+            merged.push(seed);
+          }
+        });
+        inMemoryInstructors = merged;
       }
+    } else {
+      inMemoryInstructors = [...SEED_INSTRUCTORS];
     }
 
     // Check Dr. Omar's global avatar
@@ -74,9 +90,11 @@ export const getPlatformInstructors = (): InstructorProfile[] => {
           const email = (user.email || '').toLowerCase().trim();
           if (!email || email === 'phenolvii@gmail.com') return;
 
-          const role =
+          const role = (
             localStorage.getItem(`phenol_user_role_${email}`) ||
-            user.role;
+            user.role ||
+            ''
+          ).toLowerCase();
 
           if (role === 'instructor') {
             const instId = email.split('@')[0].replace(/[^a-zA-Z0-9_-]/g, '-');
@@ -135,6 +153,42 @@ export const getPlatformInstructors = (): InstructorProfile[] => {
         });
       }
     }
+
+    // Inspect stored courses for any additional instructor profiles
+    const storedCoursesRaw = localStorage.getItem('phenol_stored_courses');
+    if (storedCoursesRaw) {
+      try {
+        const storedCourses = JSON.parse(storedCoursesRaw);
+        if (Array.isArray(storedCourses)) {
+          storedCourses.forEach((c: any) => {
+            const email = (c.instructorEmail || '').toLowerCase().trim();
+            if (email && email !== 'phenolvii@gmail.com') {
+              const instId = c.instructorId || email.split('@')[0].replace(/[^a-zA-Z0-9_-]/g, '-');
+              const exists = inMemoryInstructors.some(
+                (i) => i.id === instId || (i.email && i.email.toLowerCase() === email)
+              );
+              if (!exists) {
+                const ratingData = getInstructorRating(instId);
+                inMemoryInstructors.push({
+                  id: instId,
+                  name: c.instructorName || email.split('@')[0],
+                  title: 'Academic Instructor & Faculty Fellow',
+                  bio: 'Faculty educator dedicated to first-principles conceptual clarity and causal curricular deconstruction.',
+                  avatar: c.instructorAvatar || '',
+                  specialization: c.categoryName || 'General Sciences',
+                  supervisionScope: 'Faculty Teaching Fellow',
+                  email: email,
+                  subjects: [c.categoryName || 'Sciences'],
+                  coursesCount: 1,
+                  rating: ratingData.rating,
+                  reviewsCount: ratingData.count,
+                });
+              }
+            }
+          });
+        }
+      } catch (e) {}
+    }
   } catch (e) {}
 
   return inMemoryInstructors;
@@ -143,47 +197,108 @@ export const getPlatformInstructors = (): InstructorProfile[] => {
 export const syncPlatformInstructors = async (): Promise<InstructorProfile[]> => {
   const currentList = [...getPlatformInstructors()];
 
+  // Ensure all seed instructors (including phenol-loki) are always included
+  SEED_INSTRUCTORS.forEach((seed) => {
+    const exists = currentList.some(
+      (i) =>
+        i.id === seed.id ||
+        (Boolean(seed.email) &&
+          Boolean(i.email) &&
+          i.email!.toLowerCase() === seed.email!.toLowerCase())
+    );
+    if (!exists) {
+      currentList.push(seed);
+    }
+  });
+
   try {
-    // 1. Fetch from Supabase profiles
+    // 1. Fetch from registered_students
+    const { data: regStudents } = await supabase
+      .from('registered_students')
+      .select('*');
+
+    // 2. Fetch profiles with role = 'instructor'
     const { data: supaProfiles } = await supabase
       .from('profiles')
-      .select('*')
+      .select('id, role')
       .eq('role', 'instructor');
 
-    if (Array.isArray(supaProfiles)) {
-      supaProfiles.forEach((prof: any) => {
-        const email = (prof.email || '').toLowerCase().trim();
+    const profileInstructorIds = new Set(
+      Array.isArray(supaProfiles) ? supaProfiles.map((p: any) => p.id) : []
+    );
+
+    if (Array.isArray(regStudents)) {
+      regStudents.forEach((user: any) => {
+        const email = (user.email || '').toLowerCase().trim();
         if (!email || email === 'phenolvii@gmail.com') return;
 
-        const instId = email.split('@')[0].replace(/[^a-zA-Z0-9_-]/g, '-');
+        const isInstructorRole =
+          (user.role && user.role.toLowerCase() === 'instructor') ||
+          profileInstructorIds.has(user.id);
+
+        if (isInstructorRole) {
+          const instId = email.split('@')[0].replace(/[^a-zA-Z0-9_-]/g, '-');
+          const existingIdx = currentList.findIndex(
+            (i) => i.id === instId || (i.email && i.email.toLowerCase() === email)
+          );
+
+          const ratingData = getInstructorRating(instId);
+
+          const instProfile: InstructorProfile = {
+            id: instId,
+            name: user.name || email.split('@')[0],
+            title: 'Academic Instructor & Faculty Fellow',
+            bio:
+              'Faculty educator dedicated to first-principles conceptual clarity and causal curricular deconstruction.',
+            avatar: user.avatar || user.avatar_url || '',
+            specialization: user.academic_track || 'General Sciences',
+            supervisionScope: 'Faculty Teaching Fellow',
+            whatsapp: user.phone ? `https://wa.me/${user.phone.replace(/[^0-9]/g, '')}` : undefined,
+            email: email,
+            subjects: [user.academic_track || 'Sciences'],
+            coursesCount: 1,
+            rating: ratingData.rating,
+            reviewsCount: ratingData.count,
+          };
+
+          if (existingIdx >= 0) {
+            currentList[existingIdx] = { ...currentList[existingIdx], ...instProfile };
+          } else {
+            currentList.push(instProfile);
+          }
+        }
+      });
+    }
+
+    // 3. Inspect courses in DB for any instructors
+    const { data: supaCourses } = await supabase
+      .from('courses')
+      .select('instructor_id, instructor_name, instructor_email, instructor_avatar');
+
+    if (Array.isArray(supaCourses)) {
+      supaCourses.forEach((sc: any) => {
+        const email = (sc.instructor_email || '').toLowerCase().trim();
+        if (!email || email === 'phenolvii@gmail.com') return;
+        const instId = sc.instructor_id || email.split('@')[0].replace(/[^a-zA-Z0-9_-]/g, '-');
         const existingIdx = currentList.findIndex(
           (i) => i.id === instId || (i.email && i.email.toLowerCase() === email)
         );
-
-        const ratingData = getInstructorRating(instId);
-
-        const instProfile: InstructorProfile = {
-          id: instId,
-          name: prof.full_name || email.split('@')[0],
-          title: prof.title || 'Academic Instructor & Faculty Fellow',
-          bio:
-            prof.bio ||
-            'Faculty educator dedicated to first-principles conceptual clarity and causal curricular deconstruction.',
-          avatar: prof.avatar_url || '',
-          specialization: prof.specialization || 'General Sciences',
-          supervisionScope: 'Faculty Teaching Fellow',
-          whatsapp: prof.phone ? `https://wa.me/${prof.phone.replace(/[^0-9]/g, '')}` : undefined,
-          email: email,
-          subjects: ['Sciences'],
-          coursesCount: 1,
-          rating: ratingData.rating,
-          reviewsCount: ratingData.count,
-        };
-
-        if (existingIdx >= 0) {
-          currentList[existingIdx] = { ...currentList[existingIdx], ...instProfile };
-        } else {
-          currentList.push(instProfile);
+        if (existingIdx === -1) {
+          const ratingData = getInstructorRating(instId);
+          currentList.push({
+            id: instId,
+            name: sc.instructor_name || email.split('@')[0],
+            title: 'Academic Instructor & Faculty Fellow',
+            bio: 'Faculty educator dedicated to first-principles conceptual clarity and causal curricular deconstruction.',
+            avatar: sc.instructor_avatar || '',
+            specialization: 'General Sciences',
+            supervisionScope: 'Faculty Teaching Fellow',
+            email: email,
+            subjects: ['Sciences'],
+            coursesCount: 1,
+            rating: ratingData.rating,
+            reviewsCount: ratingData.count,
+          });
         }
       });
     }

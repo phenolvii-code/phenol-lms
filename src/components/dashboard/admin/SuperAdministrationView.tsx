@@ -4,7 +4,9 @@ import React, { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { ChemistryCourse } from '@/types/lms';
 import { CourseEnrollmentRecord } from '@/lib/data/enrollments';
-import { FACULTY_MEMBERS, ACADEMIC_TRACKS, normalizeTrackSlug } from '@/data/mock-data';
+import { ACADEMIC_TRACKS, normalizeTrackSlug } from '@/data/mock-data';
+import { getPlatformInstructors, syncPlatformInstructors, FOUNDER_INSTRUCTOR } from '@/lib/data/instructors';
+import { InstructorProfile } from '@/types/lms';
 import { StudentOverview, getAggregatedStudentsDirectory } from '@/lib/enrollment-storage';
 import { WhatsAppIcon } from '@/components/auth/AuthIcons';
 import { Initials } from '@/components/ui/Initials';
@@ -74,26 +76,123 @@ export const SuperAdministrationView: React.FC<SuperAdministrationViewProps> = (
     code?: string;
   } | null>(null);
   const [globalInstructorAvatar, setGlobalInstructorAvatar] = useState('');
+  const [platformInstructors, setPlatformInstructors] = useState<InstructorProfile[]>([]);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const a = localStorage.getItem('phenol_global_instructor_avatar');
       if (a) setGlobalInstructorAvatar(a);
     }
-    const handleUpdate = () => {
+    const loadInst = () => {
+      setPlatformInstructors(getPlatformInstructors());
       if (typeof window !== 'undefined') {
         const a = localStorage.getItem('phenol_global_instructor_avatar');
         if (a) setGlobalInstructorAvatar(a);
       }
     };
+    loadInst();
+    syncPlatformInstructors().then((list) => {
+      if (list && list.length > 0) setPlatformInstructors(list);
+    });
+
+    const handleUpdate = () => {
+      loadInst();
+      syncPlatformInstructors().then((list) => {
+        if (list && list.length > 0) setPlatformInstructors(list);
+      });
+    };
+
+    window.addEventListener('phenol_instructors_updated', handleUpdate);
+    window.addEventListener('phenol_students_updated', handleUpdate);
     window.addEventListener('phenol_user_profile_updated', handleUpdate);
-    return () => window.removeEventListener('phenol_user_profile_updated', handleUpdate);
+    return () => {
+      window.removeEventListener('phenol_instructors_updated', handleUpdate);
+      window.removeEventListener('phenol_students_updated', handleUpdate);
+      window.removeEventListener('phenol_user_profile_updated', handleUpdate);
+    };
   }, []);
 
   // Compute student directory (all users, enrolled or not)
   const studentDirectory = useMemo(() => {
     return getAggregatedStudentsDirectory(enrollments);
   }, [enrollments]);
+
+  // Combined real-time list of all instructors across platform
+  const combinedInstructors = useMemo(() => {
+    const list: InstructorProfile[] = [...platformInstructors];
+
+    // Ensure Dr. Omar Magdi is always present as Founder & Chair
+    const hasFounder = list.some(
+      (i) => i.id === 'dr-omar-magdi' || (i.email && i.email.toLowerCase() === 'phenolvii@gmail.com')
+    );
+    if (!hasFounder) {
+      list.unshift(FOUNDER_INSTRUCTOR);
+    }
+
+    // Inspect student directory for accounts with role === 'instructor'
+    studentDirectory.forEach((st) => {
+      const email = (st.email || '').toLowerCase().trim();
+      if (!email || email === 'phenolvii@gmail.com') return;
+
+      const isInst =
+        (st as any).role?.toLowerCase() === 'instructor' ||
+        (typeof window !== 'undefined' &&
+          localStorage.getItem(`phenol_user_role_${email}`) === 'instructor');
+
+      if (isInst) {
+        const instId = email.split('@')[0].replace(/[^a-zA-Z0-9_-]/g, '-');
+        const exists = list.some(
+          (i) => i.id === instId || (i.email && i.email.toLowerCase() === email)
+        );
+        if (!exists) {
+          list.push({
+            id: instId,
+            name: st.name || email.split('@')[0],
+            title: 'Academic Instructor & Faculty Fellow',
+            bio: 'Faculty educator dedicated to first-principles conceptual clarity and causal curricular deconstruction.',
+            avatar: '',
+            specialization: st.track || 'General Sciences',
+            supervisionScope: 'Faculty Teaching Fellow',
+            whatsapp: st.phone ? `https://wa.me/${st.phone.replace(/[^0-9]/g, '')}` : undefined,
+            email: email,
+            subjects: [st.track || 'Sciences'],
+            coursesCount: 0,
+            rating: 5.0,
+            reviewsCount: 0,
+          });
+        }
+      }
+    });
+
+    // Inspect courses for distinct instructors
+    courses.forEach((c) => {
+      const email = (c.instructorEmail || '').toLowerCase().trim();
+      if (email && email !== 'phenolvii@gmail.com') {
+        const instId = c.instructorId || email.split('@')[0].replace(/[^a-zA-Z0-9_-]/g, '-');
+        const exists = list.some(
+          (i) => i.id === instId || (i.email && i.email.toLowerCase() === email)
+        );
+        if (!exists) {
+          list.push({
+            id: instId,
+            name: c.instructorName || email.split('@')[0],
+            title: 'Academic Instructor & Faculty Fellow',
+            bio: 'Faculty educator dedicated to first-principles conceptual clarity and causal curricular deconstruction.',
+            avatar: c.instructorAvatar || '',
+            specialization: c.categoryName || 'General Sciences',
+            supervisionScope: 'Faculty Teaching Fellow',
+            email: email,
+            subjects: [c.categoryName || 'Sciences'],
+            coursesCount: 1,
+            rating: 5.0,
+            reviewsCount: 0,
+          });
+        }
+      }
+    });
+
+    return list;
+  }, [platformInstructors, studentDirectory, courses]);
 
   // Pending Course Proposals
   const pendingCourses = useMemo(() => {
@@ -111,15 +210,24 @@ export const SuperAdministrationView: React.FC<SuperAdministrationViewProps> = (
     return counts;
   }, [enrollments]);
 
-  // Compute stats per instructor
+  // Compute stats per instructor across ALL combined instructors
   const instructorStats = useMemo(() => {
-    return FACULTY_MEMBERS.map((faculty) => {
+    return combinedInstructors.map((faculty) => {
+      const isFounder =
+        faculty.id === 'dr-omar-magdi' ||
+        (faculty.email && faculty.email.toLowerCase() === 'phenolvii@gmail.com');
+
       const instructorCourses = courses.filter((c) => {
-        if (c.instructorId === faculty.id || c.instructorEmail?.toLowerCase() === faculty.email?.toLowerCase()) {
-          return true;
-        }
-        if (faculty.id === 'dr-omar-magdi') {
-          return !c.instructorId || c.instructorEmail?.toLowerCase() === 'phenolvii@gmail.com';
+        const cEmail = (c.instructorEmail || '').toLowerCase().trim();
+        const cId = (c.instructorId || '').toLowerCase().trim();
+        const fEmail = (faculty.email || '').toLowerCase().trim();
+        const fId = (faculty.id || '').toLowerCase().trim();
+
+        if (cEmail && fEmail && cEmail === fEmail) return true;
+        if (cId && fId && cId === fId) return true;
+
+        if (isFounder) {
+          return !cEmail || cEmail === 'phenolvii@gmail.com' || cId === 'dr-omar-magdi';
         }
         return false;
       });
@@ -132,13 +240,13 @@ export const SuperAdministrationView: React.FC<SuperAdministrationViewProps> = (
 
       return {
         ...faculty,
-        computedCoursesCount: instructorCourses.length || faculty.coursesCount || 1,
+        computedCoursesCount: instructorCourses.length,
         computedStudentsCount: uniqueStudentEmails.size,
         courseList: instructorCourses,
         enrolledStudentsEmails: Array.from(uniqueStudentEmails),
       };
     });
-  }, [courses, enrollments]);
+  }, [combinedInstructors, courses, enrollments]);
 
   // Filtered Users
   const filteredUsers = useMemo(() => {
@@ -279,7 +387,7 @@ export const SuperAdministrationView: React.FC<SuperAdministrationViewProps> = (
           <Users className="w-4 h-4" />
           <span>Faculty & Instructors</span>
           <span className="font-formula text-xs px-2 py-0.5 rounded-full bg-ivory-300 text-charcoal-900">
-            {FACULTY_MEMBERS.length}
+            {instructorStats.length}
           </span>
         </button>
       </div>
@@ -845,9 +953,13 @@ export const SuperAdministrationView: React.FC<SuperAdministrationViewProps> = (
                           <h3 className="text-lg font-bold text-charcoal-900 font-display">
                             {inst.name}
                           </h3>
-                          {idx === 0 && (
+                          {idx === 0 || inst.email === 'phenolvii@gmail.com' ? (
                             <span className="font-formula text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-burgundy-50 text-burgundy-800 border border-burgundy-200">
                               Founder & Chair
+                            </span>
+                          ) : (
+                            <span className="font-formula text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-ochre-50 text-ochre-800 border border-ochre-200">
+                              Faculty Fellow
                             </span>
                           )}
                         </div>
@@ -899,7 +1011,7 @@ export const SuperAdministrationView: React.FC<SuperAdministrationViewProps> = (
 
                       <button
                         type="button"
-                        onClick={() => setSelectedInstructorId(inst.id || 'dr-omar-magdi')}
+                        onClick={() => setSelectedInstructorId(inst.id || inst.email || 'dr-omar-magdi')}
                         className="inline-flex items-center gap-1 px-3.5 py-1.5 rounded-lg bg-burgundy-500 hover:bg-burgundy-900 text-ivory-100 text-xs font-bold transition-all shadow-sm"
                       >
                         <span>Manage Portfolio</span>
@@ -914,7 +1026,9 @@ export const SuperAdministrationView: React.FC<SuperAdministrationViewProps> = (
           ) : (
             /* Selected Instructor Dossier & Courses Cockpit */
             (() => {
-              const inst = instructorStats.find((i) => i.id === selectedInstructorId) || instructorStats[0];
+              const inst = instructorStats.find(
+                (i) => i.id === selectedInstructorId || (i.email && i.email.toLowerCase() === selectedInstructorId?.toLowerCase())
+              ) || instructorStats[0];
               const displayAvatar =
                 inst.id === 'dr-omar-magdi' || inst.email === 'phenolvii@gmail.com'
                   ? globalInstructorAvatar || inst.avatar
