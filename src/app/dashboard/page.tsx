@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { AuthUser } from '@/types/auth';
@@ -134,7 +134,16 @@ export default function DashboardPage() {
   }, [currentUser?.avatar]);
 
   const isCourseOwnedByCurrentInstructor = (c: ChemistryCourse) => {
-    if (isSuperAdminUser) return true;
+    if (isSuperAdminUser) {
+      // Dr. Omar's courses in normal instructor dashboard
+      return (
+        !c.instructorEmail ||
+        c.instructorEmail.toLowerCase() === 'phenolvii@gmail.com' ||
+        c.instructorName?.toLowerCase().includes('omar') ||
+        c.instructorId === 'dr-omar-magdi' ||
+        !c.instructorId
+      );
+    }
     if (c.instructorId && currentUser?.id && c.instructorId === currentUser.id) return true;
     if (
       c.instructorEmail &&
@@ -150,6 +159,29 @@ export default function DashboardPage() {
       return true;
     return false;
   };
+
+  const myInstructorCourses = useMemo(() => {
+    return courses.filter(isCourseOwnedByCurrentInstructor);
+  }, [courses, currentUser, isSuperAdminUser]);
+
+  const myWaitlist = useMemo(() => {
+    if (isSuperAdminUser) return waitlist;
+    const myCodes = new Set<string>(myInstructorCourses.map((c: ChemistryCourse) => c.code.toLowerCase()));
+    const myTitles = new Set<string>(myInstructorCourses.map((c: ChemistryCourse) => c.title.toLowerCase()));
+    return waitlist.filter((w) => {
+      const tc = (w.targetCourse || '').toLowerCase();
+      return (
+        Array.from(myCodes).some((code: string) => tc.includes(code)) ||
+        Array.from(myTitles).some((t: string) => tc.includes(t))
+      );
+    });
+  }, [waitlist, myInstructorCourses, isSuperAdminUser]);
+
+  const mySubmissions = useMemo(() => {
+    if (isSuperAdminUser) return submissions;
+    const myCourseIds = new Set<string>(myInstructorCourses.map((c: ChemistryCourse) => c.id));
+    return submissions.filter((s: StudentSubmission) => !s.course_id || myCourseIds.has(s.course_id));
+  }, [submissions, myInstructorCourses, isSuperAdminUser]);
 
   // Student Profile Modal State
   const [isStudentProfileOpen, setIsStudentProfileOpen] = useState(false);
@@ -642,6 +674,10 @@ export default function DashboardPage() {
   };
 
   const handleOpenEditCourse = (course: ChemistryCourse) => {
+    if (!isSuperAdminUser && !isCourseOwnedByCurrentInstructor(course)) {
+      alert("Unauthorized: You can only edit your own courses.");
+      return;
+    }
     setEditingCourseId(course.id);
     setEditCourseCategory(course.category);
     setEditCourseCode(course.code);
@@ -685,6 +721,11 @@ export default function DashboardPage() {
   };
 
   const handleDeleteCourse = async (courseId: string, title: string) => {
+    const target = courses.find((c) => c.id === courseId);
+    if (!isSuperAdminUser && target && !isCourseOwnedByCurrentInstructor(target)) {
+      alert("Unauthorized: You can only delete your own courses.");
+      return;
+    }
     if (typeof window !== 'undefined' && !window.confirm(`Are you sure you want to permanently delete course "${title}" and all its syllabus modules?`)) return;
     await markCourseDeleted(courseId);
     setCourses((prev) => prev.filter((c) => c.id !== courseId));
@@ -692,9 +733,14 @@ export default function DashboardPage() {
 
   const handleAddLecture = async (e: React.FormEvent) => {
     e.preventDefault();
-    const targetCourseId = newLectureCourse || (courses.length > 0 ? courses[0].id : '');
+    const targetCourseId = newLectureCourse || (myInstructorCourses.length > 0 ? myInstructorCourses[0].id : '');
     if (!targetCourseId) {
       alert('Please select a course first');
+      return;
+    }
+    const targetCourse = courses.find((c) => c.id === targetCourseId);
+    if (!isSuperAdminUser && targetCourse && !isCourseOwnedByCurrentInstructor(targetCourse)) {
+      alert("Unauthorized: You can only add lectures to your own courses.");
       return;
     }
     if (!newLectureTitle.trim()) {
@@ -759,6 +805,11 @@ export default function DashboardPage() {
   };
 
   const handleOpenEditLesson = (courseId: string, lesson: ChemistryLesson) => {
+    const parent = courses.find((c) => c.id === courseId);
+    if (!isSuperAdminUser && parent && !isCourseOwnedByCurrentInstructor(parent)) {
+      alert("Unauthorized: You can only edit lessons in your own courses.");
+      return;
+    }
     setEditingLessonCourseId(courseId);
     setEditingLessonId(lesson.id);
     setEditLessonTitle(lesson.title);
@@ -806,6 +857,11 @@ export default function DashboardPage() {
   };
 
   const handleDeleteLesson = async (courseId: string, lessonId: string, title: string) => {
+    const parent = courses.find((c) => c.id === courseId);
+    if (!isSuperAdminUser && parent && !isCourseOwnedByCurrentInstructor(parent)) {
+      alert("Unauthorized: You can only delete lessons from your own courses.");
+      return;
+    }
     if (typeof window !== 'undefined' && !window.confirm(`Remove module "${title}" from the syllabus?`)) return;
     const updated = courses.map((course) => {
       if (course.id === courseId) {
@@ -1272,7 +1328,7 @@ export default function DashboardPage() {
             {/* TAB 1: CURRICULUM */}
             {adminTab === 'curriculum' && (
               <AdminCurriculumTab
-                courses={courses}
+                courses={myInstructorCourses}
                 trackFilter={trackFilter}
                 setTrackFilter={setTrackFilter}
                 setIsCreateCourseOpen={setIsCreateCourseOpen}
@@ -1291,7 +1347,7 @@ export default function DashboardPage() {
             {/* TAB 2: WAITLIST */}
             {adminTab === 'waitlist' && (
               <AdminWaitlistTab
-                waitlist={waitlist}
+                waitlist={myWaitlist}
                 trackFilter={trackFilter}
                 setTrackFilter={setTrackFilter}
                 handleUpdateWaitlistStatus={handleUpdateWaitlistStatus}
@@ -1303,7 +1359,7 @@ export default function DashboardPage() {
             {/* TAB 3: SUBMISSIONS / GRADING */}
             {adminTab === 'submissions' && (
               <AdminSubmissionsTab
-                submissions={submissions}
+                submissions={mySubmissions}
                 setGradingSubmission={(sub) => {
                   setGradingSubmission(sub);
                   setInputGrade(sub.grade || 20);
@@ -1318,7 +1374,7 @@ export default function DashboardPage() {
             {adminTab === 'roster' && (
               <AdminRosterTab
                 enrollments={enrollments}
-                courses={courses}
+                courses={myInstructorCourses}
                 rosterSearchQuery={rosterSearchQuery}
                 setRosterSearchQuery={setRosterSearchQuery}
                 setIsManualAddStudentModalOpen={setIsManualAddStudentModalOpen}

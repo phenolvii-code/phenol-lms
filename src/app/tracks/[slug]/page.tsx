@@ -178,7 +178,15 @@ export default function TrackPage() {
 
                       {/* Instructor supervision */}
                       <div className="pt-2 border-t border-hairline flex items-center justify-between text-xs text-charcoal-100 font-sans">
-                        <span>Supervision: <strong className="text-charcoal-900">{course.instructorName || INSTRUCTOR.name}</strong></span>
+                        <span>
+                          Supervision:{' '}
+                          <Link
+                            href={`/faculty/${course.instructorId || 'dr-omar-magdi'}`}
+                            className="font-bold text-burgundy-600 hover:text-burgundy-900 underline underline-offset-2 transition-colors"
+                          >
+                            {course.instructorName || INSTRUCTOR.name}
+                          </Link>
+                        </span>
                         <span className="font-mono text-charcoal-50">{lessonsCount} Lectures</span>
                       </div>
                     </div>

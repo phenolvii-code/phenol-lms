@@ -197,7 +197,7 @@ export default function CourseDetailsPage() {
           <div className="flex items-center justify-between h-16 sm:h-20">
             <div className="flex items-center gap-6">
               <Link href="/" aria-label="PHENOL Home">
-                <PhenolLogo size={36} subtitle="Dr. Omar Magdi" />
+                <PhenolLogo size={36} />
               </Link>
 
               {/* Breadcrumbs */}
@@ -287,7 +287,9 @@ export default function CourseDetailsPage() {
             <div className="p-4 rounded-xl bg-ivory-100 border border-hairline text-charcoal-900 text-xs sm:text-sm flex items-center justify-between gap-3 shadow-quiet animate-fade-in">
               <div className="flex items-center gap-3">
                 <CheckCircle2 className="w-4 h-4 text-ochre-500 shrink-0" />
-                <span className="font-sans leading-relaxed">Course activation request submitted to Dr. Omar Magdi. Your access will be reviewed and activated shortly.</span>
+                <span className="font-sans leading-relaxed">
+                  Course activation request submitted to {course.instructorName || 'Dr. Omar Magdi'}. Your access will be reviewed and activated shortly.
+                </span>
               </div>
               <button
                 onClick={() => setRequestToast(false)}
@@ -301,7 +303,15 @@ export default function CourseDetailsPage() {
 
           <div className="pt-4 border-t border-hairline flex flex-wrap items-center justify-between gap-4 text-xs sm:text-sm text-charcoal-100 font-sans">
             <div className="flex flex-wrap items-center gap-4 sm:gap-6">
-              <span>Supervision: <strong className="text-charcoal-900 font-sans">Dr. Omar Magdi</strong></span>
+              <span>
+                Supervision:{' '}
+                <Link
+                  href={`/faculty/${course.instructorId || 'dr-omar-magdi'}`}
+                  className="text-burgundy-600 hover:text-burgundy-900 font-bold underline underline-offset-2 transition-colors"
+                >
+                  {course.instructorName || 'Dr. Omar Magdi'}
+                </Link>
+              </span>
               <span>Program: <strong className="text-charcoal-900 font-sans">{course.categoryName}</strong></span>
               <span>Duration: <strong className="text-charcoal-900 font-sans">{course.totalHours}</strong></span>
             </div>
@@ -323,7 +333,7 @@ export default function CourseDetailsPage() {
             ) : enrollmentStatus === 'PENDING' ? (
               <span className="inline-flex items-center gap-2 px-6 py-3 rounded bg-amber-100 text-amber-900 font-semibold text-xs sm:text-sm border border-amber-200">
                 <Clock className="w-4 h-4 text-amber-600" />
-                <span>Activation pending review by Dr. Omar Magdi</span>
+                <span>Activation pending review by {course.instructorName || 'Dr. Omar Magdi'}</span>
               </span>
             ) : (
               <button

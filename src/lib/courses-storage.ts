@@ -1,14 +1,29 @@
 /**
  * PHENOL ACADEMY - Persistent Course Storage
- * Single source of truth: Supabase PostgreSQL database.
- * Uses an in-memory cache for fast client navigation without localStorage pollution.
+ * Single source of truth: Supabase PostgreSQL database + Local client cache.
+ * Preserves multi-instructor ownership and metadata seamlessly.
  */
 
 import { ChemistryCourse, ChemistryLesson } from '@/types/lms';
 import { supabase } from '@/lib/supabase';
 import { CHEMISTRY_COURSES } from '@/data/mock-data';
 
+const META_REGEX = /<!--PHENOL_META:([\s\S]*?)-->/;
+
 let inMemoryCourses: ChemistryCourse[] = [...CHEMISTRY_COURSES];
+
+// Initialize from localStorage if on browser
+if (typeof window !== 'undefined') {
+  try {
+    const raw = localStorage.getItem('phenol_stored_courses');
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        inMemoryCourses = parsed;
+      }
+    }
+  } catch (e) {}
+}
 
 export const getDeletedCourseIds = (): string[] => {
   return [];
@@ -17,6 +32,9 @@ export const getDeletedCourseIds = (): string[] => {
 export const markCourseDeleted = async (courseId: string): Promise<void> => {
   inMemoryCourses = inMemoryCourses.filter((c) => c.id !== courseId);
   if (typeof window !== 'undefined') {
+    try {
+      localStorage.setItem('phenol_stored_courses', JSON.stringify(inMemoryCourses));
+    } catch (e) {}
     window.dispatchEvent(new Event('phenol_courses_updated'));
   }
   try {
@@ -27,24 +45,49 @@ export const markCourseDeleted = async (courseId: string): Promise<void> => {
 };
 
 export const getStoredCourses = (): ChemistryCourse[] => {
+  if (typeof window !== 'undefined') {
+    try {
+      const raw = localStorage.getItem('phenol_stored_courses');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          inMemoryCourses = parsed;
+        }
+      }
+    } catch (e) {}
+  }
   return inMemoryCourses;
 };
 
 export const saveStoredCourses = async (courses: ChemistryCourse[]): Promise<void> => {
   inMemoryCourses = courses;
   if (typeof window !== 'undefined') {
+    try {
+      localStorage.setItem('phenol_stored_courses', JSON.stringify(courses));
+    } catch (e) {}
     window.dispatchEvent(new Event('phenol_courses_updated'));
   }
 
-  // Persist course and lessons to Supabase
+  // Persist courses with embedded instructor metadata to Supabase
   for (const c of courses) {
     try {
+      const cleanDesc = (c.description || '').replace(META_REGEX, '').trim();
+      const metaPayload = {
+        instructorId: c.instructorId || (c.instructorEmail?.toLowerCase() === 'phenolvii@gmail.com' ? 'dr-omar-magdi' : 'dr-omar-magdi'),
+        instructorName: c.instructorName || 'Dr. Omar Magdi',
+        instructorEmail: c.instructorEmail || 'phenolvii@gmail.com',
+        instructorAvatar: c.instructorAvatar || null,
+        approvalStatus: c.approvalStatus || 'APPROVED',
+        submittedAt: c.submittedAt || null,
+      };
+      const descWithMeta = `${cleanDesc}\n\n<!--PHENOL_META:${JSON.stringify(metaPayload)}-->`;
+
       await supabase.from('courses').upsert({
         id: c.id,
         code: c.code,
         title: c.title,
         sub_title: c.subTitle || null,
-        description: c.description || '',
+        description: descWithMeta,
         category: c.category,
         category_name: c.categoryName || 'Academic Program',
         level: c.level || 'Academic Year 2026/2027',
@@ -93,6 +136,17 @@ export const syncWithServerCourses = async (): Promise<ChemistryCourse[]> => {
 
     if (!error && Array.isArray(supaCourses) && supaCourses.length > 0) {
       const mappedCourses: ChemistryCourse[] = supaCourses.map((sc) => {
+        const rawDesc = sc.description || '';
+        const match = rawDesc.match(META_REGEX);
+        let meta: any = null;
+        let cleanDesc = rawDesc;
+        if (match) {
+          try {
+            meta = JSON.parse(match[1]);
+            cleanDesc = rawDesc.replace(match[0], '').trim();
+          } catch (e) {}
+        }
+
         const lessonsList: ChemistryLesson[] = Array.isArray(sc.lessons)
           ? sc.lessons
               .sort((a: any, b: any) => (a.sort_order || 0) - (b.sort_order || 0))
@@ -112,12 +166,16 @@ export const syncWithServerCourses = async (): Promise<ChemistryCourse[]> => {
               }))
           : [];
 
+        // Determine instructor ownership
+        const instructorEmail = meta?.instructorEmail || (sc.instructor_email || 'phenolvii@gmail.com');
+        const isDrOmar = instructorEmail.toLowerCase() === 'phenolvii@gmail.com';
+
         return {
           id: sc.id,
           code: sc.code,
           title: sc.title,
           subTitle: sc.sub_title || 'Theoretical & Analytical Foundations',
-          description: sc.description || '',
+          description: cleanDesc,
           category: sc.category as any,
           categoryName: sc.category_name || 'Academic Program',
           level: sc.level || 'Academic Year 2026/2027',
@@ -126,12 +184,21 @@ export const syncWithServerCourses = async (): Promise<ChemistryCourse[]> => {
           totalHours: sc.total_hours || '30 Academic Hours',
           colorAccent: sc.color_accent || '#641C32',
           accentBg: sc.accent_bg || 'bg-burgundy-950',
+          instructorId: meta?.instructorId || (isDrOmar ? 'dr-omar-magdi' : (sc.instructor_id || 'dr-omar-magdi')),
+          instructorName: meta?.instructorName || (isDrOmar ? 'Dr. Omar Magdi' : (sc.instructor_name || 'Academic Instructor')),
+          instructorEmail: instructorEmail,
+          instructorAvatar: meta?.instructorAvatar || sc.instructor_avatar || undefined,
+          approvalStatus: meta?.approvalStatus || sc.approval_status || 'APPROVED',
+          submittedAt: meta?.submittedAt || undefined,
           lessons: lessonsList,
         };
       });
 
       inMemoryCourses = mappedCourses;
       if (typeof window !== 'undefined') {
+        try {
+          localStorage.setItem('phenol_stored_courses', JSON.stringify(mappedCourses));
+        } catch (e) {}
         window.dispatchEvent(new Event('phenol_courses_updated'));
       }
       return mappedCourses;

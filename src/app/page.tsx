@@ -1,11 +1,15 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useCurrentUser } from '@/lib/auth/useCurrentUser';
 import { Navbar } from '@/components/layout/Navbar';
 import { PhenolLogo } from '@/components/brand/PhenolLogo';
 import { ACADEMIC_TRACKS } from '@/data/mock-data';
+import { getTopFeaturedInstructors, syncPlatformInstructors } from '@/lib/data/instructors';
+import { getInstructorRating } from '@/lib/data/reviews';
+import { InstructorProfile } from '@/types/lms';
+import { Initials } from '@/components/ui/Initials';
 import {
   ArrowRight,
   Atom,
@@ -13,10 +17,37 @@ import {
   Microscope,
   Compass,
   ChevronRight,
+  Sparkles,
+  Star,
 } from 'lucide-react';
 
 export default function Home() {
   const { user: currentUser, signOut } = useCurrentUser();
+  const [featuredInstructors, setFeaturedInstructors] = useState<InstructorProfile[]>([]);
+  const [cachedAvatar, setCachedAvatar] = useState('');
+
+  const loadFeatured = () => {
+    const list = getTopFeaturedInstructors();
+    setFeaturedInstructors(list);
+  };
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const a = localStorage.getItem('phenol_global_instructor_avatar');
+      if (a) setCachedAvatar(a);
+    }
+    loadFeatured();
+    syncPlatformInstructors().then(() => loadFeatured());
+
+    const handleUpdate = () => loadFeatured();
+    window.addEventListener('phenol_instructors_updated', handleUpdate);
+    window.addEventListener('phenol_user_profile_updated', handleUpdate);
+
+    return () => {
+      window.removeEventListener('phenol_instructors_updated', handleUpdate);
+      window.removeEventListener('phenol_user_profile_updated', handleUpdate);
+    };
+  }, []);
 
   const trackIcons = [
     <Atom key="1" className="w-5 h-5 text-burgundy-500" />,
@@ -41,7 +72,7 @@ export default function Home() {
         onLogout={signOut}
       />
 
-      <main className="flex-1 flex flex-col justify-center py-8 sm:py-12 px-4 sm:px-6 lg:px-8 max-w-5xl mx-auto w-full space-y-8 sm:space-y-10">
+      <main className="flex-1 flex flex-col justify-center py-8 sm:py-12 px-4 sm:px-6 lg:px-8 max-w-5xl mx-auto w-full space-y-10 sm:space-y-12">
         {/* HERO SECTION: Logo beside Text + Motto + Single CTA */}
         <section className="text-center space-y-6">
           <div className="flex flex-col sm:flex-row items-center justify-center gap-5 sm:gap-7 text-center sm:text-left">
@@ -74,7 +105,7 @@ export default function Home() {
         </section>
 
         {/* 2x2 SQUARE GRID: 4 Academic Track Cards (Compact, English Only, 1-Line Description) */}
-        <section id="tracks" className="w-full">
+        <section id="tracks" className="w-full space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
             {ACADEMIC_TRACKS.map((track, idx) => (
               <Link
@@ -119,6 +150,142 @@ export default function Home() {
                 </div>
               </Link>
             ))}
+          </div>
+        </section>
+
+        {/* FEATURED TEACHING CHAIRS & SCHOLASTIC MENTORS */}
+        <section className="w-full space-y-5 pt-4 border-t border-hairline">
+          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+            <div>
+              <span className="font-formula text-xs text-burgundy-500 font-bold uppercase tracking-widest flex items-center gap-1.5">
+                <Sparkles className="w-3.5 h-3.5 text-ochre-500" />
+                ACADEMIC LEADERSHIP & TEACHING CHAIRS
+              </span>
+              <h2 className="text-xl sm:text-2xl font-extrabold text-charcoal-900 font-display mt-1">
+                Distinguished Faculty Fellows
+              </h2>
+            </div>
+            <Link
+              href="/faculty"
+              className="inline-flex items-center gap-1.5 text-xs font-bold text-burgundy-600 hover:text-burgundy-900 transition-colors font-sans"
+            >
+              <span>Explore All Faculty Chairs</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+            {featuredInstructors.map((inst, idx) => {
+              const isFounder =
+                inst.id === 'dr-omar-magdi' ||
+                (inst.email && inst.email.toLowerCase() === 'phenolvii@gmail.com');
+
+              const displayAvatar = isFounder
+                ? (currentUser?.email?.toLowerCase() === 'phenolvii@gmail.com' && currentUser.avatar) ||
+                  cachedAvatar ||
+                  inst.avatar
+                : inst.avatar;
+
+              const displayName =
+                isFounder && currentUser?.email?.toLowerCase() === 'phenolvii@gmail.com' && currentUser.name
+                  ? currentUser.name
+                  : inst.name;
+
+              const displayTitle =
+                isFounder && currentUser?.email?.toLowerCase() === 'phenolvii@gmail.com' && currentUser.title
+                  ? currentUser.title
+                  : inst.title;
+
+              const ratingData = getInstructorRating(inst.id || '');
+
+              return (
+                <div
+                  key={inst.id || idx}
+                  className="p-5 sm:p-6 rounded-2xl bg-ivory-100 border border-hairline shadow-quiet hover:shadow-editorial transition-all space-y-4 flex flex-col justify-between"
+                >
+                  <div className="space-y-3">
+                    <div className="flex items-start gap-4">
+                      <Link
+                        href={`/faculty/${inst.id || 'dr-omar-magdi'}`}
+                        className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl overflow-hidden border border-hairline shrink-0 shadow-quiet bg-ivory-200 flex items-center justify-center hover:opacity-90 transition-opacity"
+                      >
+                        {displayAvatar ? (
+                          <img
+                            src={displayAvatar}
+                            alt={displayName}
+                            className="w-full h-full object-cover"
+                            loading="lazy"
+                          />
+                        ) : (
+                          <Initials name={displayName} size="md" />
+                        )}
+                      </Link>
+
+                      <div className="space-y-1 min-w-0 flex-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <Link
+                            href={`/faculty/${inst.id || 'dr-omar-magdi'}`}
+                            className="text-base sm:text-lg font-bold text-charcoal-900 font-display hover:text-burgundy-900 transition-colors truncate"
+                          >
+                            {displayName}
+                          </Link>
+                          {isFounder ? (
+                            <span className="font-formula text-[9px] uppercase font-bold tracking-wider px-2 py-0.5 rounded bg-ivory-200 border border-hairline text-burgundy-900">
+                              Founder & Chair
+                            </span>
+                          ) : (
+                            <span className="font-formula text-[9px] uppercase font-bold tracking-wider px-2 py-0.5 rounded bg-ivory-200 border border-hairline text-ochre-700">
+                              Faculty Fellow
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-xs text-charcoal-100 font-sans line-clamp-1">
+                          {displayTitle}
+                        </p>
+                        {/* Rating */}
+                        <div className="flex items-center gap-1.5 pt-0.5">
+                          <div className="flex items-center text-amber-500">
+                            {[1, 2, 3, 4, 5].map((star) => (
+                              <Star
+                                key={star}
+                                className={`w-3 h-3 ${
+                                  star <= Math.round(ratingData.rating)
+                                    ? 'fill-amber-400 text-amber-500'
+                                    : 'text-charcoal-100'
+                                }`}
+                              />
+                            ))}
+                          </div>
+                          <span className="text-xs font-formula font-bold text-charcoal-900">
+                            {ratingData.rating.toFixed(1)}
+                          </span>
+                          <span className="text-[10px] text-charcoal-50 font-sans">
+                            ({ratingData.count})
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <p className="text-xs text-charcoal-100 font-sans leading-relaxed line-clamp-2">
+                      {inst.bio}
+                    </p>
+                  </div>
+
+                  <div className="pt-3 border-t border-hairline flex items-center justify-between text-xs">
+                    <span className="text-[11px] font-formula text-ochre-700 font-semibold truncate max-w-[180px]">
+                      {inst.supervisionScope || 'Academic Teaching Chair'}
+                    </span>
+                    <Link
+                      href={`/faculty/${inst.id || 'dr-omar-magdi'}`}
+                      className="inline-flex items-center gap-1 text-xs font-bold text-burgundy-600 hover:text-burgundy-900 transition-colors font-sans"
+                    >
+                      <span>View Profile & Courses</span>
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </Link>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </section>
       </main>

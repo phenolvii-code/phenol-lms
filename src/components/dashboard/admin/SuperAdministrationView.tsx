@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
+import Link from 'next/link';
 import { ChemistryCourse } from '@/types/lms';
 import { CourseEnrollmentRecord } from '@/lib/data/enrollments';
 import { FACULTY_MEMBERS, ACADEMIC_TRACKS, normalizeTrackSlug } from '@/data/mock-data';
@@ -882,19 +883,29 @@ export const SuperAdministrationView: React.FC<SuperAdministrationViewProps> = (
                     </p>
                   </div>
 
-                  <div className="pt-3 border-t border-hairline flex items-center justify-between">
+                  <div className="pt-3 border-t border-hairline flex flex-wrap items-center justify-between gap-2">
                     <span className="text-xs font-mono text-charcoal-50">
                       {inst.email}
                     </span>
 
-                    <button
-                      type="button"
-                      onClick={() => setSelectedInstructorId(inst.id || 'dr-omar-magdi')}
-                      className="inline-flex items-center gap-1 px-3.5 py-1.5 rounded-lg bg-burgundy-500 hover:bg-burgundy-900 text-ivory-100 text-xs font-bold transition-all shadow-sm"
-                    >
-                      <span>Manage Portfolio</span>
-                      <ChevronRight className="w-3.5 h-3.5" />
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <Link
+                        href={`/faculty/${inst.id || 'dr-omar-magdi'}`}
+                        className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-ivory-200 hover:bg-ivory-300 text-charcoal-900 border border-hairline text-xs font-semibold transition-all"
+                      >
+                        <UserCheck className="w-3.5 h-3.5 text-burgundy-500" />
+                        <span>Public Profile</span>
+                      </Link>
+
+                      <button
+                        type="button"
+                        onClick={() => setSelectedInstructorId(inst.id || 'dr-omar-magdi')}
+                        className="inline-flex items-center gap-1 px-3.5 py-1.5 rounded-lg bg-burgundy-500 hover:bg-burgundy-900 text-ivory-100 text-xs font-bold transition-all shadow-sm"
+                      >
+                        <span>Manage Portfolio</span>
+                        <ChevronRight className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
                   </div>
                 </div>
               );
@@ -922,20 +933,38 @@ export const SuperAdministrationView: React.FC<SuperAdministrationViewProps> = (
                         )}
                       </div>
                       <div className="space-y-1">
-                        <h3 className="text-xl font-bold text-charcoal-900 font-display">{inst.name}</h3>
+                        <div className="flex items-center gap-2">
+                          <h3 className="text-xl font-bold text-charcoal-900 font-display">{inst.name}</h3>
+                          <Link
+                            href={`/faculty/${inst.id || 'dr-omar-magdi'}`}
+                            className="inline-flex items-center gap-1 text-[11px] font-bold text-burgundy-500 hover:text-burgundy-800 underline underline-offset-2 ml-1"
+                          >
+                            <span>View Public Profile ↗</span>
+                          </Link>
+                        </div>
                         <p className="text-xs text-charcoal-100 font-sans">{inst.title}</p>
                         <p className="text-[11px] text-charcoal-50 font-sans">{inst.bio}</p>
                       </div>
                     </div>
 
-                    <button
-                      type="button"
-                      onClick={() => onOpenCreateCourse && onOpenCreateCourse(undefined, inst.name)}
-                      className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-burgundy-500 hover:bg-burgundy-900 text-ivory-100 text-xs font-bold shadow-md transition-all self-start md:self-auto shrink-0"
-                    >
-                      <Plus className="w-4 h-4" />
-                      <span>+ Create Course for {inst.name.split(' ')[0]}</span>
-                    </button>
+                    <div className="flex items-center gap-2 self-start md:self-auto shrink-0">
+                      <Link
+                        href={`/faculty/${inst.id || 'dr-omar-magdi'}`}
+                        className="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-ivory-200 hover:bg-ivory-300 text-charcoal-900 border border-hairline text-xs font-bold transition-all shadow-sm"
+                      >
+                        <UserCheck className="w-4 h-4 text-burgundy-500" />
+                        <span>Public Profile</span>
+                      </Link>
+
+                      <button
+                        type="button"
+                        onClick={() => onOpenCreateCourse && onOpenCreateCourse(undefined, inst.name)}
+                        className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-burgundy-500 hover:bg-burgundy-900 text-ivory-100 text-xs font-bold shadow-md transition-all"
+                      >
+                        <Plus className="w-4 h-4" />
+                        <span>+ Create Course for {inst.name.split(' ')[0]}</span>
+                      </button>
+                    </div>
                   </div>
 
                   {/* Instructor Directed Courses */}

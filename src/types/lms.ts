@@ -36,6 +36,8 @@ export interface InstructorProfile {
   email?: string;
   subjects?: string[];
   coursesCount?: number;
+  rating?: number;
+  reviewsCount?: number;
 }
 
 export interface LectureTimestamp {
@@ -122,6 +124,7 @@ export interface Booklet {
 
 export interface StudentSubmission {
   id: string;
+  course_id?: string;
   studentName: string;
   studentCode: string;
   taskTitle: string;
