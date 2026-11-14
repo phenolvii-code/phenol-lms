@@ -20,6 +20,7 @@ import {
   getInstructorRating,
   addInstructorReview,
   deleteInstructorReview,
+  syncReviewsWithServer,
   InstructorReview,
 } from '@/lib/data/reviews';
 import { InstructorProfile, ChemistryCourse } from '@/types/lms';
@@ -90,6 +91,7 @@ export default function InstructorProfilePage() {
   useEffect(() => {
     loadInstructorData();
     syncPlatformInstructors().then(() => loadInstructorData());
+    syncReviewsWithServer().then(() => loadInstructorData());
 
     const handleInstructorsUpdate = () => loadInstructorData();
     const handleReviewsUpdate = () => {
