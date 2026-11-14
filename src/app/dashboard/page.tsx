@@ -629,21 +629,39 @@ export default function DashboardPage() {
   };
 
   const handleApproveCourse = async (courseId: string) => {
+    try {
+      await supabase.rpc('set_course_approval', {
+        p_course_id: courseId,
+        p_status: 'APPROVED',
+      });
+    } catch (e) {
+      console.warn('RPC set_course_approval failed:', e);
+    }
     const updated = courses.map((c) =>
       c.id === courseId ? { ...c, approvalStatus: 'APPROVED' as const } : c
     );
     setCourses(updated);
-    await saveStoredCourses(updated);
+    const target = updated.find((c) => c.id === courseId);
+    if (target) await saveSingleCourse(target);
     setEnrollmentToast('Course approved and published live.');
     setTimeout(() => setEnrollmentToast(null), 4000);
   };
 
   const handleRejectCourse = async (courseId: string) => {
+    try {
+      await supabase.rpc('set_course_approval', {
+        p_course_id: courseId,
+        p_status: 'REJECTED',
+      });
+    } catch (e) {
+      console.warn('RPC set_course_approval failed:', e);
+    }
     const updated = courses.map((c) =>
       c.id === courseId ? { ...c, approvalStatus: 'REJECTED' as const } : c
     );
     setCourses(updated);
-    await saveStoredCourses(updated);
+    const target = updated.find((c) => c.id === courseId);
+    if (target) await saveSingleCourse(target);
     setEnrollmentToast('Course proposal rejected.');
     setTimeout(() => setEnrollmentToast(null), 4000);
   };
@@ -651,11 +669,17 @@ export default function DashboardPage() {
   const handleToggleUserRole = async (userId: string, email: string, currentRole: 'instructor' | 'student') => {
     const newRole = currentRole === 'instructor' ? 'student' : 'instructor';
     try {
-      await supabase.from('profiles').update({ role: newRole }).eq('email', email);
       if (userId) {
         await supabase.from('profiles').update({ role: newRole }).eq('id', userId);
+      } else {
+        const { data: st } = await supabase.from('registered_students').select('id').eq('email', email).single();
+        if (st?.id) {
+          await supabase.from('profiles').update({ role: newRole }).eq('id', st.id);
+        }
       }
-    } catch (e) {}
+    } catch (e) {
+      console.warn('Error updating profile role:', e);
+    }
 
     if (typeof window !== 'undefined') {
       localStorage.setItem(`phenol_user_role_${email.toLowerCase()}`, newRole);
@@ -1362,6 +1386,7 @@ export default function DashboardPage() {
                 handleDeleteCourse={handleDeleteCourse}
                 handleOpenEditLesson={handleOpenEditLesson}
                 handleDeleteLesson={handleDeleteLesson}
+                isSuperAdmin={isSuperAdminUser}
               />
             )}
 

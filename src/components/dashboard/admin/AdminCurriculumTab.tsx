@@ -28,6 +28,7 @@ interface AdminCurriculumTabProps {
   handleDeleteCourse: (id: string, title: string) => void;
   handleOpenEditLesson: (courseId: string, lesson: ChemistryLesson) => void;
   handleDeleteLesson: (courseId: string, lessonId: string, title: string) => void;
+  isSuperAdmin?: boolean;
 }
 
 export function AdminCurriculumTab({
@@ -44,6 +45,7 @@ export function AdminCurriculumTab({
   handleDeleteCourse,
   handleOpenEditLesson,
   handleDeleteLesson,
+  isSuperAdmin,
 }: AdminCurriculumTabProps) {
   const displayedCourses =
     trackFilter === 'all'
@@ -223,13 +225,15 @@ export function AdminCurriculumTab({
                     <span>Edit</span>
                   </button>
 
-                  <button
-                    onClick={() => handleDeleteCourse(course.id, course.title)}
-                    title="Delete Entire Course"
-                    className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded border border-rose-200 text-rose-700 hover:bg-rose-50 text-xs font-semibold transition-colors"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
+                  {isSuperAdmin && (
+                    <button
+                      onClick={() => handleDeleteCourse(course.id, course.title)}
+                      title="Delete Entire Course"
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded border border-rose-200 text-rose-700 hover:bg-rose-50 text-xs font-semibold transition-colors"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  )}
 
                   <Link
                     href={`/courses/${course.id}`}

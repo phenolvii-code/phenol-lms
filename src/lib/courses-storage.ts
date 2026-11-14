@@ -264,8 +264,8 @@ export const syncWithServerCourses = async (): Promise<ChemistryCourse[]> => {
               }))
           : [];
 
-        // Determine instructor ownership
-        const instructorEmail = meta?.instructorEmail || (sc.instructor_email || 'phenolvii@gmail.com');
+        // Determine instructor ownership - Native DB columns take absolute precedence over legacy comment tags
+        const instructorEmail = sc.instructor_email || meta?.instructorEmail || 'phenolvii@gmail.com';
         const isDrOmar = instructorEmail.toLowerCase() === 'phenolvii@gmail.com';
 
         return {
@@ -282,11 +282,11 @@ export const syncWithServerCourses = async (): Promise<ChemistryCourse[]> => {
           totalHours: sc.total_hours || '30 Academic Hours',
           colorAccent: sc.color_accent || '#641C32',
           accentBg: sc.accent_bg || 'bg-burgundy-950',
-          instructorId: meta?.instructorId || (isDrOmar ? 'dr-omar-magdi' : (sc.instructor_id || 'dr-omar-magdi')),
-          instructorName: meta?.instructorName || (isDrOmar ? 'Dr. Omar Magdi' : (sc.instructor_name || 'Academic Instructor')),
+          instructorId: sc.instructor_id || meta?.instructorId || (isDrOmar ? 'dr-omar-magdi' : 'instructor'),
+          instructorName: sc.instructor_name || meta?.instructorName || (isDrOmar ? 'Dr. Omar Magdi' : 'Academic Instructor'),
           instructorEmail: instructorEmail,
-          instructorAvatar: meta?.instructorAvatar || sc.instructor_avatar || undefined,
-          approvalStatus: meta?.approvalStatus || sc.approval_status || 'APPROVED',
+          instructorAvatar: sc.instructor_avatar || meta?.instructorAvatar || undefined,
+          approvalStatus: sc.approval_status || meta?.approvalStatus || 'APPROVED',
           submittedAt: meta?.submittedAt || undefined,
           lessons: lessonsList,
         };

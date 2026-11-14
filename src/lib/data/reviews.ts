@@ -18,44 +18,7 @@ export interface InstructorReview {
   createdAt: string;
 }
 
-const SEED_REVIEWS: InstructorReview[] = [
-  {
-    id: 'rev-dr-omar-1',
-    instructorId: 'dr-omar-magdi',
-    studentName: 'Youssef El-Sayed',
-    studentEmail: 'youssef.scholar@gmail.com',
-    studentCode: 'PH-4821',
-    studentTrack: 'Secondary & Baccalaureate',
-    rating: 5,
-    comment:
-      'Dr. Omar Magdi completely transformed my understanding of organic reaction mechanisms. Rather than forcing memorization, every arrow, nucleophile, and transition state was derived from fundamental physical principles.',
-    createdAt: '2026-10-18T14:32:00Z',
-  },
-  {
-    id: 'rev-dr-omar-2',
-    instructorId: 'dr-omar-magdi',
-    studentName: 'Mariam Farouk',
-    studentEmail: 'mariam.farouk@gmail.com',
-    studentCode: 'PH-3190',
-    studentTrack: 'IGCSE & A-Levels',
-    rating: 5,
-    comment:
-      'The precision in exam questions deconstruction and mark schemes is unmatched. The diagnostic problem sets mirror real Cambridge papers with profound conceptual clarity.',
-    createdAt: '2026-10-29T10:15:00Z',
-  },
-  {
-    id: 'rev-dr-omar-3',
-    instructorId: 'dr-omar-magdi',
-    studentName: 'Ziad Mahmoud',
-    studentEmail: 'ziad.mahmoud@gmail.com',
-    studentCode: 'PH-8422',
-    studentTrack: 'Undergrads',
-    rating: 5,
-    comment:
-      'Medicinal and physical chemistry lectures at the undergraduate level are delivered with doctoral-level rigor. Essential for pharmacy and medical scholars.',
-    createdAt: '2026-11-04T18:45:00Z',
-  },
-];
+const SEED_REVIEWS: InstructorReview[] = [];
 
 const STORAGE_KEY = 'phenol_instructor_reviews';
 
