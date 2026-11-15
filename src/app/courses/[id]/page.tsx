@@ -557,7 +557,7 @@ export default function CourseDetailsPage() {
                     </p>
 
                     <div className="text-[11px] font-mono text-charcoal-50 pt-1">
-                      <span>{q.questions.length} Diagnostic MCQ Questions</span>
+                      <span>{q.questionCount ?? q.questions.length} Diagnostic MCQ Questions</span>
                     </div>
                   </div>
 

@@ -73,8 +73,13 @@ export default function QuizExamRoomPage() {
   const handleAutoSubmit = async () => {
     if (!quiz || isSubmitted) return;
     setIsSubmitted(true);
-    const res = await submitQuizAttempt(quiz, userAnswers);
-    setSubmissionResult(res);
+    try {
+      const res = await submitQuizAttempt(quiz, userAnswers);
+      setSubmissionResult(res);
+    } catch (err: any) {
+      setIsSubmitted(false);
+      window.alert(`Could not submit the assessment: ${err?.message || 'unknown error'}`);
+    }
   };
 
   const handleManualSubmit = async () => {
@@ -90,8 +95,13 @@ export default function QuizExamRoomPage() {
     }
 
     setIsSubmitted(true);
-    const res = await submitQuizAttempt(quiz, userAnswers);
-    setSubmissionResult(res);
+    try {
+      const res = await submitQuizAttempt(quiz, userAnswers);
+      setSubmissionResult(res);
+    } catch (err: any) {
+      setIsSubmitted(false);
+      window.alert(`Could not submit the assessment: ${err?.message || 'unknown error'}`);
+    }
   };
 
   const formatTimer = (seconds: number) => {
@@ -116,8 +126,10 @@ export default function QuizExamRoomPage() {
       <div className="min-h-screen bg-ivory-200 flex items-center justify-center p-4">
         <div className="p-8 bg-ivory-100 border border-hairline rounded-xl text-center space-y-4 max-w-md">
           <AlertCircle className="w-8 h-8 text-burgundy-600 mx-auto" />
-          <h2 className="text-lg font-bold text-charcoal-900 font-display">Quiz Not Found</h2>
-          <p className="text-xs text-charcoal-100">The requested evaluation quiz could not be located.</p>
+          <h2 className="text-lg font-bold text-charcoal-900 font-display">Assessment Unavailable</h2>
+          <p className="text-xs text-charcoal-100">
+            This evaluation could not be loaded. Make sure you are signed in and your enrollment in this course is active.
+          </p>
           <Link
             href={`/courses/${courseId}`}
             className="inline-block py-2 px-4 rounded bg-burgundy-900 text-ivory-100 text-xs font-semibold"
@@ -302,7 +314,7 @@ export default function QuizExamRoomPage() {
                   Assessment Result
                 </span>
                 <h2 className="text-2xl sm:text-3xl font-extrabold font-display text-charcoal-900 mt-1">
-                  {submissionResult?.score || 0} / {submissionResult?.totalPoints || 20}
+                  {submissionResult?.score || 0} / {submissionResult?.totalPoints || 0}
                 </h2>
                 <div className="flex items-center justify-center gap-2 mt-2">
                   <span
@@ -335,13 +347,14 @@ export default function QuizExamRoomPage() {
               </h3>
 
               <div className="space-y-4">
-                {quiz.questions.map((q, idx) => {
-                  const studentAns = userAnswers[idx];
-                  const isCorrect = studentAns === q.correctIndex;
+                {(submissionResult?.review || []).map((r, idx) => {
+                  const q = quiz.questions[r.index];
+                  const isCorrect = r.isCorrect;
+                  const wasAnswered = r.studentIndex !== null;
 
                   return (
                     <div
-                      key={q.id || idx}
+                      key={q?.id || r.question_id || idx}
                       className={`p-5 sm:p-6 rounded-xl border bg-ivory-100 shadow-quiet space-y-3.5 ${
                         isCorrect ? 'border-emerald-200' : 'border-red-200'
                       }`}
@@ -358,25 +371,29 @@ export default function QuizExamRoomPage() {
                             {idx + 1}
                           </span>
                           <h4 className="text-sm font-bold text-charcoal-900 font-sans leading-snug">
-                            {q.question}
+                            {q?.question || 'Question'}
                           </h4>
                         </div>
                         {isCorrect ? (
                           <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded shrink-0">
-                            <CheckCircle2 className="w-3.5 h-3.5" /> Correct (+5 pts)
+                            <CheckCircle2 className="w-3.5 h-3.5" /> Correct (+{r.points} pts)
                           </span>
-                        ) : (
+                        ) : wasAnswered ? (
                           <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-red-800 bg-red-50 px-2 py-0.5 rounded shrink-0">
                             <XCircle className="w-3.5 h-3.5" /> Incorrect
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-amber-800 bg-amber-50 px-2 py-0.5 rounded shrink-0">
+                            <AlertCircle className="w-3.5 h-3.5" /> Not Answered
                           </span>
                         )}
                       </div>
 
                       {/* Options breakdown */}
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pl-8">
-                        {q.options.map((opt, oIdx) => {
-                          const isStudentSelected = studentAns === oIdx;
-                          const isCorrectOption = oIdx === q.correctIndex;
+                        {(q?.options || []).map((opt, oIdx) => {
+                          const isStudentSelected = r.studentIndex === oIdx;
+                          const isCorrectOption = oIdx === r.correctIndex;
 
                           let optionStyle = 'bg-white border-hairline text-charcoal-900';
                           if (isCorrectOption) {
@@ -399,13 +416,13 @@ export default function QuizExamRoomPage() {
                         })}
                       </div>
 
-                      {/* Scientific explanation */}
-                      {q.scientificExplanation && (
+                      {/* Scientific explanation — delivered by the grading RPC only */}
+                      {r.explanation && (
                         <div className="p-3 bg-ivory-200 border-l-2 border-burgundy-500 rounded text-xs text-charcoal-100 space-y-1 ml-8 font-sans">
                           <span className="font-bold text-charcoal-900 block font-formula text-[10px] uppercase">
                             Dr. Omar Magdi Explanation:
                           </span>
-                          <p className="leading-relaxed">{q.scientificExplanation}</p>
+                          <p className="leading-relaxed">{r.explanation}</p>
                         </div>
                       )}
                     </div>

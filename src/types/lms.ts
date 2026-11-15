@@ -97,8 +97,9 @@ export interface Question {
   question: string;
   molecularSnippet?: string;
   options: string[];
-  correctIndex: number;
-  scientificExplanation: string;
+  /** Answer key — never sent to the client by the DB; only the graded review knows it. */
+  correctIndex?: number;
+  scientificExplanation?: string;
 }
 
 export interface ChemistryQuiz {
@@ -108,6 +109,8 @@ export interface ChemistryQuiz {
   title: string;
   badge: string;
   durationMinutes: number;
+  /** Server-computed question count for listings (questions array is empty until the exam room loads). */
+  questionCount?: number;
   questions: Question[];
 }
 

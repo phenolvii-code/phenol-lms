@@ -1,170 +1,151 @@
 import { supabase } from '@/lib/supabase';
-import { CHEMISTRY_QUIZZES } from '@/data/mock-data';
-import { ChemistryQuiz } from '@/types/lms';
+import { ChemistryQuiz, Question } from '@/types/lms';
+
+export interface QuizReviewItem {
+  index: number;
+  question_id: string;
+  studentIndex: number | null;
+  correctIndex: number | null;
+  isCorrect: boolean;
+  points: number;
+  explanation: string;
+}
 
 export interface QuizSubmissionResult {
-  id?: string;
+  submissionId?: string;
   quizId: string;
   courseId: string;
-  studentId: string;
   score: number;
   totalPoints: number;
   percentage: number;
   passed: boolean;
-  answers: Record<string, string>;
-  submittedAt: string;
+  review: QuizReviewItem[];
 }
 
 /**
- * Fetches all interactive quizzes for a given course from Supabase (fallback to local mock data)
+ * Maps a sanitized DB question (no answer key) to the frontend Question shape.
+ * correctIndex is intentionally undefined — it is unknown until grading.
+ */
+function mapSanitizedQuestion(quest: any, idx: number): Question {
+  return {
+    id: quest.id || `q${idx}`,
+    question: quest.text || quest.question || `Question ${idx + 1}`,
+    molecularSnippet: quest.molecularSnippet,
+    options: (quest.options || []).map((opt: any) =>
+      typeof opt === 'string' ? opt : opt.text
+    ),
+    correctIndex: undefined,
+    scientificExplanation: '',
+  };
+}
+
+/**
+ * Fetches quiz metadata for a course via the DB RPC (no answer keys ever).
+ * Question counts come from the server; questions themselves are NOT included.
  */
 export async function fetchCourseQuizzes(courseId: string): Promise<ChemistryQuiz[]> {
-  try {
-    const { data, error } = await supabase
-      .from('quizzes')
-      .select('*')
-      .eq('course_id', courseId)
-      .order('created_at', { ascending: true });
+  const { data, error } = await supabase.rpc('get_course_quiz_metadata', {
+    p_course_id: courseId,
+  });
 
-    if (!error && data && data.length > 0) {
-      return data.map((q) => ({
-        id: q.id,
-        courseId: q.course_id,
-        courseTitle: q.title,
-        title: q.title,
-        badge: 'Evaluation Quiz',
-        durationMinutes: q.duration_minutes || 15,
-        questions: (q.questions || []).map((quest: any) => ({
-          id: quest.id,
-          question: quest.text || quest.question,
-          molecularSnippet: quest.molecularSnippet,
-          options: (quest.options || []).map((opt: any) =>
-            typeof opt === 'string' ? opt : opt.text
-          ),
-          correctIndex:
-            typeof quest.correctIndex === 'number'
-              ? quest.correctIndex
-              : (quest.options || []).findIndex(
-                  (opt: any) => opt.id === quest.correct_option_id
-                ),
-          scientificExplanation:
-            quest.explanation || quest.scientificExplanation || '',
-        })),
-      }));
-    }
-  } catch (err) {
-    console.warn('Could not fetch quizzes from Supabase, using standard mocks:', err);
+  if (error) {
+    console.warn('Could not fetch quiz metadata:', error.message);
+    return [];
   }
 
-  // Fallback to mock quizzes
-  const filtered = CHEMISTRY_QUIZZES.filter(
-    (q) => q.courseId === courseId || courseId.includes('301') || courseId.includes('org')
-  );
-
-  return filtered.length > 0 ? filtered : CHEMISTRY_QUIZZES;
+  return (data || []).map((q: any) => ({
+    id: q.id,
+    courseId,
+    courseTitle: q.title,
+    title: q.title,
+    badge: 'Evaluation Quiz',
+    durationMinutes: q.duration_minutes || 15,
+    questionCount: q.question_count || 0,
+    questions: [],
+  }));
 }
 
 /**
- * Fetches a single quiz by ID
+ * Fetches a single quiz: metadata from the table, sanitized questions from
+ * the RPC. Returns null when the quiz does not exist or the caller is not
+ * enrolled in its course (the RPC raises 'not enrolled').
  */
 export async function fetchQuizById(quizId: string): Promise<ChemistryQuiz | null> {
-  try {
-    const { data, error } = await supabase
-      .from('quizzes')
-      .select('*')
-      .eq('id', quizId)
-      .single();
+  const { data, error } = await supabase
+    .from('quizzes')
+    .select('id, course_id, title, duration_minutes, passing_percentage')
+    .eq('id', quizId)
+    .single();
 
-    if (!error && data) {
-      return {
-        id: data.id,
-        courseId: data.course_id,
-        courseTitle: data.title,
-        title: data.title,
-        badge: 'Evaluation Quiz',
-        durationMinutes: data.duration_minutes || 15,
-        questions: (data.questions || []).map((quest: any) => ({
-          id: quest.id,
-          question: quest.text || quest.question,
-          molecularSnippet: quest.molecularSnippet,
-          options: (quest.options || []).map((opt: any) =>
-            typeof opt === 'string' ? opt : opt.text
-          ),
-          correctIndex:
-            typeof quest.correctIndex === 'number'
-              ? quest.correctIndex
-              : (quest.options || []).findIndex(
-                  (opt: any) => opt.id === quest.correct_option_id
-                ),
-          scientificExplanation:
-            quest.explanation || quest.scientificExplanation || '',
-        })),
-      };
-    }
-  } catch {
-    // ignore
+  if (error || !data) {
+    return null;
   }
 
-  return CHEMISTRY_QUIZZES.find((q) => q.id === quizId) || CHEMISTRY_QUIZZES[0] || null;
+  const { data: rawQuestions, error: questionsError } = await supabase.rpc(
+    'get_quiz_questions',
+    { p_quiz_id: quizId }
+  );
+
+  if (questionsError) {
+    console.warn('Quiz questions access denied:', questionsError.message);
+    return null;
+  }
+
+  const questions = ((rawQuestions as any[]) || []).map(mapSanitizedQuestion);
+
+  return {
+    id: data.id,
+    courseId: data.course_id,
+    courseTitle: data.title,
+    title: data.title,
+    badge: 'Evaluation Quiz',
+    durationMinutes: data.duration_minutes || 15,
+    questionCount: questions.length,
+    questions,
+  };
 }
 
 /**
- * Evaluates and records a quiz attempt in Supabase
+ * Submits the attempt and lets the DATABASE grade it. The client never
+ * computes or writes its own score — the RPC reads the private answer key,
+ * grades, records the submission and returns the per-question review.
  */
 export async function submitQuizAttempt(
   quiz: ChemistryQuiz,
   userAnswers: Record<number, number>
 ): Promise<QuizSubmissionResult> {
-  const totalQuestions = quiz.questions.length;
-  let correctCount = 0;
+  // keys = question index (string), values = option index (string)
+  const answers = Object.fromEntries(
+    Object.entries(userAnswers).map(([k, v]) => [k, String(v)])
+  );
 
-  quiz.questions.forEach((q, idx) => {
-    if (userAnswers[idx] === q.correctIndex) {
-      correctCount += 1;
-    }
+  const { data, error } = await supabase.rpc('submit_quiz_attempt', {
+    p_quiz_id: quiz.id,
+    p_answers: answers,
   });
 
-  const percentage = Math.round((correctCount / totalQuestions) * 100);
-  const passed = percentage >= 60;
-  const pointsPerQuestion = 5;
-  const totalPoints = totalQuestions * pointsPerQuestion;
-  const score = correctCount * pointsPerQuestion;
-
-  const result: QuizSubmissionResult = {
-    quizId: quiz.id,
-    courseId: quiz.courseId,
-    studentId: 'guest',
-    score,
-    totalPoints,
-    percentage,
-    passed,
-    answers: Object.fromEntries(
-      Object.entries(userAnswers).map(([k, v]) => [k, String(v)])
-    ),
-    submittedAt: new Date().toISOString(),
-  };
-
-  try {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (user) {
-      result.studentId = user.id;
-
-      await supabase.from('quiz_submissions').insert({
-        quiz_id: quiz.id,
-        course_id: quiz.courseId,
-        student_id: user.id,
-        student_email: user.email,
-        student_name: user.user_metadata?.full_name || user.email?.split('@')[0],
-        answers: result.answers,
-        score,
-        total_points: totalPoints,
-        percentage,
-        passed,
-      });
-    }
-  } catch (err) {
-    console.error('Error saving quiz submission:', err);
+  if (error) {
+    throw new Error(error.message);
   }
 
-  return result;
+  const result = (data || {}) as any;
+
+  return {
+    submissionId: result.submission_id,
+    quizId: quiz.id,
+    courseId: result.course_id || quiz.courseId,
+    score: Number(result.score) || 0,
+    totalPoints: Number(result.total_points) || 0,
+    percentage: Number(result.percentage) || 0,
+    passed: Boolean(result.passed),
+    review: (result.review || []).map((r: any) => ({
+      index: r.index,
+      question_id: r.question_id,
+      studentIndex: r.student_index,
+      correctIndex: r.correct_index,
+      isCorrect: Boolean(r.is_correct),
+      points: Number(r.points) || 0,
+      explanation: r.explanation || '',
+    })),
+  };
 }
