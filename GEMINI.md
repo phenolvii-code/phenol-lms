@@ -21,3 +21,6 @@
 3. **Never allow instructors to self-approve courses or hijack course ownership**: Database triggers (`trg_courses_immutability`) and Supabase RPCs (`set_course_approval`) must enforce that only `super_admin` can approve/reject courses.
 4. **Zero Fake Reviews**: Production databases and UI must contain zero fake seed testimonials. Only real enrolled students can submit evaluations.
 5. **Course Scoping**: Every instructor dashboard query must filter by `c.instructor_email` or `c.owner_id`.
+6. **Never trust signup metadata for roles** (fixed 2026-11-15, Migration 009): any new auth account is created as `student` — always. Instructor status is granted ONLY via `decide_instructor_request()` by the super_admin. Client-sent `role`/`account_type` in signup metadata must be ignored forever.
+7. **Never write profile/enrollment rows from the client** (fixed 2026-11-15): the register page must NOT upsert `profiles`/`registered_students` or generate academic codes client-side — the DB trigger (`handle_new_auth_user`) is the single source.
+8. **Never paste partial SQL migrations into Supabase** (incident 2026-11-15): always paste the FULL migration file and verify the first line is the migration header before running.
