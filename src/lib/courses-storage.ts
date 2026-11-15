@@ -90,23 +90,16 @@ export const saveSingleCourse = async (c: ChemistryCourse): Promise<void> => {
     const resolvedName = isDrOmar ? 'Dr. Omar Magdi' : c.instructorName || 'Academic Instructor';
     const resolvedEmail = isDrOmar ? 'phenolvii@gmail.com' : c.instructorEmail || 'phenolvii@gmail.com';
 
+    // Description is written CLEAN — metadata lives in the native columns
+    // (instructor_id/name/email/avatar, approval_status), never in text.
     const cleanDesc = (c.description || '').replace(META_REGEX, '').trim();
-    const metaPayload = {
-      instructorId: resolvedId,
-      instructorName: resolvedName,
-      instructorEmail: resolvedEmail,
-      instructorAvatar: c.instructorAvatar || null,
-      approvalStatus: c.approvalStatus || 'APPROVED',
-      submittedAt: c.submittedAt || null,
-    };
-    const descWithMeta = `${cleanDesc}\n\n<!--PHENOL_META:${JSON.stringify(metaPayload)}-->`;
 
     await supabase.from('courses').upsert({
       id: c.id,
       code: c.code,
       title: c.title,
       sub_title: c.subTitle || null,
-      description: descWithMeta,
+      description: cleanDesc,
       category: c.category,
       category_name: c.categoryName || 'Academic Program',
       level: c.level || 'Academic Year 2026/2027',
@@ -115,6 +108,12 @@ export const saveSingleCourse = async (c: ChemistryCourse): Promise<void> => {
       total_hours: c.totalHours || null,
       color_accent: c.colorAccent || '#641C32',
       accent_bg: c.accentBg || 'bg-burgundy-950',
+      instructor_id: resolvedId,
+      instructor_name: resolvedName,
+      instructor_email: resolvedEmail,
+      instructor_avatar: c.instructorAvatar || null,
+      approval_status: c.approvalStatus || 'APPROVED',
+      submitted_at: c.submittedAt || null,
     });
 
     if (Array.isArray(c.lessons) && c.lessons.length > 0) {
@@ -169,23 +168,16 @@ export const saveStoredCourses = async (courses: ChemistryCourse[]): Promise<voi
       const resolvedName = isDrOmar ? 'Dr. Omar Magdi' : c.instructorName || 'Academic Instructor';
       const resolvedEmail = isDrOmar ? 'phenolvii@gmail.com' : c.instructorEmail || 'phenolvii@gmail.com';
 
+      // Description is written CLEAN — metadata lives in the native columns
+      // (instructor_id/name/email/avatar, approval_status), never in text.
       const cleanDesc = (c.description || '').replace(META_REGEX, '').trim();
-      const metaPayload = {
-        instructorId: resolvedId,
-        instructorName: resolvedName,
-        instructorEmail: resolvedEmail,
-        instructorAvatar: c.instructorAvatar || null,
-        approvalStatus: c.approvalStatus || 'APPROVED',
-        submittedAt: c.submittedAt || null,
-      };
-      const descWithMeta = `${cleanDesc}\n\n<!--PHENOL_META:${JSON.stringify(metaPayload)}-->`;
 
       await supabase.from('courses').upsert({
         id: c.id,
         code: c.code,
         title: c.title,
         sub_title: c.subTitle || null,
-        description: descWithMeta,
+        description: cleanDesc,
         category: c.category,
         category_name: c.categoryName || 'Academic Program',
         level: c.level || 'Academic Year 2026/2027',
@@ -194,6 +186,12 @@ export const saveStoredCourses = async (courses: ChemistryCourse[]): Promise<voi
         total_hours: c.totalHours || null,
         color_accent: c.colorAccent || '#641C32',
         accent_bg: c.accentBg || 'bg-burgundy-950',
+        instructor_id: resolvedId,
+        instructor_name: resolvedName,
+        instructor_email: resolvedEmail,
+        instructor_avatar: c.instructorAvatar || null,
+        approval_status: c.approvalStatus || 'APPROVED',
+        submitted_at: c.submittedAt || null,
       });
 
       if (Array.isArray(c.lessons) && c.lessons.length > 0) {
