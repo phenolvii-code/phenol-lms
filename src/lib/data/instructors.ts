@@ -136,7 +136,7 @@ export const getPlatformInstructors = (): InstructorProfile[] => {
               whatsapp: customPhone ? `https://wa.me/${customPhone.replace(/[^0-9]/g, '')}` : undefined,
               email: email,
               subjects: [user.academicTrack || 'Sciences'],
-              coursesCount: 1,
+              coursesCount: 0,
               rating: ratingData.rating,
               reviewsCount: ratingData.count,
             };
@@ -256,7 +256,7 @@ export const syncPlatformInstructors = async (): Promise<InstructorProfile[]> =>
             whatsapp: user.phone ? `https://wa.me/${user.phone.replace(/[^0-9]/g, '')}` : undefined,
             email: email,
             subjects: [user.academic_track || 'Sciences'],
-            coursesCount: 1,
+            coursesCount: 0,
             rating: ratingData.rating,
             reviewsCount: ratingData.count,
           };
@@ -378,23 +378,46 @@ export const updateInstructorProfileData = async (
 
   if (idx >= 0) {
     all[idx] = { ...all[idx], ...updatedData };
-    inMemoryInstructors = all;
-    if (typeof window !== 'undefined') {
-      try {
-        localStorage.setItem('phenol_all_instructors', JSON.stringify(all));
-        localStorage.setItem(
-          `phenol_instructor_profile_${all[idx].id}`,
-          JSON.stringify(all[idx])
-        );
-        if (all[idx].avatar) {
-          if (all[idx].id === 'dr-omar-magdi') {
-            localStorage.setItem('phenol_global_instructor_avatar', all[idx].avatar);
-          }
-          localStorage.setItem(`phenol_avatar_${all[idx].id}`, all[idx].avatar);
+  } else {
+    const newInst: InstructorProfile = {
+      id: updatedData.id || target,
+      name: updatedData.name || target,
+      title: updatedData.title || 'Academic Instructor & Faculty Fellow',
+      bio:
+        updatedData.bio ||
+        'Faculty educator dedicated to first-principles conceptual clarity and causal curricular deconstruction.',
+      avatar: updatedData.avatar || '',
+      specialization: updatedData.specialization || 'General Sciences',
+      supervisionScope: updatedData.supervisionScope || 'Faculty Teaching Fellow',
+      whatsapp: updatedData.whatsapp,
+      email: updatedData.email || target,
+      subjects: updatedData.subjects || ['Sciences'],
+      coursesCount: updatedData.coursesCount || 0,
+      rating: updatedData.rating || 5.0,
+      reviewsCount: updatedData.reviewsCount || 0,
+      ...updatedData,
+    };
+    all.push(newInst);
+  }
+
+  inMemoryInstructors = all;
+  if (typeof window !== 'undefined') {
+    try {
+      localStorage.setItem('phenol_all_instructors', JSON.stringify(all));
+      const targetId = idx >= 0 ? all[idx].id : (updatedData.id || target);
+      const targetObj = idx >= 0 ? all[idx] : all[all.length - 1];
+      localStorage.setItem(
+        `phenol_instructor_profile_${targetId}`,
+        JSON.stringify(targetObj)
+      );
+      if (targetObj.avatar) {
+        if (targetObj.id === 'dr-omar-magdi') {
+          localStorage.setItem('phenol_global_instructor_avatar', targetObj.avatar);
         }
-        window.dispatchEvent(new Event('phenol_instructors_updated'));
-        window.dispatchEvent(new Event('phenol_user_profile_updated'));
-      } catch (e) {}
-    }
+        localStorage.setItem(`phenol_avatar_${targetId}`, targetObj.avatar);
+      }
+      window.dispatchEvent(new Event('phenol_instructors_updated'));
+      window.dispatchEvent(new Event('phenol_user_profile_updated'));
+    } catch (e) {}
   }
 };

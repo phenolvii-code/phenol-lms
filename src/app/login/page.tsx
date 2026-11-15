@@ -329,7 +329,7 @@ function LoginFormContent() {
                   href={redirectParam !== '/dashboard' ? `/register?redirect=${encodeURIComponent(redirectParam)}` : '/register'}
                   className="text-burgundy-500 font-semibold hover:underline"
                 >
-                  Register as Scholar
+                  Register
                 </Link>
               </div>
             </>

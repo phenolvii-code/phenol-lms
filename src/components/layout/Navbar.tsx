@@ -119,7 +119,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 {/* Mobile Single CTA */}
                 <Link
                   href="/login"
-                  className="lg:hidden px-4 py-1.5 rounded-lg bg-burgundy-500 hover:bg-burgundy-900 active:scale-[0.98] text-ivory-100 font-sans text-xs font-bold transition-all shadow-sm"
+                  className="lg:hidden px-3.5 py-1.5 rounded-lg bg-burgundy-500 hover:bg-burgundy-900 active:scale-[0.98] text-ivory-100 font-sans text-xs font-bold transition-all shadow-sm whitespace-nowrap"
                 >
                   Sign In
                 </Link>
@@ -214,7 +214,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 onClick={() => setMobileMenuOpen(false)}
                 className="w-full py-3 text-center text-sm font-bold rounded-lg bg-burgundy-500 hover:bg-burgundy-900 active:scale-[0.98] text-ivory-100 shadow-md transition-all"
               >
-                Register as Scholar
+                Register
               </Link>
               <Link
                 href="/login"

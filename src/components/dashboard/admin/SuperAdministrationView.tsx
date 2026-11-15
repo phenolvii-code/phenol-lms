@@ -277,9 +277,7 @@ export const SuperAdministrationView: React.FC<SuperAdministrationViewProps> = (
   }, [studentDirectory, userFilter, userSearchQuery]);
 
   const totalRegisteredUsers = studentDirectory.length;
-  const totalInstructors = studentDirectory.filter(
-    (s) => s.role === 'instructor' || s.email?.toLowerCase() === 'phenolvii@gmail.com'
-  ).length || 1;
+  const totalInstructors = combinedInstructors.length;
 
   return (
     <div className="space-y-8 font-sans animate-fade-in">

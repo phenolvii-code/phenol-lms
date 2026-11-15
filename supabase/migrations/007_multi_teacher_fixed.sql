@@ -555,8 +555,24 @@ END $$;
 -- ------------------------------------------------------------------------------
 -- STEP 11: Scoped Course Notifications
 -- ------------------------------------------------------------------------------
-DROP FUNCTION IF EXISTS public.notify_course_students(text, text, text, text, text);
-DROP FUNCTION IF EXISTS public.notify_course_students;
+DO $$
+DECLARE
+  r RECORD;
+BEGIN
+  FOR r IN (
+    SELECT p.oid::regprocedure::text AS func_sig
+    FROM pg_proc p
+    JOIN pg_namespace n ON p.pronamespace = n.oid
+    WHERE n.nspname = 'public' AND p.proname = 'notify_course_students'
+  ) LOOP
+    EXECUTE 'DROP FUNCTION IF EXISTS ' || r.func_sig || ' CASCADE;';
+  END LOOP;
+END $$;
+
+DROP FUNCTION IF EXISTS public.notify_course_students(text, text, text, text, text) CASCADE;
+DROP FUNCTION IF EXISTS public.notify_course_students(text, text, text, text) CASCADE;
+DROP FUNCTION IF EXISTS public.notify_course_students CASCADE;
+
 CREATE OR REPLACE FUNCTION public.notify_course_students(
   p_course_id text,
   p_title text,

@@ -75,7 +75,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
                 href="/register"
                 className="w-full sm:w-auto min-w-[190px] inline-flex items-center justify-center gap-2.5 px-8 py-4 rounded-lg bg-burgundy-500 hover:bg-burgundy-900 active:scale-[0.98] text-ivory-100 font-sans font-bold text-base sm:text-lg transition-all duration-200 shadow-lg hover:shadow-xl hover:-translate-y-0.5 ring-2 ring-burgundy-500/20"
               >
-                <span>Register as Scholar</span>
+                <span>Register</span>
                 <ArrowRight className="w-5 h-5 transition-transform group-hover:translate-x-1" />
               </Link>
 

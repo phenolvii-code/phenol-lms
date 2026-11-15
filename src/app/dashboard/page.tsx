@@ -196,6 +196,16 @@ export default function DashboardPage() {
   const [enrollments, setEnrollments] = useState<CourseEnrollmentRecord[]>([]);
   const [enrollmentToast, setEnrollmentToast] = useState<string | null>(null);
 
+  const myCourseIds = useMemo(
+    () => new Set(myInstructorCourses.map((c: ChemistryCourse) => c.id)),
+    [myInstructorCourses]
+  );
+
+  const myEnrollments = useMemo(() => {
+    if (isSuperAdminUser) return enrollments;
+    return enrollments.filter((e) => myCourseIds.has(e.course_id));
+  }, [enrollments, myCourseIds, isSuperAdminUser]);
+
   // Direct Enroll Student Modal State
   const [isDirectEnrollModalOpen, setIsDirectEnrollModalOpen] = useState(false);
   const [directEnrollStudent, setDirectEnrollStudent] = useState<any | null>(null);
@@ -1232,10 +1242,10 @@ export default function DashboardPage() {
                   <Users className="w-4 h-4 text-burgundy-500" />
                 </div>
                 <div className="text-2xl sm:text-3xl font-extrabold font-formula text-charcoal-900">
-                  {enrollments.filter((e) => e.status === 'ACTIVE').length}
+                  {myEnrollments.filter((e) => e.status === 'ACTIVE').length}
                 </div>
                 <span className="text-[11px] text-charcoal-100 font-sans block">
-                  {enrollments.filter((e) => e.status === 'PENDING').length} Pending Course Activations
+                  {myEnrollments.filter((e) => e.status === 'PENDING').length} Pending Course Activations
                 </span>
               </div>
 
@@ -1247,10 +1257,10 @@ export default function DashboardPage() {
                   <GraduationCap className="w-4 h-4 text-burgundy-500" />
                 </div>
                 <div className="text-2xl sm:text-3xl font-extrabold font-formula text-burgundy-500">
-                  {waitlist.filter((w) => w.status === 'pending').length}
+                  {myWaitlist.filter((w) => w.status === 'pending').length}
                 </div>
                 <span className="text-[11px] text-charcoal-100 font-sans block">
-                  {waitlist.length} Total Registered Inquiries
+                  {myWaitlist.length} Inquiries for Your Courses
                 </span>
               </div>
 
@@ -1262,7 +1272,7 @@ export default function DashboardPage() {
                   <FileCheck2 className="w-4 h-4 text-burgundy-500" />
                 </div>
                 <div className="text-2xl sm:text-3xl font-extrabold font-formula text-charcoal-900">
-                  {submissions.filter((s) => s.status === 'pending').length}
+                  {mySubmissions.filter((s) => s.status === 'pending').length}
                 </div>
                 <span className="text-[11px] text-charcoal-100 font-sans block">
                   Awaiting Instructor Evaluation
@@ -1277,10 +1287,10 @@ export default function DashboardPage() {
                   <Layers className="w-4 h-4 text-burgundy-500" />
                 </div>
                 <div className="text-2xl sm:text-3xl font-extrabold font-formula text-charcoal-900">
-                  {courses.length}
+                  {myInstructorCourses.length}
                 </div>
                 <span className="text-[11px] text-charcoal-100 font-sans block">
-                  Structured across 4 Tracks
+                  Active Curricular Courses
                 </span>
               </div>
             </div>
@@ -1298,7 +1308,7 @@ export default function DashboardPage() {
                 >
                   <span>Programs & Courses</span>
                   <span className="font-formula text-xs px-2 py-0.5 rounded-full bg-ivory-300 text-charcoal-900">
-                    {courses.length}
+                    {myInstructorCourses.length}
                   </span>
                 </button>
 
@@ -1312,7 +1322,7 @@ export default function DashboardPage() {
                 >
                   <span>Admissions & Waitlist</span>
                   <span className="font-formula text-xs px-2 py-0.5 rounded-full bg-ivory-300 text-charcoal-900">
-                    {waitlist.length}
+                    {myWaitlist.length}
                   </span>
                 </button>
 
@@ -1326,7 +1336,7 @@ export default function DashboardPage() {
                 >
                   <span>Grading Desk</span>
                   <span className="font-formula text-xs px-2 py-0.5 rounded-full bg-ivory-300 text-charcoal-900">
-                    {submissions.length}
+                    {mySubmissions.length}
                   </span>
                 </button>
 
@@ -1340,7 +1350,7 @@ export default function DashboardPage() {
                 >
                   <span>Student Roster</span>
                   <span className="font-formula text-xs px-2 py-0.5 rounded-full bg-ivory-300 text-charcoal-900">
-                    {enrollments.length}
+                    {myEnrollments.length}
                   </span>
                 </button>
               </nav>
@@ -1432,7 +1442,7 @@ export default function DashboardPage() {
             {/* TAB 4: ROSTER */}
             {adminTab === 'roster' && (
               <AdminRosterTab
-                enrollments={enrollments}
+                enrollments={myEnrollments}
                 courses={myInstructorCourses}
                 rosterSearchQuery={rosterSearchQuery}
                 setRosterSearchQuery={setRosterSearchQuery}

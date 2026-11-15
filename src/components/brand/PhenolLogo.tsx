@@ -44,10 +44,22 @@ export const PhenolLogo: React.FC<PhenolLogoProps> = ({
       </div>
 
       {withText && (
-        <div className="flex flex-col text-left justify-center leading-tight">
-          <span className="font-editorial text-base sm:text-lg tracking-[0.16em] text-charcoal-900 font-bold uppercase">
+        <div className="flex flex-col text-left justify-center leading-none">
+          {/* Mobile View: Two stacked, elegantly aligned lines */}
+          <div className="sm:hidden flex flex-col justify-center text-left leading-none tracking-[0.16em]">
+            <span className="font-editorial text-[13px] font-bold uppercase text-charcoal-900 leading-tight">
+              PHENOL
+            </span>
+            <span className="font-editorial text-[10px] font-semibold uppercase tracking-[0.24em] text-burgundy-900 leading-tight">
+              ACADEMY
+            </span>
+          </div>
+
+          {/* Desktop/Tablet View: Single full institutional title */}
+          <span className="hidden sm:inline font-editorial text-base sm:text-lg tracking-[0.16em] text-charcoal-900 font-bold uppercase leading-tight">
             PHENOL ACADEMY
           </span>
+
           {subtitle && (
             <span className="text-[10px] sm:text-[11px] font-medium text-charcoal-100 font-sans tracking-wide mt-0.5">
               {subtitle}

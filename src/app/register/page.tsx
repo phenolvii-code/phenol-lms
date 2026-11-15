@@ -19,7 +19,7 @@ function RegisterFormContent() {
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [academicLevel, setAcademicLevel] = useState('Secondary & Baccalaureate');
+  const [academicLevel, setAcademicLevel] = useState('All Tracks');
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -182,10 +182,10 @@ function RegisterFormContent() {
         <div className="w-full max-w-md bg-ivory-100 border border-hairline rounded-2xl p-6 sm:p-8 shadow-editorial space-y-5">
           <div className="space-y-1 text-center">
             <span className="font-formula text-xs text-burgundy-500 font-bold uppercase tracking-widest block">
-              {accountType === 'INSTRUCTOR' ? 'FACULTY CHAIR ONBOARDING' : 'SCHOLAR ENROLLMENT'}
+              {accountType === 'INSTRUCTOR' ? 'FACULTY CHAIR ONBOARDING' : 'NEW STUDENT REGISTRATION'}
             </span>
             <h1 className="text-2xl font-bold text-charcoal-900 font-display">
-              {accountType === 'INSTRUCTOR' ? 'Create Instructor Account' : 'Create Scholar Account'}
+              {accountType === 'INSTRUCTOR' ? 'Create Instructor Account' : 'Create Student Account'}
             </h1>
             <p className="text-xs text-charcoal-100 font-sans">
               {accountType === 'INSTRUCTOR'
@@ -311,22 +311,6 @@ function RegisterFormContent() {
 
             <div>
               <label className="block text-xs font-semibold text-charcoal-900 font-sans mb-1">
-                Target Academic Track
-              </label>
-              <select
-                value={academicLevel}
-                onChange={(e) => setAcademicLevel(e.target.value)}
-                className="w-full px-3 py-2 text-sm bg-ivory-50 border border-hairline rounded text-charcoal-900 focus:outline-none focus:border-burgundy-500 font-sans"
-              >
-                <option value="Secondary & Baccalaureate">Secondary & Baccalaureate (National & French)</option>
-                <option value="IGCSE & A-Levels">IGCSE & A-Levels (Cambridge / Edexcel)</option>
-                <option value="Undergrads">Undergrads (Pharmacy, Medicine, Science, Eng)</option>
-                <option value="Public Courses">Public Courses (General Science & Philosophy)</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-charcoal-900 font-sans mb-1">
                 Password
               </label>
               <div className="relative">
@@ -352,7 +336,7 @@ function RegisterFormContent() {
                   ? 'Registering...'
                   : accountType === 'INSTRUCTOR'
                   ? 'Create Instructor Account'
-                  : 'Create Scholar Account'}
+                  : 'Create Student Account'}
               </span>
               <ArrowRight className="w-4 h-4" />
             </button>
