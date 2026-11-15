@@ -206,8 +206,8 @@ export const syncWithServerStudents = async (): Promise<RegisteredStudent[]> => 
           phone: d.phone || '',
           academicCode: d.academic_code || 'PH-SCHOLAR',
           academicTrack: d.academic_track || 'Secondary & Baccalaureate',
-          registeredAt: d.created_at || new Date().toISOString(),
-          role: d.role || (em === 'phenolvii@gmail.com' ? 'SUPER_ADMIN' : 'student'),
+          registeredAt: d.registered_at || d.created_at || new Date().toISOString(),
+          role: (d.role || '').toLowerCase() === 'instructor' ? 'instructor' : (em === 'phenolvii@gmail.com' ? 'SUPER_ADMIN' : 'student'),
         });
       });
     }
@@ -215,28 +215,16 @@ export const syncWithServerStudents = async (): Promise<RegisteredStudent[]> => 
 
   // 2. Fetch from profiles
   try {
-    const { data: profs } = await supabase.from('profiles').select('*');
+    const { data: profs } = await supabase.from('profiles').select('id, role');
     if (Array.isArray(profs)) {
+      const roleMap = new Map<string, string>();
       profs.forEach((p: any) => {
-        const em = (p.email || '').toLowerCase().trim();
-        if (em) {
-          if (!studentMap.has(em)) {
-            studentMap.set(em, {
-              id: p.id,
-              name: p.full_name || p.name || em.split('@')[0],
-              email: em,
-              phone: p.phone || '',
-              academicCode: `PH-${Math.floor(1000 + Math.random() * 9000)}`,
-              academicTrack: 'Secondary & Baccalaureate',
-              registeredAt: p.created_at || new Date().toISOString(),
-              role: p.role || (em === 'phenolvii@gmail.com' ? 'SUPER_ADMIN' : 'student'),
-            });
-          } else {
-            const existing = studentMap.get(em)!;
-            if (p.role) existing.role = p.role;
-            if (p.full_name) existing.name = p.full_name;
-            if (p.phone) existing.phone = p.phone;
-          }
+        if (p.id && p.role) roleMap.set(p.id, p.role);
+      });
+      studentMap.forEach((st) => {
+        if (st.id && roleMap.has(st.id)) {
+          const r = roleMap.get(st.id)!;
+          st.role = (r === 'super_admin' ? 'SUPER_ADMIN' : (r === 'instructor' ? 'instructor' : 'student')) as any;
         }
       });
     }

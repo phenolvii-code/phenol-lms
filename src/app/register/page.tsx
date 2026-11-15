@@ -135,8 +135,9 @@ function RegisterFormContent() {
       }
 
       router.push(redirectParam);
-    } catch {
-      setErrorMessage('Registration failed. Please check your information and try again.');
+    } catch (err: any) {
+      console.error('Registration exception:', err);
+      setErrorMessage(err?.message || 'Registration failed. Please check your information and try again.');
     } finally {
       setIsLoading(false);
     }

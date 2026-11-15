@@ -22,11 +22,34 @@ ALTER TABLE public.profiles ADD CONSTRAINT profiles_role_check
   CHECK (role IN ('student', 'instructor', 'super_admin'));
 
 -- Ensure Dr. Omar Magdi is permanent super_admin in profiles
+INSERT INTO public.profiles (id, role)
+SELECT id, 'super_admin'
+FROM auth.users
+WHERE lower(trim(email)) = 'phenolvii@gmail.com'
+ON CONFLICT (id) DO UPDATE SET role = 'super_admin';
+
 UPDATE public.profiles 
 SET role = 'super_admin'
 WHERE id IN (
   SELECT id FROM auth.users WHERE lower(trim(email)) = 'phenolvii@gmail.com'
 );
+
+-- Ensure phenol.loki and other registered instructors have instructor role
+INSERT INTO public.profiles (id, role)
+SELECT id, 'instructor'
+FROM auth.users
+WHERE lower(trim(email)) = 'phenol.loki@gmail.com'
+   OR raw_user_meta_data->>'role' = 'instructor'
+   OR raw_user_meta_data->>'account_type' = 'INSTRUCTOR'
+ON CONFLICT (id) DO UPDATE SET role = CASE 
+  WHEN profiles.role = 'super_admin' THEN 'super_admin' 
+  ELSE 'instructor' 
+END;
+
+UPDATE public.registered_students
+SET role = 'INSTRUCTOR'
+WHERE lower(trim(email)) = 'phenol.loki@gmail.com'
+   OR id::uuid IN (SELECT id FROM public.profiles WHERE role = 'instructor');
 
 -- Crucial Fix: is_admin() MUST include super_admin!
 CREATE OR REPLACE FUNCTION public.is_admin() 
@@ -97,6 +120,7 @@ CREATE TRIGGER trg_profiles_protect_role
 -- ------------------------------------------------------------------------------
 -- STEP 3: Emergency Lockdown on Password Reset RPC
 -- ------------------------------------------------------------------------------
+DROP FUNCTION IF EXISTS public.admin_set_student_password(text, text);
 CREATE OR REPLACE FUNCTION public.admin_set_student_password(
   p_student_email text,
   p_new_password text
@@ -194,6 +218,7 @@ ALTER TABLE public.courses ADD CONSTRAINT courses_approval_check
 -- ------------------------------------------------------------------------------
 -- STEP 5: Course Ownership Check with Active Instructor Role Check
 -- ------------------------------------------------------------------------------
+DROP FUNCTION IF EXISTS public.owns_course(text);
 CREATE OR REPLACE FUNCTION public.owns_course(p_course_id text) 
 RETURNS boolean
 LANGUAGE plpgsql
@@ -279,6 +304,7 @@ CREATE TRIGGER trg_courses_immutability
 -- ------------------------------------------------------------------------------
 -- STEP 7: Course Approval RPC (Super Admin ONLY)
 -- ------------------------------------------------------------------------------
+DROP FUNCTION IF EXISTS public.set_course_approval(text, text);
 CREATE OR REPLACE FUNCTION public.set_course_approval(
   p_course_id text,
   p_status text
@@ -379,6 +405,7 @@ FOR ALL USING (
 -- ------------------------------------------------------------------------------
 -- STEP 9: Protected Lesson Media Access (With 30-Day Auto Cleanup)
 -- ------------------------------------------------------------------------------
+DROP FUNCTION IF EXISTS public.get_lesson_media(text);
 CREATE OR REPLACE FUNCTION public.get_lesson_media(p_lesson_id text)
 RETURNS TABLE (video_url text, pdf_notes_path text)
 LANGUAGE plpgsql
@@ -430,6 +457,7 @@ GRANT EXECUTE ON FUNCTION public.get_lesson_media(text) TO authenticated;
 -- ------------------------------------------------------------------------------
 -- STEP 10: Scoped Enrollment Management (With ON CONFLICT & Referral Rewards)
 -- ------------------------------------------------------------------------------
+DROP FUNCTION IF EXISTS public.set_enrollment_status(text, text);
 CREATE OR REPLACE FUNCTION public.set_enrollment_status(p_id text, p_status text)
 RETURNS void
 LANGUAGE plpgsql
@@ -466,6 +494,7 @@ BEGIN
   END IF;
 END $$;
 
+DROP FUNCTION IF EXISTS public.admin_enroll_student(text, text);
 CREATE OR REPLACE FUNCTION public.admin_enroll_student(
   p_student_email text,
   p_course_id text
@@ -526,6 +555,8 @@ END $$;
 -- ------------------------------------------------------------------------------
 -- STEP 11: Scoped Course Notifications
 -- ------------------------------------------------------------------------------
+DROP FUNCTION IF EXISTS public.notify_course_students(text, text, text, text, text);
+DROP FUNCTION IF EXISTS public.notify_course_students;
 CREATE OR REPLACE FUNCTION public.notify_course_students(
   p_course_id text,
   p_title text,
@@ -611,3 +642,125 @@ CREATE INDEX IF NOT EXISTS idx_courses_approval_status ON public.courses(approva
 CREATE INDEX IF NOT EXISTS idx_courses_instructor_email ON public.courses(instructor_email);
 CREATE INDEX IF NOT EXISTS idx_instructor_reviews_inst ON public.instructor_reviews(instructor_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_profiles_role ON public.profiles(role);
+
+-- ------------------------------------------------------------------------------
+-- STEP 14: Dynamic Instructor & Student Registration Trigger
+-- ------------------------------------------------------------------------------
+DROP FUNCTION IF EXISTS public.handle_new_auth_user() CASCADE;
+CREATE OR REPLACE FUNCTION public.handle_new_auth_user() 
+RETURNS trigger
+LANGUAGE plpgsql 
+SECURITY DEFINER 
+SET search_path = public 
+AS $$
+DECLARE 
+  ref_code text; 
+  ref_user uuid;
+  v_role text;
+BEGIN
+  -- Determine role based on email or user metadata
+  IF lower(trim(coalesce(NEW.email, ''))) = 'phenolvii@gmail.com' THEN
+    v_role := 'super_admin';
+  ELSIF lower(trim(coalesce(NEW.raw_user_meta_data->>'role', NEW.raw_user_meta_data->>'account_type', ''))) IN ('instructor', 'teacher') THEN
+    v_role := 'instructor';
+  ELSE
+    v_role := 'student';
+  END IF;
+
+  -- 1. Insert into profiles with the correct role directly
+  INSERT INTO public.profiles (id, role) 
+  VALUES (NEW.id, v_role)
+  ON CONFLICT (id) DO UPDATE 
+    SET role = CASE 
+      WHEN profiles.role = 'super_admin' THEN 'super_admin' 
+      ELSE EXCLUDED.role 
+    END;
+
+  -- 2. Insert into registered_students
+  IF NEW.email IS NOT NULL AND lower(NEW.email) <> 'phenolvii@gmail.com' THEN
+    INSERT INTO public.registered_students (
+      id, email, name, phone, academic_code, academic_track, role
+    )
+    VALUES (
+      NEW.id::text,
+      lower(trim(NEW.email)),
+      coalesce(nullif(NEW.raw_user_meta_data->>'full_name',''), split_part(NEW.email,'@',1)),
+      coalesce(nullif(NEW.raw_user_meta_data->>'phone',''), 'Pending WhatsApp Verification'),
+      public.generate_academic_code(),
+      coalesce(nullif(NEW.raw_user_meta_data->>'academic_level',''), 'Public Secondary AR'),
+      upper(v_role)
+    )
+    ON CONFLICT (email) DO UPDATE 
+      SET role = upper(v_role),
+          name = EXCLUDED.name,
+          phone = EXCLUDED.phone;
+
+    -- 3. Referrals check
+    ref_code := nullif(NEW.raw_user_meta_data->>'referred_by','');
+    IF ref_code IS NOT NULL THEN
+      SELECT id::uuid INTO ref_user 
+      FROM public.registered_students
+      WHERE academic_code = ref_code AND id ~ '^[0-9a-fA-F-]{36}$' AND id <> NEW.id::text;
+      
+      IF ref_user IS NOT NULL THEN
+        INSERT INTO public.referrals (referrer_id, referred_id) 
+        VALUES (ref_user, NEW.id)
+        ON CONFLICT DO NOTHING;
+      END IF;
+    END IF;
+  END IF;
+
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+CREATE TRIGGER on_auth_user_created 
+  AFTER INSERT ON auth.users
+  FOR EACH ROW 
+  EXECUTE FUNCTION public.handle_new_auth_user();
+
+-- ------------------------------------------------------------------------------
+-- STEP 15: Dedicated Super Admin Role Toggling RPC
+-- ------------------------------------------------------------------------------
+DROP FUNCTION IF EXISTS public.admin_set_user_role(text, text);
+CREATE OR REPLACE FUNCTION public.admin_set_user_role(p_user_email text, p_role text)
+RETURNS text
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, auth
+AS $$
+DECLARE
+  v_user_id uuid;
+  v_clean_role text;
+BEGIN
+  IF NOT public.is_super_admin() THEN
+    RAISE EXCEPTION 'forbidden: only academy founder (super_admin) can change user roles';
+  END IF;
+
+  v_clean_role := lower(trim(p_role));
+  IF v_clean_role NOT IN ('student', 'instructor') THEN
+    RAISE EXCEPTION 'invalid role: %', p_role;
+  END IF;
+
+  IF lower(trim(p_user_email)) = 'phenolvii@gmail.com' THEN
+    RAISE EXCEPTION 'forbidden: cannot alter founder role';
+  END IF;
+
+  SELECT id INTO v_user_id FROM auth.users WHERE lower(trim(email)) = lower(trim(p_user_email));
+  IF v_user_id IS NOT NULL THEN
+    INSERT INTO public.profiles (id, role)
+    VALUES (v_user_id, v_clean_role)
+    ON CONFLICT (id) DO UPDATE SET role = v_clean_role;
+  END IF;
+
+  UPDATE public.registered_students
+  SET role = upper(v_clean_role)
+  WHERE lower(trim(email)) = lower(trim(p_user_email));
+
+  RETURN 'OK';
+END $$;
+
+REVOKE ALL ON FUNCTION public.admin_set_user_role(text, text) FROM public;
+GRANT EXECUTE ON FUNCTION public.admin_set_user_role(text, text) TO authenticated;
+

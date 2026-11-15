@@ -28,6 +28,7 @@ import {
 } from '@/types/lms';
 import { BookletsView } from '@/components/booklets/BookletsView';
 import { supabase } from '@/lib/supabase';
+import { syncPlatformInstructors } from '@/lib/data/instructors';
 import {
   getStoredCourses,
   saveStoredCourses,
@@ -669,15 +670,24 @@ export default function DashboardPage() {
   const handleToggleUserRole = async (userId: string, email: string, currentRole: 'instructor' | 'student') => {
     const newRole = currentRole === 'instructor' ? 'student' : 'instructor';
     try {
-      if (userId) {
-        await supabase.from('profiles').update({ role: newRole }).eq('id', userId);
-      } else {
-        const { data: st } = await supabase.from('registered_students').select('id').eq('email', email).single();
-        if (st?.id) {
-          await supabase.from('profiles').update({ role: newRole }).eq('id', st.id);
+      // 1. Database-First: Call dedicated Super Admin RPC to persist to PostgreSQL
+      const { error: rpcErr } = await supabase.rpc('admin_set_user_role', {
+        p_user_email: email,
+        p_role: newRole,
+      });
+
+      if (rpcErr) {
+        console.warn('RPC admin_set_user_role notice, falling back:', rpcErr);
+        if (userId) {
+          await supabase.from('profiles').update({ role: newRole }).eq('id', userId);
+        } else {
+          const { data: st } = await supabase.from('registered_students').select('id').eq('email', email).single();
+          if (st?.id) {
+            await supabase.from('profiles').update({ role: newRole }).eq('id', st.id);
+          }
         }
+        await supabase.from('registered_students').update({ role: newRole.toUpperCase() }).eq('email', email);
       }
-      await supabase.from('registered_students').update({ role: newRole.toUpperCase() }).eq('email', email);
     } catch (e) {
       console.warn('Error updating profile role:', e);
     }
@@ -696,6 +706,7 @@ export default function DashboardPage() {
       window.dispatchEvent(new Event('phenol_instructors_updated'));
     }
 
+    await syncPlatformInstructors();
     setEnrollmentToast(`User ${email} role switched to ${newRole === 'instructor' ? 'Academic Instructor' : 'Student / Scholar'}`);
     setTimeout(() => setEnrollmentToast(null), 4000);
   };

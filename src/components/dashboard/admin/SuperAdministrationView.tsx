@@ -7,7 +7,7 @@ import { CourseEnrollmentRecord } from '@/lib/data/enrollments';
 import { ACADEMIC_TRACKS, normalizeTrackSlug } from '@/data/mock-data';
 import { getPlatformInstructors, syncPlatformInstructors, FOUNDER_INSTRUCTOR } from '@/lib/data/instructors';
 import { InstructorProfile } from '@/types/lms';
-import { StudentOverview, getAggregatedStudentsDirectory } from '@/lib/enrollment-storage';
+import { StudentOverview, getAggregatedStudentsDirectory, syncWithServerStudents } from '@/lib/enrollment-storage';
 import { WhatsAppIcon } from '@/components/auth/AuthIcons';
 import { Initials } from '@/components/ui/Initials';
 import { AdminResetPasswordModal } from '@/components/dashboard/modals/AdminResetPasswordModal';
@@ -76,7 +76,7 @@ export const SuperAdministrationView: React.FC<SuperAdministrationViewProps> = (
     code?: string;
   } | null>(null);
   const [globalInstructorAvatar, setGlobalInstructorAvatar] = useState('');
-  const [platformInstructors, setPlatformInstructors] = useState<InstructorProfile[]>([]);
+  const [platformInstructors, setPlatformInstructors] = useState<InstructorProfile[]>(() => getPlatformInstructors());
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -93,6 +93,9 @@ export const SuperAdministrationView: React.FC<SuperAdministrationViewProps> = (
     loadInst();
     syncPlatformInstructors().then((list) => {
       if (list && list.length > 0) setPlatformInstructors(list);
+    });
+    syncWithServerStudents().then(() => {
+      loadInst();
     });
 
     const handleUpdate = () => {
@@ -119,7 +122,8 @@ export const SuperAdministrationView: React.FC<SuperAdministrationViewProps> = (
 
   // Combined real-time list of all instructors across platform
   const combinedInstructors = useMemo(() => {
-    const list: InstructorProfile[] = [...platformInstructors];
+    const base = platformInstructors.length > 0 ? platformInstructors : getPlatformInstructors();
+    const list: InstructorProfile[] = [...base];
 
     // Ensure Dr. Omar Magdi is always present as Founder & Chair
     const hasFounder = list.some(
