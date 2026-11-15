@@ -584,15 +584,14 @@ export default function DashboardPage() {
         academicTrack: manualStudentTrack,
       });
 
-      await supabase.from('registered_students').upsert({
-        id: `stu-${Date.now()}`,
-        name: manualStudentName.trim(),
-        email: manualStudentEmail.trim().toLowerCase(),
-        phone: manualStudentPhone.trim(),
-        academic_code: `PH-${Math.floor(1000 + Math.random() * 9000)}`,
-        academic_track: manualStudentTrack,
-        created_at: new Date().toISOString(),
-      }, { onConflict: 'email' });
+      // Identity writes go through the DB RPC (migration 014): no direct
+      // client upserts on registered_students, no fake ids.
+      await supabase.rpc('office_register_student', {
+        p_name: manualStudentName.trim(),
+        p_email: manualStudentEmail.trim().toLowerCase(),
+        p_phone: manualStudentPhone.trim(),
+        p_track: manualStudentTrack,
+      });
 
       window.dispatchEvent(new Event('phenol_students_updated'));
       setEnrollmentToast(`Student registered successfully in roster`);
