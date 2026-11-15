@@ -12,8 +12,6 @@ import { Initials } from '@/components/ui/Initials';
 import {
   CHEMISTRY_COURSES,
   BOOKLETS,
-  SUBMISSIONS,
-  WAITLIST_APPLICANTS,
   ENROLLED_STUDENTS,
   ACADEMIC_TRACKS,
   setGlobalInstructorAvatar,
@@ -112,8 +110,8 @@ export default function DashboardPage() {
 
   // Core Data states
   const [courses, setCourses] = useState<ChemistryCourse[]>(() => getStoredCourses());
-  const [submissions, setSubmissions] = useState<StudentSubmission[]>(SUBMISSIONS);
-  const [waitlist, setWaitlist] = useState<WaitlistApplication[]>(WAITLIST_APPLICANTS);
+  const [submissions, setSubmissions] = useState<StudentSubmission[]>([]);
+  const [waitlist, setWaitlist] = useState<WaitlistApplication[]>([]);
   const [students, setStudents] = useState<EnrolledStudent[]>(ENROLLED_STUDENTS);
   const [rosterSearchQuery, setRosterSearchQuery] = useState('');
 
@@ -167,24 +165,11 @@ export default function DashboardPage() {
     return courses.filter(isCourseOwnedByCurrentInstructor);
   }, [courses, currentUser, isSuperAdminUser]);
 
-  const myWaitlist = useMemo(() => {
-    if (isSuperAdminUser) return waitlist;
-    const myCodes = new Set<string>(myInstructorCourses.map((c: ChemistryCourse) => c.code.toLowerCase()));
-    const myTitles = new Set<string>(myInstructorCourses.map((c: ChemistryCourse) => c.title.toLowerCase()));
-    return waitlist.filter((w) => {
-      const tc = (w.targetCourse || '').toLowerCase();
-      return (
-        Array.from(myCodes).some((code: string) => tc.includes(code)) ||
-        Array.from(myTitles).some((t: string) => tc.includes(t))
-      );
-    });
-  }, [waitlist, myInstructorCourses, isSuperAdminUser]);
-
-  const mySubmissions = useMemo(() => {
-    if (isSuperAdminUser) return submissions;
-    const myCourseIds = new Set<string>(myInstructorCourses.map((c: ChemistryCourse) => c.id));
-    return submissions.filter((s: StudentSubmission) => !s.course_id || myCourseIds.has(s.course_id));
-  }, [submissions, myInstructorCourses, isSuperAdminUser]);
+  // Isolation is enforced by the DATABASE (migration 013 RLS): the signed-in
+  // instructor only receives rows linked to their own courses; the super_admin
+  // receives everything. No client-side filtering is needed or trusted.
+  const myWaitlist = useMemo(() => waitlist, [waitlist]);
+  const mySubmissions = useMemo(() => submissions, [submissions]);
 
   // Student Profile Modal State
   const [isStudentProfileOpen, setIsStudentProfileOpen] = useState(false);
@@ -292,6 +277,7 @@ export default function DashboardPage() {
   const [isSubmitModalOpen, setIsSubmitModalOpen] = useState(false);
   const [newTaskTitle, setNewTaskTitle] = useState('Resonance Stabilization & Acidity Analysis Problem Set');
   const [newSolutionNotes, setNewSolutionNotes] = useState('');
+  const [newTaskCourse, setNewTaskCourse] = useState('');
 
   // Student Quiz State
   const [activeQuiz, setActiveQuiz] = useState<any | null>(null);
@@ -325,6 +311,8 @@ export default function DashboardPage() {
       syncWithServerCourses().then((c) => setCourses(c));
 
       if (currentUser.role === 'INSTRUCTOR') {
+        // Waitlist applications — the DB (RLS, migration 013) returns only
+        // applications linked to this instructor's own courses.
         supabase
           .from('waitlist_applications')
           .select('*')
@@ -346,6 +334,38 @@ export default function DashboardPage() {
                   }),
                   status: d.status || 'pending',
                   notes: d.notes,
+                }))
+              );
+            }
+          });
+
+        // Grading desk — REAL submissions from the database, ownership-scoped
+        // by the same RLS. No mock data.
+        supabase
+          .from('student_submissions')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .then(({ data }) => {
+            if (data) {
+              setSubmissions(
+                data.map((d: any) => ({
+                  id: d.id,
+                  course_id: d.course_id || undefined,
+                  studentName: d.student_name,
+                  studentCode: d.student_code,
+                  taskTitle: d.task_title,
+                  submittedAt: d.created_at
+                    ? new Date(d.created_at).toLocaleDateString('en-US', {
+                        month: 'short',
+                        day: '2-digit',
+                        year: 'numeric',
+                      })
+                    : 'Recently',
+                  solutionNotes: d.solution_notes || '',
+                  grade: d.grade != null ? Number(d.grade) : undefined,
+                  maxGrade: d.max_grade != null ? Number(d.max_grade) : 20,
+                  drFeedback: d.dr_feedback || undefined,
+                  status: d.status === 'graded' ? 'graded' : 'pending',
                 }))
               );
             }
@@ -965,6 +985,14 @@ export default function DashboardPage() {
     e.preventDefault();
     const trackObj = ACADEMIC_TRACKS.find((t) => t.id === manualTrack);
     const chosenCourse = courses.find((c) => c.category === manualTrack);
+    const resolvedCourse =
+      (manualCourse
+        ? courses.find(
+            (c) =>
+              (c.code && manualCourse.toLowerCase().includes(c.code.toLowerCase())) ||
+              (c.title && manualCourse.toLowerCase().includes(c.title.toLowerCase()))
+          )
+        : undefined) || chosenCourse;
     const newApp: WaitlistApplication = {
       id: `wl-${Date.now()}`,
       fullName: manualName,
@@ -986,6 +1014,7 @@ export default function DashboardPage() {
           phone: manualPhone,
           academic_track: trackObj?.name || manualTrack,
           target_course: newApp.targetCourse,
+          course_id: resolvedCourse?.id || null,
           status: 'pending',
           notes: 'Direct office registration.',
         },
@@ -998,39 +1027,75 @@ export default function DashboardPage() {
     setManualEmail('');
   };
 
-  const handleSaveGrade = (e: React.FormEvent) => {
+  const handleSaveGrade = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!gradingSubmission) return;
 
-    const updated = submissions.map((s) =>
-      s.id === gradingSubmission.id
-        ? {
-            ...s,
-            grade: inputGrade,
-            drFeedback: inputFeedback,
-            status: 'graded' as const,
-          }
-        : s
-    );
-    setSubmissions(updated);
-    setGradingSubmission(null);
+    try {
+      // The DB RLS (migration 013) only allows grading submissions of
+      // the instructor's own courses.
+      const { error } = await supabase
+        .from('student_submissions')
+        .update({
+          grade: inputGrade,
+          dr_feedback: inputFeedback,
+          status: 'graded',
+        })
+        .eq('id', gradingSubmission.id);
+
+      if (error) throw error;
+
+      setSubmissions((prev) =>
+        prev.map((s) =>
+          s.id === gradingSubmission.id
+            ? {
+                ...s,
+                grade: inputGrade,
+                drFeedback: inputFeedback,
+                status: 'graded' as const,
+              }
+            : s
+        )
+      );
+    } catch (err: any) {
+      alert(`Failed to save the grade: ${err?.message || 'unknown error'}`);
+    } finally {
+      setGradingSubmission(null);
+    }
   };
 
-  const handleStudentSubmit = (e: React.FormEvent) => {
+  const handleStudentSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const sub: StudentSubmission = {
-      id: `sub-${Date.now()}`,
-      studentName: currentUser?.name || 'Enrolled Student',
-      studentCode: currentUser?.academicCode || 'PHN-2026-LIVE',
-      taskTitle: newTaskTitle,
-      submittedAt: 'Just now',
-      solutionNotes: newSolutionNotes,
-      maxGrade: 20,
-      status: 'pending',
-    };
-    setSubmissions([sub, ...submissions]);
+    if (!currentUser) return;
+    if (!newTaskCourse) {
+      alert('Select the course this problem set belongs to.');
+      return;
+    }
+
+    try {
+      // Persisted to the database: the instructor sees it in the Grading Desk,
+      // scoped to their course. RLS verifies active enrollment.
+      const { error } = await supabase.from('student_submissions').insert({
+        student_id: currentUser.id,
+        student_name: currentUser.name || 'Enrolled Student',
+        student_code: currentUser.academicCode || 'PH-UNKNOWN',
+        task_title: newTaskTitle,
+        solution_notes: newSolutionNotes,
+        course_id: newTaskCourse,
+        max_grade: 20,
+        status: 'pending',
+      });
+
+      if (error) throw error;
+    } catch (err: any) {
+      alert(`Failed to submit: ${err?.message || 'unknown error'}`);
+      return;
+    }
+
     setIsSubmitModalOpen(false);
     setNewSolutionNotes('');
+    setNewTaskTitle('');
+    setNewTaskCourse('');
   };
 
   const handleAnswerSelect = (qId: string, optIdx: number) => {
@@ -1764,6 +1829,9 @@ export default function DashboardPage() {
         setTaskTitle={setNewTaskTitle}
         solutionNotes={newSolutionNotes}
         setSolutionNotes={setNewSolutionNotes}
+        courses={courses}
+        targetCourse={newTaskCourse}
+        setTargetCourse={setNewTaskCourse}
       />
 
       {/* Direct Enroll Modal */}

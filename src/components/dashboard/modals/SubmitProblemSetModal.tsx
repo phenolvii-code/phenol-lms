@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { X } from 'lucide-react';
+import { ChemistryCourse } from '@/types/lms';
 
 interface SubmitProblemSetModalProps {
   isOpen: boolean;
@@ -10,6 +11,10 @@ interface SubmitProblemSetModalProps {
   setTaskTitle: (val: string) => void;
   solutionNotes: string;
   setSolutionNotes: (val: string) => void;
+  /** The student's courses — the submission must be linked to one course. */
+  courses: ChemistryCourse[];
+  targetCourse: string;
+  setTargetCourse: (val: string) => void;
   onSubmit: (e: React.FormEvent) => void;
 }
 
@@ -20,6 +25,9 @@ export function SubmitProblemSetModal({
   setTaskTitle,
   solutionNotes,
   setSolutionNotes,
+  courses,
+  targetCourse,
+  setTargetCourse,
   onSubmit,
 }: SubmitProblemSetModalProps) {
   if (!isOpen) return null;
@@ -45,6 +53,25 @@ export function SubmitProblemSetModal({
         </div>
 
         <form onSubmit={onSubmit} className="p-6 space-y-4">
+          <div>
+            <label className="block text-xs font-semibold text-charcoal-900 font-sans mb-1">
+              Course
+            </label>
+            <select
+              required
+              value={targetCourse}
+              onChange={(e) => setTargetCourse(e.target.value)}
+              className="w-full px-3 py-2 text-xs bg-ivory-50 border border-hairline rounded text-charcoal-900 font-sans focus:outline-none focus:border-burgundy-500"
+            >
+              <option value="">Select a course…</option>
+              {courses.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.code ? `${c.code} — ` : ''}{c.title}
+                </option>
+              ))}
+            </select>
+          </div>
+
           <div>
             <label className="block text-xs font-semibold text-charcoal-900 font-sans mb-1">
               Assignment Title
