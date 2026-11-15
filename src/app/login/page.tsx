@@ -40,7 +40,16 @@ function LoginFormContent() {
       });
 
       if (error || !data?.user) {
-        setErrorMessage('Invalid email or password. Please verify your credentials.');
+        if (
+          error?.message?.toLowerCase().includes('confirm') ||
+          error?.message?.toLowerCase().includes('verified')
+        ) {
+          setErrorMessage(
+            'Account pending verification: Please confirm your email inbox, or contact Dr. Omar to activate your credentials directly.'
+          );
+        } else {
+          setErrorMessage(error?.message || 'Invalid email or password. Please verify your credentials.');
+        }
         return;
       }
 

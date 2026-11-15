@@ -65,19 +65,30 @@ function RegisterFormContent() {
       });
 
       if (error) {
-        setErrorMessage(error.message);
+        // Translate common Supabase Auth errors into user-friendly instructions
+        if (error.message.toLowerCase().includes('confirmation email')) {
+          setErrorMessage(
+            'Authentication service notice: Email confirmations are currently being routed. If you are the platform administrator, please disable "Confirm email" in Supabase Authentication Providers to enable instant access.'
+          );
+        } else if (error.message.toLowerCase().includes('already registered')) {
+          setErrorMessage('This email address is already registered. Please proceed to Sign In.');
+        } else {
+          setErrorMessage(error.message);
+        }
         return;
       }
 
       // Upsert profile and registered_students record
       if (authData?.user) {
+        if (isInst && typeof window !== 'undefined') {
+          localStorage.setItem(`phenol_user_role_${cleanEmail}`, 'instructor');
+          window.dispatchEvent(new Event('phenol_instructors_updated'));
+        }
+
         try {
           await supabase.from('profiles').upsert({
             id: authData.user.id,
             role: isInst ? 'instructor' : 'student',
-            full_name: fullName.trim(),
-            phone: phone.trim(),
-            created_at: new Date().toISOString(),
           });
         } catch (e) {}
 
@@ -90,8 +101,7 @@ function RegisterFormContent() {
             phone: phone.trim(),
             academic_code: studentCode,
             academic_track: academicLevel,
-            role: isInst ? 'instructor' : 'student',
-            created_at: new Date().toISOString(),
+            role: isInst ? 'INSTRUCTOR' : 'STUDENT',
           }, { onConflict: 'email' });
         } catch (e) {}
 
@@ -103,6 +113,25 @@ function RegisterFormContent() {
           academicTrack: academicLevel,
           role: isInst ? 'instructor' : 'student',
         });
+      }
+
+      // If session is absent, sign in directly with password
+      if (!authData?.session) {
+        const { error: signInErr } = await supabase.auth.signInWithPassword({
+          email: cleanEmail,
+          password,
+        });
+        if (signInErr) {
+          if (
+            signInErr.message.toLowerCase().includes('confirm') ||
+            signInErr.message.toLowerCase().includes('verified')
+          ) {
+            setErrorMessage(
+              'Account created successfully! Please confirm your email address or have Dr. Omar activate your access directly.'
+            );
+            return;
+          }
+        }
       }
 
       router.push(redirectParam);
@@ -152,13 +181,15 @@ function RegisterFormContent() {
         <div className="w-full max-w-md bg-ivory-100 border border-hairline rounded-2xl p-6 sm:p-8 shadow-editorial space-y-5">
           <div className="space-y-1 text-center">
             <span className="font-formula text-xs text-burgundy-500 font-bold uppercase tracking-widest block">
-              SCHOLAR ENROLLMENT
+              {accountType === 'INSTRUCTOR' ? 'FACULTY CHAIR ONBOARDING' : 'SCHOLAR ENROLLMENT'}
             </span>
             <h1 className="text-2xl font-bold text-charcoal-900 font-display">
-              Create Scholar Account
+              {accountType === 'INSTRUCTOR' ? 'Create Instructor Account' : 'Create Scholar Account'}
             </h1>
             <p className="text-xs text-charcoal-100 font-sans">
-              Join Phenol Academy to access lecture dossiers, problem-solving sets, and personalized evaluation.
+              {accountType === 'INSTRUCTOR'
+                ? 'Join the academic faculty of Phenol Academy to author curriculums, mentor scholars, and manage courses.'
+                : 'Join Phenol Academy to access lecture dossiers, problem-solving sets, and personalized evaluation.'}
             </p>
           </div>
 
@@ -315,7 +346,13 @@ function RegisterFormContent() {
               disabled={isLoading}
               className="w-full py-2.5 rounded bg-burgundy-500 hover:bg-burgundy-800 disabled:opacity-50 text-ivory-100 font-sans font-semibold text-sm transition-colors shadow-quiet mt-2 flex items-center justify-center gap-2"
             >
-              <span>{isLoading ? 'Registering...' : 'Create Scholar Account'}</span>
+              <span>
+                {isLoading
+                  ? 'Registering...'
+                  : accountType === 'INSTRUCTOR'
+                  ? 'Create Instructor Account'
+                  : 'Create Scholar Account'}
+              </span>
               <ArrowRight className="w-4 h-4" />
             </button>
           </form>
