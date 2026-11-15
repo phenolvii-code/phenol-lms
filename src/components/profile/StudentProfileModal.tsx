@@ -13,13 +13,26 @@ import {
   X,
   User,
   Shield,
+  ShieldCheck,
   KeyRound,
   GraduationCap,
   Copy,
   Check,
   Share2,
   Gift,
+  Clock,
+  XCircle,
 } from 'lucide-react';
+
+interface FacultyRequestRecord {
+  id: string;
+  status: 'pending' | 'approved' | 'rejected';
+  requested_title?: string;
+  specialization?: string;
+  whatsapp?: string;
+  bio?: string;
+  created_at: string;
+}
 
 interface StudentProfileModalProps {
   isOpen: boolean;
@@ -59,20 +72,72 @@ export const StudentProfileModal: React.FC<StudentProfileModalProps> = ({
   const [studentEnrollments, setStudentEnrollments] = useState<CourseEnrollmentRecord[]>([]);
   const [isSaving, setIsSaving] = useState(false);
 
+  // Faculty application state
+  const [facultyRequest, setFacultyRequest] = useState<FacultyRequestRecord | null>(null);
+  const [facultyFormOpen, setFacultyFormOpen] = useState(false);
+  const [facultyTitle, setFacultyTitle] = useState('');
+  const [facultySpecialization, setFacultySpecialization] = useState('');
+  const [facultyWhatsapp, setFacultyWhatsapp] = useState('');
+  const [facultyBio, setFacultyBio] = useState('');
+  const [facultyStatus, setFacultyStatus] = useState<{ type: 'idle' | 'success' | 'error'; message: string }>({
+    type: 'idle',
+    message: '',
+  });
+  const [isSubmittingRequest, setIsSubmittingRequest] = useState(false);
+
   useEffect(() => {
     if (isOpen) {
       setName(user.name || '');
       setPhone(user.phone || user.whatsapp || '');
       setTrack(user.academicTrack || 'Public Secondary AR');
       setPasswordStatus({ type: 'idle', message: '' });
+      setFacultyFormOpen(false);
+      setFacultyStatus({ type: 'idle', message: '' });
 
       // Fetch student enrollments from database
       listMyEnrollments().then(setStudentEnrollments);
 
       // Fetch referrals from database
       listMyReferrals().then(setReferrals);
+
+      // Fetch the latest faculty application (if any) from the database
+      supabase
+        .from('instructor_requests')
+        .select('id, status, requested_title, specialization, whatsapp, bio, created_at')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .then(({ data }) => {
+          setFacultyRequest(
+            Array.isArray(data) && data.length > 0 ? (data[0] as FacultyRequestRecord) : null
+          );
+        });
     }
   }, [isOpen, user]);
+
+  const handleSubmitFacultyRequest = async () => {
+    if (!facultyTitle.trim() || !facultySpecialization.trim()) {
+      setFacultyStatus({ type: 'error', message: 'Academic title and specialization are required.' });
+      return;
+    }
+    setIsSubmittingRequest(true);
+    setFacultyStatus({ type: 'idle', message: '' });
+    try {
+      const { data, error } = await supabase.rpc('submit_instructor_request', {
+        p_title: facultyTitle.trim(),
+        p_specialization: facultySpecialization.trim(),
+        p_whatsapp: facultyWhatsapp.trim() || user.phone || '',
+        p_bio: facultyBio.trim(),
+      });
+      if (error) throw error;
+      setFacultyRequest(data as FacultyRequestRecord);
+      setFacultyFormOpen(false);
+      setFacultyStatus({ type: 'success', message: 'Application submitted. The Academy Director will review it shortly.' });
+    } catch (err: any) {
+      setFacultyStatus({ type: 'error', message: err?.message || 'Failed to submit the application.' });
+    } finally {
+      setIsSubmittingRequest(false);
+    }
+  };
 
   if (!isOpen) return null;
 
@@ -286,6 +351,7 @@ export const StudentProfileModal: React.FC<StudentProfileModalProps> = ({
         <div className="p-5 sm:p-6 overflow-y-auto space-y-5 flex-1">
           {/* TAB 1: PERSONAL INFORMATION */}
           {activeTab === 'info' && (
+            <div className="space-y-5">
             <form onSubmit={handleSaveInfo} className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
@@ -350,6 +416,138 @@ export const StudentProfileModal: React.FC<StudentProfileModalProps> = ({
                 </button>
               </div>
             </form>
+
+            {/* Faculty Membership (students only) */}
+            {user.role === 'STUDENT' ? (
+              <div className="p-4 rounded-xl bg-white border border-hairline space-y-3 shadow-quiet">
+                <div className="flex items-center gap-2">
+                  <ShieldCheck className="w-4 h-4 text-burgundy-900" />
+                  <h4 className="text-xs font-bold font-mono uppercase tracking-wider text-charcoal-900">
+                    Faculty Membership
+                  </h4>
+                </div>
+
+                {facultyRequest?.status === 'pending' && (
+                  <div className="flex items-start gap-2.5 p-3 rounded-lg bg-ivory-200 border border-hairline">
+                    <Clock className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                    <div className="space-y-0.5">
+                      <p className="text-xs font-semibold text-charcoal-900">Application Under Review</p>
+                      <p className="text-[11px] text-charcoal-100 leading-relaxed">
+                        Submitted on {new Date(facultyRequest.created_at).toLocaleDateString()} — the Academy Director will approve or decline it shortly.
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {facultyRequest?.status === 'rejected' && (
+                  <div className="space-y-2.5">
+                    <div className="flex items-start gap-2.5 p-3 rounded-lg bg-ivory-200 border border-hairline">
+                      <XCircle className="w-4 h-4 text-burgundy-500 shrink-0 mt-0.5" />
+                      <div className="space-y-0.5">
+                        <p className="text-xs font-semibold text-charcoal-900">Previous Application Declined</p>
+                        <p className="text-[11px] text-charcoal-100">You may submit a new application with updated information.</p>
+                      </div>
+                    </div>
+                    {!facultyFormOpen && (
+                      <button
+                        type="button"
+                        onClick={() => setFacultyFormOpen(true)}
+                        className="w-full py-2 text-xs bg-ivory-100 hover:bg-ivory-300 border border-hairline rounded font-semibold text-charcoal-900 transition-colors"
+                      >
+                        Apply Again
+                      </button>
+                    )}
+                  </div>
+                )}
+
+                {!facultyRequest && !facultyFormOpen && (
+                  <div className="space-y-2.5">
+                    <p className="text-[11px] text-charcoal-100 leading-relaxed">
+                      Interested in teaching on Phenol Academy? Apply for a faculty account — the Academy Director reviews every application personally.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => setFacultyFormOpen(true)}
+                      className="w-full py-2 text-xs bg-burgundy-900 hover:bg-black text-ivory-100 rounded font-semibold transition-colors"
+                    >
+                      Apply for Faculty Membership
+                    </button>
+                  </div>
+                )}
+
+                {facultyFormOpen && (
+                  <div className="space-y-2.5 pt-1">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                      <input
+                        type="text"
+                        value={facultyTitle}
+                        onChange={(e) => setFacultyTitle(e.target.value)}
+                        placeholder="Academic Title (e.g. Chemistry Lecturer)"
+                        className="w-full px-3 py-2 text-xs bg-ivory-50 border border-hairline rounded text-charcoal-900 focus:outline-none focus:border-burgundy-900"
+                      />
+                      <input
+                        type="text"
+                        value={facultySpecialization}
+                        onChange={(e) => setFacultySpecialization(e.target.value)}
+                        placeholder="Specialization (e.g. Organic Chemistry)"
+                        className="w-full px-3 py-2 text-xs bg-ivory-50 border border-hairline rounded text-charcoal-900 focus:outline-none focus:border-burgundy-900"
+                      />
+                    </div>
+                    <input
+                      type="tel"
+                      value={facultyWhatsapp}
+                      onChange={(e) => setFacultyWhatsapp(e.target.value)}
+                      placeholder="WhatsApp Number (for student coordination)"
+                      className="w-full px-3 py-2 text-xs bg-ivory-50 border border-hairline rounded font-mono text-charcoal-900 focus:outline-none focus:border-burgundy-900"
+                    />
+                    <textarea
+                      value={facultyBio}
+                      onChange={(e) => setFacultyBio(e.target.value)}
+                      placeholder="Short bio: your background and teaching focus"
+                      rows={3}
+                      className="w-full px-3 py-2 text-xs bg-ivory-50 border border-hairline rounded text-charcoal-900 focus:outline-none focus:border-burgundy-900 resize-none"
+                    />
+                    {facultyStatus.type !== 'idle' && (
+                      <p
+                        className={`text-[11px] leading-relaxed ${
+                          facultyStatus.type === 'error' ? 'text-burgundy-500' : 'text-emerald-700'
+                        }`}
+                      >
+                        {facultyStatus.message}
+                      </p>
+                    )}
+                    <div className="flex justify-end gap-2 pt-1">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setFacultyFormOpen(false);
+                          setFacultyStatus({ type: 'idle', message: '' });
+                        }}
+                        className="px-4 py-2 text-xs border border-hairline rounded text-charcoal-100 hover:text-charcoal-900 font-semibold"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleSubmitFacultyRequest}
+                        disabled={isSubmittingRequest}
+                        className="px-4 py-2 text-xs bg-burgundy-900 hover:bg-black text-ivory-100 rounded font-semibold transition-colors disabled:opacity-50"
+                      >
+                        {isSubmittingRequest ? 'Submitting...' : 'Submit Application'}
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="flex items-center gap-2.5 p-3.5 rounded-xl bg-white border border-hairline shadow-quiet">
+                <ShieldCheck className="w-4 h-4 text-burgundy-900 shrink-0" />
+                <p className="text-[11px] text-charcoal-100 leading-relaxed">
+                  You are a verified faculty member of Phenol Academy.
+                </p>
+              </div>
+            )}
+            </div>
           )}
 
           {/* TAB 2: COURSES & PROGRESS */}

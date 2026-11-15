@@ -7,14 +7,13 @@ import { supabase } from '@/lib/supabase';
 import { recordRegisteredStudent } from '@/lib/enrollment-storage';
 import { PhenolLogo } from '@/components/brand/PhenolLogo';
 import { GoogleIcon, WhatsAppIcon } from '@/components/auth/AuthIcons';
-import { Lock, Mail, User, Phone, ShieldAlert, ArrowRight, GraduationCap, ShieldCheck } from 'lucide-react';
+import { Lock, Mail, User, Phone, ShieldAlert, ArrowRight } from 'lucide-react';
 
 function RegisterFormContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirectParam = searchParams?.get('redirect') || '/dashboard';
 
-  const [accountType, setAccountType] = useState<'STUDENT' | 'INSTRUCTOR'>('STUDENT');
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
@@ -48,7 +47,9 @@ function RegisterFormContent() {
         : null;
 
     try {
-      const isInst = accountType === 'INSTRUCTOR';
+      // Registration always creates a STUDENT account.
+      // Faculty status is requested later from the profile and approved by the
+      // Academy Director (super_admin). No role is ever trusted from the client.
       const { data: authData, error } = await supabase.auth.signUp({
         email: cleanEmail,
         password,
@@ -57,8 +58,6 @@ function RegisterFormContent() {
             full_name: fullName.trim(),
             phone: phone.trim(),
             academic_level: academicLevel,
-            role: isInst ? 'instructor' : 'student',
-            account_type: accountType,
             referred_by: refCode || undefined,
           },
         },
@@ -78,40 +77,16 @@ function RegisterFormContent() {
         return;
       }
 
-      // Upsert profile and registered_students record
+      // The database trigger creates the profile and registered_students row
+      // with a DB-generated academic code. Client-side upserts are forbidden.
       if (authData?.user) {
-        if (isInst && typeof window !== 'undefined') {
-          localStorage.setItem(`phenol_user_role_${cleanEmail}`, 'instructor');
-          window.dispatchEvent(new Event('phenol_instructors_updated'));
-        }
-
-        try {
-          await supabase.from('profiles').upsert({
-            id: authData.user.id,
-            role: isInst ? 'instructor' : 'student',
-          });
-        } catch (e) {}
-
-        const studentCode = `PH-${Math.floor(1000 + Math.random() * 9000)}`;
-        try {
-          await supabase.from('registered_students').upsert({
-            id: authData.user.id,
-            name: fullName.trim(),
-            email: cleanEmail,
-            phone: phone.trim(),
-            academic_code: studentCode,
-            academic_track: academicLevel,
-            role: isInst ? 'INSTRUCTOR' : 'STUDENT',
-          }, { onConflict: 'email' });
-        } catch (e) {}
-
         await recordRegisteredStudent({
           id: authData.user.id,
           name: fullName.trim(),
           email: cleanEmail,
           phone: phone.trim(),
           academicTrack: academicLevel,
-          role: isInst ? 'instructor' : 'student',
+          role: 'student',
         });
       }
 
@@ -182,15 +157,13 @@ function RegisterFormContent() {
         <div className="w-full max-w-md bg-ivory-100 border border-hairline rounded-2xl p-6 sm:p-8 shadow-editorial space-y-5">
           <div className="space-y-1 text-center">
             <span className="font-formula text-xs text-burgundy-500 font-bold uppercase tracking-widest block">
-              {accountType === 'INSTRUCTOR' ? 'FACULTY CHAIR ONBOARDING' : 'NEW STUDENT REGISTRATION'}
+              STUDENT REGISTRATION
             </span>
             <h1 className="text-2xl font-bold text-charcoal-900 font-display">
-              {accountType === 'INSTRUCTOR' ? 'Create Instructor Account' : 'Create Student Account'}
+              Create Your Account
             </h1>
             <p className="text-xs text-charcoal-100 font-sans">
-              {accountType === 'INSTRUCTOR'
-                ? 'Join the academic faculty of Phenol Academy to author curriculums, mentor scholars, and manage courses.'
-                : 'Join Phenol Academy to access lecture dossiers, problem-solving sets, and personalized evaluation.'}
+              Join Phenol Academy to access lecture dossiers, problem-solving sets, and personalized evaluation.
             </p>
           </div>
 
@@ -223,41 +196,8 @@ function RegisterFormContent() {
 
           <form onSubmit={handleRegister} className="space-y-3.5">
             <div>
-              <label className="block text-xs font-semibold text-charcoal-900 font-sans mb-1.5">
-                Registering As
-              </label>
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={() => setAccountType('STUDENT')}
-                  className={`py-2 px-3 text-xs font-bold rounded-lg border transition-all flex items-center justify-center gap-1.5 ${
-                    accountType === 'STUDENT'
-                      ? 'bg-burgundy-500 text-ivory-100 border-burgundy-500 shadow-quiet'
-                      : 'bg-ivory-50 text-charcoal-100 border-hairline hover:text-charcoal-900'
-                  }`}
-                >
-                  <GraduationCap className="w-3.5 h-3.5" />
-                  <span>Student / Scholar</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setAccountType('INSTRUCTOR')}
-                  className={`py-2 px-3 text-xs font-bold rounded-lg border transition-all flex items-center justify-center gap-1.5 ${
-                    accountType === 'INSTRUCTOR'
-                      ? 'bg-burgundy-500 text-ivory-100 border-burgundy-500 shadow-quiet'
-                      : 'bg-ivory-50 text-charcoal-100 border-hairline hover:text-charcoal-900'
-                  }`}
-                >
-                  <ShieldCheck className="w-3.5 h-3.5" />
-                  <span>Academic Instructor</span>
-                </button>
-              </div>
-            </div>
-
-            <div>
               <label className="block text-xs font-semibold text-charcoal-900 font-sans mb-1">
-                {accountType === 'INSTRUCTOR' ? 'Instructor Full Name' : 'Full Scholar Name'}
+                Full Name
               </label>
               <div className="relative">
                 <User className="w-4 h-4 text-charcoal-50 absolute left-3 top-2.5 pointer-events-none" />
@@ -332,11 +272,7 @@ function RegisterFormContent() {
               className="w-full py-2.5 rounded bg-burgundy-500 hover:bg-burgundy-800 disabled:opacity-50 text-ivory-100 font-sans font-semibold text-sm transition-colors shadow-quiet mt-2 flex items-center justify-center gap-2"
             >
               <span>
-                {isLoading
-                  ? 'Registering...'
-                  : accountType === 'INSTRUCTOR'
-                  ? 'Create Instructor Account'
-                  : 'Create Student Account'}
+                {isLoading ? 'Registering...' : 'Register'}
               </span>
               <ArrowRight className="w-4 h-4" />
             </button>

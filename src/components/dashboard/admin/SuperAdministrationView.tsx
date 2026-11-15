@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
+import { supabase } from '@/lib/supabase';
 import { ChemistryCourse } from '@/types/lms';
 import { CourseEnrollmentRecord } from '@/lib/data/enrollments';
 import { ACADEMIC_TRACKS, normalizeTrackSlug } from '@/data/mock-data';
@@ -33,7 +34,25 @@ import {
   KeyRound,
   ChevronRight,
   FolderOpen,
+  FileSignature,
+  Mail,
+  XCircle,
 } from 'lucide-react';
+
+interface FacultyRequestRecord {
+  id: string;
+  user_id: string;
+  email: string;
+  name: string;
+  phone?: string;
+  requested_title?: string;
+  specialization?: string;
+  whatsapp?: string;
+  bio?: string;
+  status: 'pending' | 'approved' | 'rejected';
+  decided_at?: string;
+  created_at: string;
+}
 
 interface SuperAdministrationViewProps {
   courses: ChemistryCourse[];
@@ -64,9 +83,12 @@ export const SuperAdministrationView: React.FC<SuperAdministrationViewProps> = (
   onExpelUser,
   onOpenCreateCourse,
 }) => {
-  const [activeTab, setActiveTab] = useState<'accounts' | 'approvals' | 'tracks' | 'instructors'>('accounts');
+  const [activeTab, setActiveTab] = useState<'accounts' | 'approvals' | 'tracks' | 'instructors' | 'applications'>('accounts');
   const [userSearchQuery, setUserSearchQuery] = useState('');
   const [userFilter, setUserFilter] = useState<'all' | 'instructors' | 'students'>('all');
+  const [facultyRequests, setFacultyRequests] = useState<FacultyRequestRecord[]>([]);
+  const [facultyRequestsLoading, setFacultyRequestsLoading] = useState(false);
+  const [facultyDecisionBusy, setFacultyDecisionBusy] = useState<string | null>(null);
   const [selectedTrackId, setSelectedTrackId] = useState<string | null>(null);
   const [selectedInstructorId, setSelectedInstructorId] = useState<string | null>(null);
   const [resetPasswordStudent, setResetPasswordStudent] = useState<{
@@ -114,6 +136,54 @@ export const SuperAdministrationView: React.FC<SuperAdministrationViewProps> = (
       window.removeEventListener('phenol_user_profile_updated', handleUpdate);
     };
   }, []);
+
+  // Faculty applications loader (database-first: read straight from instructor_requests)
+  const loadFacultyRequests = async () => {
+    setFacultyRequestsLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('instructor_requests')
+        .select('*')
+        .order('created_at', { ascending: false });
+      if (!error && Array.isArray(data)) {
+        setFacultyRequests(data as FacultyRequestRecord[]);
+      }
+    } catch (e) {
+      // Table not yet migrated on this environment — keep silent, panel shows empty state.
+    } finally {
+      setFacultyRequestsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'applications') {
+      loadFacultyRequests();
+    }
+  }, [activeTab]);
+
+  const pendingFacultyRequests = facultyRequests.filter((r) => r.status === 'pending').length;
+
+  const handleFacultyDecision = async (requestId: string, decision: 'approved' | 'rejected') => {
+    setFacultyDecisionBusy(requestId);
+    try {
+      const { error } = await supabase.rpc('decide_instructor_request', {
+        p_request_id: requestId,
+        p_decision: decision,
+      });
+      if (error) throw error;
+      setFacultyRequests((prev) =>
+        prev.map((r) =>
+          r.id === requestId
+            ? { ...r, status: decision, decided_at: new Date().toISOString() }
+            : r
+        )
+      );
+    } catch (err: any) {
+      alert(`Failed to ${decision === 'approved' ? 'approve' : 'reject'} application: ${err?.message || 'unknown error'}`);
+    } finally {
+      setFacultyDecisionBusy(null);
+    }
+  };
 
   // Compute student directory (all users, enrolled or not)
   const studentDirectory = useMemo(() => {
@@ -390,6 +460,32 @@ export const SuperAdministrationView: React.FC<SuperAdministrationViewProps> = (
           <span>Faculty & Instructors</span>
           <span className="font-formula text-xs px-2 py-0.5 rounded-full bg-ivory-300 text-charcoal-900">
             {instructorStats.length}
+          </span>
+        </button>
+
+        {/* Tab 5: Faculty Applications */}
+        <button
+          onClick={() => {
+            setActiveTab('applications');
+            setSelectedTrackId(null);
+            setSelectedInstructorId(null);
+          }}
+          className={`pb-3.5 border-b-2 transition-all flex items-center gap-2 whitespace-nowrap ${
+            activeTab === 'applications'
+              ? 'border-burgundy-500 text-burgundy-500 font-bold'
+              : 'border-transparent text-charcoal-100 hover:text-charcoal-900'
+          }`}
+        >
+          <FileSignature className="w-4 h-4" />
+          <span>Faculty Applications</span>
+          <span
+            className={`font-formula text-xs px-2 py-0.5 rounded-full font-bold ${
+              pendingFacultyRequests > 0
+                ? 'bg-amber-100 text-amber-800 animate-pulse'
+                : 'bg-ivory-300 text-charcoal-900'
+            }`}
+          >
+            {pendingFacultyRequests}
           </span>
         </button>
       </div>
@@ -1146,6 +1242,128 @@ export const SuperAdministrationView: React.FC<SuperAdministrationViewProps> = (
                 </div>
               );
             })()
+          )}
+        </div>
+      )}
+
+      {/* TAB 5: FACULTY APPLICATIONS */}
+      {activeTab === 'applications' && (
+        <div className="space-y-6">
+          <div>
+            <h2 className="text-xl font-bold text-charcoal-900 font-display">Faculty Applications</h2>
+            <p className="text-xs text-charcoal-100 font-sans mt-0.5">
+              Students applying for faculty membership. Approval promotes the account to Academic Instructor across the entire platform.
+            </p>
+          </div>
+
+          {facultyRequestsLoading ? (
+            <div className="p-10 text-center text-xs text-charcoal-100 font-sans">
+              Loading applications from the database...
+            </div>
+          ) : facultyRequests.length === 0 ? (
+            <div className="p-10 text-center bg-ivory-100/60 rounded-2xl border border-hairline">
+              <FileSignature className="w-8 h-8 text-charcoal-50 mx-auto mb-2" />
+              <p className="text-xs text-charcoal-100">No faculty applications yet. Students apply from their profile page.</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {facultyRequests.map((req) => (
+                <div
+                  key={req.id}
+                  className={`p-5 rounded-2xl border shadow-quiet space-y-4 ${
+                    req.status === 'pending'
+                      ? 'bg-amber-50/40 border-amber-200'
+                      : req.status === 'approved'
+                      ? 'bg-emerald-50/30 border-emerald-200'
+                      : 'bg-ivory-100 border-hairline'
+                  }`}
+                >
+                  <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+                    <div className="flex items-start gap-3.5">
+                      <div className="w-11 h-11 rounded-xl bg-ivory-200 border border-hairline flex items-center justify-center shrink-0">
+                        <Initials name={req.name} size="sm" />
+                      </div>
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <h3 className="text-sm font-bold text-charcoal-900 font-display">{req.name}</h3>
+                          <span
+                            className={`text-[10px] font-formula px-2 py-0.5 rounded-full font-bold uppercase tracking-wider ${
+                              req.status === 'pending'
+                                ? 'bg-amber-100 text-amber-800'
+                                : req.status === 'approved'
+                                ? 'bg-emerald-100 text-emerald-800'
+                                : 'bg-ivory-300 text-charcoal-100'
+                            }`}
+                          >
+                            {req.status}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-charcoal-100 font-mono flex items-center gap-1.5">
+                          <Mail className="w-3 h-3" />
+                          {req.email}
+                        </p>
+                        {req.requested_title && (
+                          <p className="text-xs text-charcoal-900 font-semibold">{req.requested_title}</p>
+                        )}
+                      </div>
+                    </div>
+
+                    {req.status === 'pending' && (
+                      <div className="flex items-center gap-2 self-start sm:self-auto shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => handleFacultyDecision(req.id, 'approved')}
+                          disabled={facultyDecisionBusy === req.id}
+                          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-all disabled:opacity-50"
+                        >
+                          <CheckCircle2 className="w-4 h-4" />
+                          <span>{facultyDecisionBusy === req.id ? 'Working...' : 'Approve & Promote'}</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleFacultyDecision(req.id, 'rejected')}
+                          disabled={facultyDecisionBusy === req.id}
+                          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-ivory-200 hover:bg-ivory-300 border border-hairline text-charcoal-900 text-xs font-bold transition-all disabled:opacity-50"
+                        >
+                          <XCircle className="w-4 h-4 text-burgundy-500" />
+                          <span>Reject</span>
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  {(req.specialization || req.bio || req.whatsapp || req.phone) && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
+                      {req.specialization && (
+                        <div className="p-3 rounded-xl bg-ivory-100/80 border border-hairline">
+                          <p className="text-[10px] font-formula uppercase tracking-widest text-charcoal-100 mb-1">Specialization</p>
+                          <p className="text-xs text-charcoal-900 font-semibold">{req.specialization}</p>
+                        </div>
+                      )}
+                      {(req.whatsapp || req.phone) && (
+                        <div className="p-3 rounded-xl bg-ivory-100/80 border border-hairline">
+                          <p className="text-[10px] font-formula uppercase tracking-widest text-charcoal-100 mb-1 flex items-center gap-1">
+                            <WhatsAppIcon className="w-3 h-3" /> Contact
+                          </p>
+                          <p className="text-xs text-charcoal-900 font-mono">{req.whatsapp || req.phone}</p>
+                        </div>
+                      )}
+                      {req.bio && (
+                        <div className="p-3 rounded-xl bg-ivory-100/80 border border-hairline md:col-span-2">
+                          <p className="text-[10px] font-formula uppercase tracking-widest text-charcoal-100 mb-1">Bio</p>
+                          <p className="text-xs text-charcoal-100 leading-relaxed">{req.bio}</p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  <div className="flex items-center justify-between text-[10px] text-charcoal-50 font-sans pt-1">
+                    <span>Applied: {new Date(req.created_at).toLocaleDateString()}</span>
+                    {req.decided_at && <span>Decided: {new Date(req.decided_at).toLocaleDateString()}</span>}
+                  </div>
+                </div>
+              ))}
+            </div>
           )}
         </div>
       )}
