@@ -1,0 +1,20 @@
+# Keeps the free-tier Supabase project from being paused for inactivity (task T9).
+name: supabase-keepalive
+on:
+  schedule:
+    - cron: '17 6 */2 * *' # every 2 days, 06:17 UTC
+  workflow_dispatch: {}
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Light read against the public faculty directory
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          test -n "$SUPABASE_URL" && test -n "$SUPABASE_ANON_KEY" || { echo "Missing secrets"; exit 1; }
+          curl --fail --silent --show-error \
+            -H "apikey: $SUPABASE_ANON_KEY" -H "Authorization: Bearer $SUPABASE_ANON_KEY" \
+            "$SUPABASE_URL/rest/v1/instructor_profiles?select=user_id&is_published=eq.true&limit=1" > /dev/null
+          echo "Supabase reachable"
