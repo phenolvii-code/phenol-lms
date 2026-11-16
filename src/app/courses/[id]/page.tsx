@@ -26,7 +26,7 @@ import {
 import { CourseShareModal } from '@/components/courses/CourseShareModal';
 import { getReferralCodeForUser } from '@/lib/referral-system';
 import { fetchCourseQuizzes } from '@/lib/data/quizzes';
-import { getCourseQuestionBank } from '@/data/question-banks';
+import { fetchCourseQuestionBank, CourseQuestionBank } from '@/data/question-banks';
 import { CourseQuestionBankView } from '@/components/courses/CourseQuestionBankView';
 
 export default function CourseDetailsPage() {
@@ -42,6 +42,7 @@ export default function CourseDetailsPage() {
   const [errorMessage, setErrorMessage] = useState('');
   const [activeTab, setActiveTab] = useState<'curriculum' | 'quizzes' | 'question_bank'>('curriculum');
   const [quizzes, setQuizzes] = useState<ChemistryQuiz[]>([]);
+  const [questionBank, setQuestionBank] = useState<CourseQuestionBank | null>(null);
 
   useEffect(() => {
     fetchCourseQuizzes(courseId).then(setQuizzes);
@@ -104,9 +105,18 @@ export default function CourseDetailsPage() {
   const course = coursesList.find((c) => c.id === courseId);
   const lessons = course?.lessons || [];
   const firstLesson = lessons[0];
-  const questionBank = course
-    ? getCourseQuestionBank(course.id, course.title, course.code)
-    : null;
+
+  // Question bank is DB content (migration 017) gated by RLS — non-enrolled
+  // users simply receive an empty bank.
+  useEffect(() => {
+    let cancelled = false;
+    fetchCourseQuestionBank(courseId, course?.title, course?.code).then((bank) => {
+      if (!cancelled) setQuestionBank(bank);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [courseId, course?.title, course?.code]);
 
   const handleRequestActivation = async () => {
     if (!currentUser) {

@@ -1,6 +1,6 @@
 -- ==============================================================================
 -- PHENOL ACADEMY LMS - Full Database State Verification
--- Purpose: one-glance checklist that every migration (000 → 011) actually
+-- Purpose: one-glance checklist that every migration (000 → 017) actually
 --          exists in THIS database. Run after any migration or backup restore.
 -- Result: rows with status OK / MISSING. Expected: every row OK.
 -- ==============================================================================
@@ -13,7 +13,8 @@ from (values
   ('courses'), ('lessons'), ('lesson_assets'), ('profiles'),
   ('registered_students'), ('course_enrollments'), ('referrals'),
   ('quizzes'), ('quiz_submissions'), ('instructor_requests'),
-  ('lesson_progress'), ('lesson_comments'), ('media_access_log')
+  ('lesson_progress'), ('lesson_comments'), ('media_access_log'),
+  ('booklets'), ('instructor_profiles'), ('question_bank_items')
 ) as t(name)
 
 union all
@@ -28,7 +29,8 @@ from (values
   ('get_lesson_media'), ('set_course_approval'),
   ('submit_instructor_request'), ('decide_instructor_request'),
   ('get_course_quiz_metadata'), ('get_quiz_questions'), ('submit_quiz_attempt'),
-  ('list_instructor_quizzes'), ('get_quiz_for_editing'), ('save_quiz'), ('delete_quiz')
+  ('list_instructor_quizzes'), ('get_quiz_for_editing'), ('save_quiz'), ('delete_quiz'),
+  ('can_download_booklet')
 ) as t(name)
 
 union all
@@ -51,10 +53,30 @@ select 'POLICY', tablename_ref || ' -> ' || policyname_ref,
 from (values
   ('quizzes', 'quizzes read'),
   ('quizzes', 'quizzes owner manage'),
-  ('quiz_submissions', 'submissions read own or admin'),
+  ('quiz_submissions', 'submissions read own or course owner'),
+  ('quiz_submissions', 'submissions grade own course'),
+  ('waitlist_applications', 'waitlist read scoped'),
   ('instructor_requests', 'requests read own or super admin'),
-  ('instructor_requests', 'requests insert own pending')
+  ('instructor_requests', 'requests insert own pending'),
+  ('booklets', 'booklets read'),
+  ('booklets', 'booklets manage'),
+  ('instructor_profiles', 'instructor profiles read'),
+  ('instructor_profiles', 'instructor profiles manage own'),
+  ('question_bank_items', 'question banks read'),
+  ('question_bank_items', 'question banks manage')
 ) as t(tablename_ref, policyname_ref)
+
+union all
+
+-- 4b. Storage policies (bucket `booklets` is private + download-gated) ----------
+select 'POLICY (storage)', 'booklets -> ' || policyname_ref,
+       case when exists (select 1 from pg_policies
+         where schemaname = 'storage' and tablename = 'objects' and policyname = policyname_ref)
+       then 'OK' else 'MISSING' end
+from (values
+  ('booklets download gated'),
+  ('booklets manage super_admin')
+) as t(policyname_ref)
 
 union all
 
@@ -72,12 +94,31 @@ select 'COLUMN SECURITY', 'quizzes.questions hidden from clients',
 
 union all
 
--- 6. Schema audit marker (shows the highest migration actually applied) --------
+-- 6. Migration 014 audit: the legacy "admin all" policies are GONE --------------
+--    Expected: 0 rows anywhere in the public schema. Any count > 0 = LEAKED.
+select 'POLICY AUDIT', 'no legacy "admin all" policies remain (migration 014)',
+       case when not exists (select 1 from pg_policies
+         where schemaname = 'public' and policyname in ('admin all', 'super admin all'))
+       then 'OK' else 'LEAKED - re-run migration 014' end
+
+union all
+
+-- 7. Migration 015 audit: the `booklets` bucket is PRIVATE ----------------------
+select 'STORAGE AUDIT', 'bucket booklets is private (migration 015)',
+       case when exists (select 1 from storage.buckets
+         where id = 'booklets' and public = false)
+       then 'OK' else 'NOT PRIVATE - re-run migration 015' end
+
+union all
+
+-- 8. Schema audit marker (shows the highest migration actually applied) ---------
 select 'AUDIT MARKER', 'schema comment',
-       case when obj_description('public'::regnamespace, 'pg_namespace') like '%011%'
-       then 'OK (through 011)'
-       when obj_description('public'::regnamespace, 'pg_namespace') like '%010%'
-       then 'PARTIAL (010 only - 011 not applied)'
+       case when obj_description('public'::regnamespace, 'pg_namespace') like '%017%'
+       then 'OK (through 017)'
+       when obj_description('public'::regnamespace, 'pg_namespace') like '%016%'
+       then 'PARTIAL (016 only - 017 not applied)'
+       when obj_description('public'::regnamespace, 'pg_namespace') like '%014%'
+       then 'PARTIAL (014 only - 015/016 not applied)'
        else 'MISSING/OLDER' end
 
 order by kind, item;

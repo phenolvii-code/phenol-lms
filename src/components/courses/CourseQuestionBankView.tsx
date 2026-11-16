@@ -98,7 +98,17 @@ export function CourseQuestionBankView({ bank }: CourseQuestionBankViewProps) {
 
       {/* Questions Sheet (Clean, Paper-style Worksheet) */}
       <div className="space-y-6">
-        {filteredQuestions.length === 0 ? (
+        {bank.questions.length === 0 ? (
+          <div className="p-12 text-center border border-dashed border-hairline rounded bg-ivory-100">
+            <BookOpen className="w-8 h-8 text-charcoal-50 mx-auto mb-2" />
+            <p className="text-sm font-semibold text-charcoal-900">
+              No question bank published for this course yet.
+            </p>
+            <p className="text-xs text-charcoal-50 font-sans mt-1">
+              When your instructor publishes practice questions, they will appear here.
+            </p>
+          </div>
+        ) : filteredQuestions.length === 0 ? (
           <div className="p-12 text-center border border-dashed border-hairline rounded bg-ivory-100">
             <BookOpen className="w-8 h-8 text-charcoal-50 mx-auto mb-2" />
             <p className="text-sm font-semibold text-charcoal-900">No questions found under this topic.</p>
