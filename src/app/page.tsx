@@ -76,10 +76,8 @@ export default function Home() {
         {/* HERO SECTION: Logo beside Text + Motto + Single CTA */}
         <section className="text-center space-y-6">
           <div className="flex flex-col sm:flex-row items-center justify-center gap-5 sm:gap-7 text-center sm:text-left">
-            {/* Prominent Emblem */}
-            <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-ivory-100 border border-hairline shadow-quiet flex items-center justify-center shrink-0">
-              <PhenolLogo size={76} withText={false} />
-            </div>
+            {/* Prominent Emblem (no background tile - just the symbol) */}
+            <PhenolLogo size={120} withText={false} />
 
             {/* Title and Motto ONLY */}
             <div className="space-y-1">
