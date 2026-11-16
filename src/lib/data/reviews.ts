@@ -1,7 +1,10 @@
 /**
- * PHENOL ACADEMY - Instructor Reviews & Scholastic Evaluations
- * Stores and manages student ratings, testimonials, and moderation.
- * Dual-layered persistence: Supabase PostgreSQL + Local client cache.
+ * PHENOL ACADEMY - Instructor Reviews & Scholastic Evaluations (PII-free)
+ * Reviews are displayed ONLY through the migration-018 RPCs:
+ *   - get_review_stats()        → aggregates per instructor (no identities)
+ *   - get_instructor_reviews()  → a faculty member's reviews (no emails/codes)
+ * The client can NEVER read reviewer emails or codes anymore (RLS).
+ * localStorage is a cache of the last sync - never the source of truth.
  */
 
 import { supabase } from '@/lib/supabase';
@@ -10,7 +13,7 @@ export interface InstructorReview {
   id: string;
   instructorId: string;
   studentName: string;
-  studentEmail: string;
+  studentEmail: string; // always '' — emails are never exposed (migration 018)
   studentCode?: string;
   studentTrack?: string;
   rating: number; // 1 to 5
@@ -18,81 +21,114 @@ export interface InstructorReview {
   createdAt: string;
 }
 
-const SEED_REVIEWS: InstructorReview[] = [];
+interface ReviewStat {
+  rating: number;
+  count: number;
+}
 
-const STORAGE_KEY = 'phenol_instructor_reviews';
+const STATS_KEY = 'phenol_review_stats';
 
-export const getStoredReviews = (): InstructorReview[] => {
-  if (typeof window === 'undefined') return SEED_REVIEWS;
+let reviewStats: Record<string, ReviewStat> = {};
+let reviewsCache: Record<string, InstructorReview[]> = {};
+
+const readStatsFromCache = (): Record<string, ReviewStat> => {
+  if (typeof window === 'undefined') return {};
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(SEED_REVIEWS));
-      return SEED_REVIEWS;
-    }
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) && parsed.length > 0 ? parsed : SEED_REVIEWS;
+    const raw = localStorage.getItem(STATS_KEY);
+    return raw ? JSON.parse(raw) : {};
   } catch (e) {
-    return SEED_REVIEWS;
+    return {};
   }
 };
 
+const readReviewsFromCache = (instructorId: string): InstructorReview[] => {
+  if (typeof window === 'undefined') return [];
+  try {
+    const raw = localStorage.getItem(`phenol_reviews_${instructorId}`);
+    return raw ? JSON.parse(raw) : [];
+  } catch (e) {
+    return [];
+  }
+};
+
+/**
+ * Refreshes the aggregate rating stats (one call for the whole directory).
+ * NO reviewer identities are fetched or stored.
+ */
 export const syncReviewsWithServer = async (): Promise<InstructorReview[]> => {
   try {
-    const { data, error } = await supabase
-      .from('instructor_reviews')
-      .select('*')
-      .order('created_at', { ascending: false });
-
-    if (!error && Array.isArray(data) && data.length > 0) {
-      const serverReviews: InstructorReview[] = data.map((d: any) => ({
-        id: d.id,
-        instructorId: d.instructor_id,
-        studentName: d.student_name,
-        studentEmail: d.student_email,
-        studentCode: d.student_code,
-        studentTrack: d.student_track,
-        rating: Number(d.rating) || 5,
-        comment: d.comment,
-        createdAt: d.created_at,
-      }));
-
+    const { data, error } = await supabase.rpc('get_review_stats');
+    if (!error && Array.isArray(data)) {
+      const stats: Record<string, ReviewStat> = {};
+      data.forEach((row: any) => {
+        const key = (row.instructor_id || '').toLowerCase();
+        if (!key) return;
+        const count = Number(row.review_count) || 0;
+        stats[key] = {
+          rating: count > 0 ? Number(row.avg_rating) || 0 : 5.0,
+          count,
+        };
+      });
+      reviewStats = stats;
       if (typeof window !== 'undefined') {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(serverReviews));
+        localStorage.setItem(STATS_KEY, JSON.stringify(stats));
         window.dispatchEvent(new Event('phenol_reviews_updated'));
       }
-      return serverReviews;
     }
   } catch (err) {
-    // Graceful fallback to client storage if table not yet created
+    console.warn('Notice syncing review stats:', err);
   }
-  return getStoredReviews();
+  return [];
 };
 
+/** Fetches ONE instructor's reviews via the PII-free RPC (safe for anon). */
+export const fetchInstructorReviews = async (
+  instructorIdOrEmail: string
+): Promise<InstructorReview[]> => {
+  const key = (instructorIdOrEmail || '').toLowerCase().trim();
+  if (!key) return [];
+
+  try {
+    const { data, error } = await supabase.rpc('get_instructor_reviews', {
+      p_instructor_id: instructorIdOrEmail,
+    });
+
+    if (!error && Array.isArray(data)) {
+      const reviews: InstructorReview[] = data.map((d: any) => ({
+        id: d.id,
+        instructorId: key,
+        studentName: d.student_name || 'Enrolled Scholar',
+        studentEmail: '',
+        rating: Number(d.rating) || 5,
+        comment: d.comment || '',
+        createdAt: d.created_at,
+      }));
+      reviewsCache[key] = reviews;
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(`phenol_reviews_${key}`, JSON.stringify(reviews));
+        window.dispatchEvent(new Event('phenol_reviews_updated'));
+      }
+      return reviews;
+    }
+  } catch (err) {
+    console.warn('Notice fetching instructor reviews:', err);
+  }
+  return getReviewsForInstructor(key);
+};
+
+/** Cached list for display (refreshed via fetchInstructorReviews). */
 export const getReviewsForInstructor = (instructorIdOrEmail: string): InstructorReview[] => {
-  const all = getStoredReviews();
-  const target = (instructorIdOrEmail || '').toLowerCase().trim();
-  return all.filter((r) => {
-    const rId = (r.instructorId || '').toLowerCase().trim();
-    return (
-      rId === target ||
-      (target.includes('omar') && rId.includes('omar')) ||
-      (target.includes('loki') && rId.includes('loki'))
-    );
-  });
+  const key = (instructorIdOrEmail || '').toLowerCase().trim();
+  return reviewsCache[key] || readReviewsFromCache(key);
 };
 
+/** Rating from the aggregate stats cache (defaults 5.0 baseline). */
 export const getInstructorRating = (
   instructorIdOrEmail: string
 ): { rating: number; count: number } => {
-  const reviews = getReviewsForInstructor(instructorIdOrEmail);
-  if (reviews.length === 0) {
-    // Default baseline for new faculty
-    return { rating: 5.0, count: 0 };
-  }
-  const sum = reviews.reduce((acc, curr) => acc + curr.rating, 0);
-  const avg = Number((sum / reviews.length).toFixed(1));
-  return { rating: avg, count: reviews.length };
+  const key = (instructorIdOrEmail || '').toLowerCase().trim();
+  const stats = Object.keys(reviewStats).length > 0 ? reviewStats : readStatsFromCache();
+  return stats[key] || { rating: 5.0, count: 0 };
 };
 
 export const addInstructorReview = async (review: {
@@ -104,7 +140,6 @@ export const addInstructorReview = async (review: {
   rating: number;
   comment: string;
 }): Promise<InstructorReview> => {
-  const all = getStoredReviews();
   const newReview: InstructorReview = {
     id: `rev-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
     instructorId: review.instructorId,
@@ -117,50 +152,35 @@ export const addInstructorReview = async (review: {
     createdAt: new Date().toISOString(),
   };
 
-  const updated = [newReview, ...all];
-  if (typeof window !== 'undefined') {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
-      window.dispatchEvent(new Event('phenol_reviews_updated'));
-    } catch (e) {}
-  }
-
-  // Persist to Supabase if table exists
-  try {
-    await supabase.from('instructor_reviews').insert([
-      {
-        id: newReview.id,
-        instructor_id: newReview.instructorId,
-        student_name: newReview.studentName,
-        student_email: newReview.studentEmail,
-        student_code: newReview.studentCode,
-        student_track: newReview.studentTrack,
-        rating: newReview.rating,
-        comment: newReview.comment,
-        created_at: newReview.createdAt,
-      },
+  const { error } = await supabase.from('instructor_reviews').insert([
+    {
+      id: newReview.id,
+      instructor_id: newReview.instructorId,
+      student_name: newReview.studentName,
+      student_email: newReview.studentEmail,
+      student_code: newReview.studentCode,
+      student_track: newReview.studentTrack,
+      rating: newReview.rating,
+      comment: newReview.comment,
+      created_at: newReview.createdAt,
+    },
+  ]);
+  if (error) {
+    console.error('Could not persist review:', error.message);
+  } else {
+    // Refresh PII-free views + stats (RLS-verified insert).
+    await Promise.all([
+      fetchInstructorReviews(newReview.instructorId),
+      syncReviewsWithServer(),
     ]);
-  } catch (err) {
-    console.warn('Could not persist review to Supabase yet (run SQL schema update):', err);
   }
 
   return newReview;
 };
 
 export const deleteInstructorReview = async (reviewId: string): Promise<void> => {
-  const all = getStoredReviews();
-  const updated = all.filter((r) => r.id !== reviewId);
-  if (typeof window !== 'undefined') {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
-      window.dispatchEvent(new Event('phenol_reviews_updated'));
-    } catch (e) {}
-  }
-
-  // Delete from Supabase if table exists
-  try {
-    await supabase.from('instructor_reviews').delete().eq('id', reviewId);
-  } catch (err) {
-    console.warn('Could not delete review from Supabase:', err);
+  const { error } = await supabase.from('instructor_reviews').delete().eq('id', reviewId);
+  if (error) {
+    console.error('Could not delete review:', error.message);
   }
 };

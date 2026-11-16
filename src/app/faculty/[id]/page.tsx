@@ -16,7 +16,7 @@ import {
   syncPlatformInstructors,
 } from '@/lib/data/instructors';
 import {
-  getReviewsForInstructor,
+  fetchInstructorReviews,
   getInstructorRating,
   addInstructorReview,
   deleteInstructorReview,
@@ -82,8 +82,8 @@ export default function InstructorProfilePage() {
       setEditAvatar(inst.avatar || '');
 
       const instId = inst.id || 'dr-omar-magdi';
-      const rList = getReviewsForInstructor(instId);
-      setReviews(rList);
+      setReviews([]);
+      fetchInstructorReviews(instId).then(setReviews);
       setRatingStats(getInstructorRating(instId));
     }
   };
@@ -97,7 +97,7 @@ export default function InstructorProfilePage() {
     const handleReviewsUpdate = () => {
       if (instructor) {
         const instId = instructor.id || 'dr-omar-magdi';
-        setReviews(getReviewsForInstructor(instId));
+        fetchInstructorReviews(instId).then(setReviews);
         setRatingStats(getInstructorRating(instId));
       }
     };
@@ -213,7 +213,7 @@ export default function InstructorProfilePage() {
 
       setInputComment('');
       setReviewToast('Evaluation submitted successfully! Thank you for your feedback.');
-      setReviews(getReviewsForInstructor(instId));
+      fetchInstructorReviews(instId).then(setReviews);
       setRatingStats(getInstructorRating(instId));
       setTimeout(() => setReviewToast(null), 4000);
     } catch (err: any) {
@@ -231,7 +231,7 @@ export default function InstructorProfilePage() {
       await deleteInstructorReview(reviewId);
       if (instructor) {
         const instId = instructor.id || 'dr-omar-magdi';
-        setReviews(getReviewsForInstructor(instId));
+        fetchInstructorReviews(instId).then(setReviews);
         setRatingStats(getInstructorRating(instId));
       }
     } catch (err: any) {

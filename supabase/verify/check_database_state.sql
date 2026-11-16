@@ -30,7 +30,8 @@ from (values
   ('submit_instructor_request'), ('decide_instructor_request'),
   ('get_course_quiz_metadata'), ('get_quiz_questions'), ('submit_quiz_attempt'),
   ('list_instructor_quizzes'), ('get_quiz_for_editing'), ('save_quiz'), ('delete_quiz'),
-  ('can_download_booklet')
+  ('can_download_booklet'),
+  ('get_instructor_reviews'), ('get_review_stats'), ('admin_delete_student_account')
 ) as t(name)
 
 union all
@@ -63,7 +64,11 @@ from (values
   ('instructor_profiles', 'instructor profiles read'),
   ('instructor_profiles', 'instructor profiles manage own'),
   ('question_bank_items', 'question banks read'),
-  ('question_bank_items', 'question banks manage')
+  ('question_bank_items', 'question banks manage'),
+  ('quiz_submissions', 'submissions read own or course owner'),
+  ('student_notifications', 'notifications admin manage'),
+  ('instructor_reviews', 'reviews read involved'),
+  ('instructor_reviews', 'reviews insert enrolled')
 ) as t(tablename_ref, policyname_ref)
 
 union all
@@ -103,6 +108,17 @@ select 'POLICY AUDIT', 'no legacy "admin all" policies remain (migration 014)',
 
 union all
 
+-- 6b. Migration 018 audit: NO policy may trust is_admin() anymore ---------------
+--     is_admin() returns true for ANY instructor, so every remaining
+--     is_admin()-based policy is a cross-instructor leak. Expected: 0 rows.
+select 'POLICY AUDIT', 'no is_admin()-based policies remain (migration 018)',
+       case when not exists (select 1 from pg_policies
+         where schemaname = 'public'
+           and (qual ilike '%is_admin()%' or with_check ilike '%is_admin()%'))
+       then 'OK' else 'LEAKED - re-run migration 018' end
+
+union all
+
 -- 7. Migration 015 audit: the `booklets` bucket is PRIVATE ----------------------
 select 'STORAGE AUDIT', 'bucket booklets is private (migration 015)',
        case when exists (select 1 from storage.buckets
@@ -113,10 +129,12 @@ union all
 
 -- 8. Schema audit marker (shows the highest migration actually applied) ---------
 select 'AUDIT MARKER', 'schema comment',
-       case when obj_description('public'::regnamespace, 'pg_namespace') like '%017%'
-       then 'OK (through 017)'
+       case when obj_description('public'::regnamespace, 'pg_namespace') like '%018%'
+       then 'OK (through 018)'
+       when obj_description('public'::regnamespace, 'pg_namespace') like '%017%'
+       then 'PARTIAL (017 only - 018 not applied)'
        when obj_description('public'::regnamespace, 'pg_namespace') like '%016%'
-       then 'PARTIAL (016 only - 017 not applied)'
+       then 'PARTIAL (016 only - 017/018 not applied)'
        when obj_description('public'::regnamespace, 'pg_namespace') like '%014%'
        then 'PARTIAL (014 only - 015/016 not applied)'
        else 'MISSING/OLDER' end

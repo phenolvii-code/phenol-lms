@@ -113,26 +113,18 @@ export async function adminRevokeEnrollment(enrollmentId: string): Promise<void>
  * Super Admin: Expel / permanently delete user and their enrollments
  */
 export async function adminDeleteStudentAccount(studentEmail: string, studentId?: string): Promise<void> {
+  // Migration 018: the deletes live server-side now (super_admin-gated RPC);
+  // the client-side direct-table deletes and localStorage surgery are gone.
   const cleanEmail = studentEmail.trim().toLowerCase();
-  try {
-    await supabase.from('course_enrollments').delete().eq('student_email', cleanEmail);
-    await supabase.from('registered_students').delete().eq('email', cleanEmail);
-    if (studentId) {
-      await supabase.from('profiles').delete().eq('id', studentId);
-      await supabase.from('registered_students').delete().eq('id', studentId);
-    }
-  } catch (e) {}
-
+  const { error } = await supabase.rpc('admin_delete_student_account', {
+    p_student_email: cleanEmail,
+  });
+  if (error) {
+    console.error('Error deleting student account:', error.message);
+    throw new Error(error.message);
+  }
   if (typeof window !== 'undefined') {
-    try {
-      const raw = localStorage.getItem('phenol_registered_students');
-      if (raw) {
-        const list = JSON.parse(raw);
-        const filtered = list.filter((st: any) => (st.email || '').toLowerCase() !== cleanEmail);
-        localStorage.setItem('phenol_registered_students', JSON.stringify(filtered));
-      }
-      localStorage.removeItem(`phenol_user_role_${cleanEmail}`);
-      window.dispatchEvent(new Event('phenol_students_updated'));
-    } catch (e) {}
+    localStorage.removeItem(`phenol_user_role_${cleanEmail}`);
+    window.dispatchEvent(new Event('phenol_students_updated'));
   }
 }

@@ -7,7 +7,7 @@
 
 import { supabase } from '@/lib/supabase';
 import { InstructorProfile } from '@/types/lms';
-import { getInstructorRating } from '@/lib/data/reviews';
+import { getInstructorRating, syncReviewsWithServer } from '@/lib/data/reviews';
 
 export const FOUNDER_INSTRUCTOR: InstructorProfile = {
   id: 'dr-omar-magdi',
@@ -59,6 +59,10 @@ export const getPlatformInstructors = (): InstructorProfile[] => {
 
 export const syncPlatformInstructors = async (): Promise<InstructorProfile[]> => {
   const currentList: InstructorProfile[] = [FOUNDER_INSTRUCTOR];
+
+  // 0) Refresh the aggregate review stats first (PII-free, one call) so the
+  //    getInstructorRating() reads below are fresh, not a stale cache.
+  await syncReviewsWithServer();
 
   // 1) REAL DB source: published instructor profiles (migration 016).
   try {
