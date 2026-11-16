@@ -97,6 +97,28 @@ WHERE p.role = 'instructor'
    OR lower(trim(u.email)) = 'phenolvii@gmail.com'
 ON CONFLICT (user_id) DO NOTHING;
 
+-- 2b) Second role store: registered_students.role = 'INSTRUCTOR'. The old
+--     directory read BOTH stores; the backfill must too, or real instructor
+--     accounts (promoted only in registered_students) would vanish from the
+--     public directory. Fake 'stu-...' roster rows cannot match auth.users
+--     here, so only REAL accounts are backfilled.
+INSERT INTO public.instructor_profiles (user_id, name, email, whatsapp, title, is_published)
+SELECT
+  u.id,
+  coalesce(
+    nullif(rs.name, ''),
+    nullif(u.raw_user_meta_data->>'full_name', ''),
+    split_part(lower(trim(u.email)), '@', 1)
+  ),
+  lower(trim(u.email)),
+  rs.phone,
+  'Academic Instructor & Faculty Fellow',
+  true
+FROM public.registered_students rs
+JOIN auth.users u ON u.id::text = rs.id
+WHERE upper(coalesce(rs.role, '')) = 'INSTRUCTOR'
+ON CONFLICT (user_id) DO NOTHING;
+
 -- ------------------------------------------------------------------------------
 -- 3) decide_instructor_request: approval now also creates the profile row
 --    (full function rewritten from 009 with the new block appended)

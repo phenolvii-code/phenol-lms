@@ -1,10 +1,11 @@
-﻿import {
+import {
   AcademicCategory,
   AcademicTrackCategory,
   AcademicTrackSlug,
   InstructorProfile,
   ChemistryCourse,
   ChemistryQuiz,
+
   StudentSubmission,
   WaitlistApplication,
   EnrolledStudent,
@@ -14,7 +15,7 @@ export const ACADEMIC_TRACKS: AcademicTrackCategory[] = [
   {
     id: 'secondary-baccalaureate',
     name: 'Secondary & Baccalaureate',
-    nameAr: 'Ø§Ù„Ø«Ø§Ù†ÙˆÙŠØ© Ø§Ù„Ø¹Ø§Ù…Ø© ÙˆØ§Ù„Ø¨ÙƒØ§Ù„ÙˆØ±ÙŠØ§ (Ø¹Ø±Ø¨ÙŠ ÙˆÙ„ØºØ§Øª)',
+    nameAr: 'الثانوية العامة والبكالوريا (عربي ولغات)',
     description: 'The National Curriculum (Egyptian Public Secondary Arabic & Language Schools) and the French Baccalaureate. Systematic decomposition of physical sciences, chemistry, and mathematics from first principles.',
     badge: 'Secondary & Baccalaureate',
     romanNumeral: 'TRACK I',
@@ -23,16 +24,16 @@ export const ACADEMIC_TRACKS: AcademicTrackCategory[] = [
   {
     id: 'igcse-alevels',
     name: 'IGCSE & A-Levels',
-    nameAr: 'Ø§Ù„Ø´Ù‡Ø§Ø¯Ø© Ø§Ù„Ø¨Ø±ÙŠØ·Ø§Ù†ÙŠØ© Ø§Ù„Ø¯ÙˆÙ„ÙŠØ© (Cambridge & Edexcel)',
+    nameAr: 'الشهادة البريطانية الدولية (Cambridge & Edexcel)',
     description: 'International British Curriculum (Cambridge Assessment, Pearson Edexcel & Oxford AQA). Complete syllabus deconstruction, past-paper forensics, and mark scheme precision.',
-    badge: 'IGCSE â€¢ A-Levels',
+    badge: 'IGCSE • A-Levels',
     romanNumeral: 'TRACK II',
     subjects: ['Chemistry (0620/9701)', 'Physics', 'Biology', 'Pure Mathematics'],
   },
   {
     id: 'undergrads',
     name: 'Undergrads',
-    nameAr: 'Ø§Ù„ØªØ¹Ù„ÙŠÙ… Ø§Ù„Ø¬Ø§Ù…Ø¹ÙŠ Ø§Ù„ØªØ®ØµØµÙŠ (ØµÙŠØ¯Ù„Ø©ØŒ Ø·Ø¨ØŒ Ø¹Ù„ÙˆÙ…ØŒ Ù‡Ù†Ø¯Ø³Ø©)',
+    nameAr: 'التعليم الجامعي التخصصي (صيدلة، طب، علوم، هندسة)',
     description: 'Advanced undergraduate university modules for faculties of Pharmacy, Medicine, Science, and Engineering covering organic reaction mechanisms, spectroscopy, physical kinetics, and biochemistry.',
     badge: 'University Undergrads',
     romanNumeral: 'TRACK III',
@@ -41,7 +42,7 @@ export const ACADEMIC_TRACKS: AcademicTrackCategory[] = [
   {
     id: 'public-courses',
     name: 'Public Courses',
-    nameAr: 'Ø§Ù„Ù…Ø³Ø§Ù‚Ø§Øª Ø§Ù„Ø¹Ø§Ù…Ø© ÙˆØ§Ù„Ù…ÙØªÙˆØ­Ø© Ù„Ù„Ø¬Ù…ÙŠØ¹',
+    nameAr: 'المساقات العامة والمفتوحة للجميع',
     description: 'Open scientific masterclasses for scholars, educators, and lifelong learners. First-principles exploration of natural laws, epistemology, and foundational scientific cognition.',
     badge: 'Public Masterclasses',
     romanNumeral: 'TRACK IV',
@@ -113,10 +114,10 @@ export const CHEMISTRY_QUIZZES: ChemistryQuiz[] = [
     questions: [
       {
         id: 'q1',
-        question: 'What is the rigorous thermodynamic rationale for why phenol (Câ‚†Hâ‚…OH) exhibits substantially greater acidity than ethanol (Câ‚‚Hâ‚…OH)?',
-        molecularSnippet: 'Câ‚†Hâ‚…Oâ» â†” Resonance Hybrid',
+        question: 'What is the rigorous thermodynamic rationale for why phenol (C₆H₅OH) exhibits substantially greater acidity than ethanol (C₂H₅OH)?',
+        molecularSnippet: 'C₆H₅O⁻ ↔ Resonance Hybrid',
         options: [
-          'The resulting phenoxide ion is stabilized by Ï€-electron delocalization across the aromatic ring carbons.',
+          'The resulting phenoxide ion is stabilized by π-electron delocalization across the aromatic ring carbons.',
           'Phenol has a higher molecular mass which mechanically facilitates proton release.',
           'The carbon-oxygen bond length in phenol is significantly longer and weaker than in ethanol.',
           'Stronger intermolecular hydrogen bonds exist between adjacent un-ionized phenol molecules.',
@@ -126,8 +127,8 @@ export const CHEMISTRY_QUIZZES: ChemistryQuiz[] = [
       },
       {
         id: 'q2',
-        question: 'When neutral aqueous Ferric Chloride (FeClâ‚ƒ) is added to an unknown sample of phenol in the laboratory, what characteristic observation confirms its presence?',
-        molecularSnippet: 'FeClâ‚ƒ + Phenol â†’ [Complex] ?',
+        question: 'When neutral aqueous Ferric Chloride (FeCl₃) is added to an unknown sample of phenol in the laboratory, what characteristic observation confirms its presence?',
+        molecularSnippet: 'FeCl₃ + Phenol → [Complex] ?',
         options: [
           'A white precipitate forms that rapidly redissolves in dilute mineral acids.',
           'A distinctive deep violet coloration appears due to coordination complex formation.',
@@ -135,12 +136,12 @@ export const CHEMISTRY_QUIZZES: ChemistryQuiz[] = [
           'No visible change occurs because phenol is inert toward transition metal salts.',
         ],
         correctIndex: 1,
-        scientificExplanation: 'FeClâ‚ƒ serves as a diagnostic qualitative test for phenolic compounds through the formation of the octahedral coordination complex [Fe(OCâ‚†Hâ‚…)â‚†]Â³â», producing a characteristic intense violet chromophore.',
+        scientificExplanation: 'FeCl₃ serves as a diagnostic qualitative test for phenolic compounds through the formation of the octahedral coordination complex [Fe(OC₆H₅)₆]³⁻, producing a characteristic intense violet chromophore.',
       },
       {
         id: 'q3',
-        question: 'Which of the following compounds is the predominant product formed upon exhaustive nitration of phenol with concentrated HNOâ‚ƒ in the presence of concentrated Hâ‚‚SOâ‚„ under heat?',
-        molecularSnippet: 'Câ‚†Hâ‚…OH + conc. HNOâ‚ƒ / Hâ‚‚SOâ‚„ â†’ ?',
+        question: 'Which of the following compounds is the predominant product formed upon exhaustive nitration of phenol with concentrated HNO₃ in the presence of concentrated H₂SO₄ under heat?',
+        molecularSnippet: 'C₆H₅OH + conc. HNO₃ / H₂SO₄ → ?',
         options: [
           '2,4,6-Trinitrophenol (Picric Acid)',
           'Meta-nitrophenol only',
