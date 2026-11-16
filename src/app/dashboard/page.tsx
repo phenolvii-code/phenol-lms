@@ -280,10 +280,7 @@ export default function DashboardPage() {
   const [newSolutionNotes, setNewSolutionNotes] = useState('');
   const [newTaskCourse, setNewTaskCourse] = useState('');
 
-  // Student Quiz State
-  const [activeQuiz, setActiveQuiz] = useState<any | null>(null);
-  const [selectedAnswers, setSelectedAnswers] = useState<Record<string, number>>({});
-  const [quizSubmitted, setQuizSubmitted] = useState(false);
+  // Student quiz mock state removed (task هـ): quizzes are real now.
 
   const loadEnrollments = async () => {
     if (!currentUser) return;
@@ -1109,11 +1106,6 @@ export default function DashboardPage() {
     setNewTaskCourse('');
   };
 
-  const handleAnswerSelect = (qId: string, optIdx: number) => {
-    if (quizSubmitted) return;
-    setSelectedAnswers((prev) => ({ ...prev, [qId]: optIdx }));
-  };
-
   if (isLoading || !currentUser) {
     return (
       <div className="min-h-screen bg-ivory-200 flex flex-col items-center justify-center p-6 text-center font-sans">
@@ -1657,12 +1649,8 @@ export default function DashboardPage() {
             {/* STUDENT TAB 4: QUIZZES */}
             {studentTab === 'quizzes' && (
               <StudentQuizzesTab
-                activeQuiz={activeQuiz}
-                setActiveQuiz={setActiveQuiz}
-                selectedAnswers={selectedAnswers}
-                quizSubmitted={quizSubmitted}
-                setQuizSubmitted={setQuizSubmitted}
-                handleAnswerSelect={handleAnswerSelect}
+                courses={courses}
+                enrollments={enrollments}
               />
             )}
           </div>
