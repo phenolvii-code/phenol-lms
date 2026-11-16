@@ -27,21 +27,15 @@ export const REFERRAL_MILESTONES: ReferralMilestone[] = [
   },
   {
     pointsNeeded: 100,
-    rewardTitle: 'Dr. Omar Magdi Bonus Problem Bank',
-    rewardDescription: 'Instant unlock for 50+ non-routine organic mechanism challenge questions with solution keys.',
-    badge: 'Problem Bank',
+    rewardTitle: '50% Tuition Coupon — One Course',
+    rewardDescription: 'A 50% discount coupon redeemable on one course of your choice. Redeem it through the academy director.',
+    badge: 'Course Coupon',
   },
   {
-    pointsNeeded: 250,
-    rewardTitle: 'Course Tuition Waiver (50% Grant)',
-    rewardDescription: '50% academic tuition grant on any upcoming course or syllabus revision module.',
-    badge: 'Tuition Grant',
-  },
-  {
-    pointsNeeded: 500,
-    rewardTitle: 'Full Course Access + 1-on-1 Consultation',
-    rewardDescription: 'Full 100% course activation waiver plus a 1-on-1 academic consultation session directly with Dr. Omar Magdi.',
-    badge: 'Full Scholarship',
+    pointsNeeded: 200,
+    rewardTitle: '50% Tuition Coupon — Two Courses (Top Reward)',
+    rewardDescription: 'The program\'s top reward: a 50% discount coupon covering two courses. Referrals made through the platform link redeem on any two Phenol Academy courses; referrals made through a specific course link redeem on two courses from that instructor. Redeem it through the academy director.',
+    badge: 'Double Coupon',
   },
 ];
 

@@ -49,7 +49,7 @@ export const CourseShareModal: React.FC<CourseShareModalProps> = ({
   };
 
   const whatsappMessage = encodeURIComponent(
-    `Explore "${courseTitle}" (${courseCode}) with Dr. Omar Magdi at PHENOL Academy. Learn chemistry through first principles & analytical derivation:\n${shareLink}`
+    `Explore "${courseTitle}" (${courseCode}) at PHENOL Academy. Learn through first principles & analytical derivation:\n${shareLink}`
   );
   const whatsappUrl = `https://wa.me/?text=${whatsappMessage}`;
 
