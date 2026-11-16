@@ -1,11 +1,10 @@
-import {
+﻿import {
   AcademicCategory,
   AcademicTrackCategory,
   AcademicTrackSlug,
   InstructorProfile,
   ChemistryCourse,
   ChemistryQuiz,
-  Booklet,
   StudentSubmission,
   WaitlistApplication,
   EnrolledStudent,
@@ -15,7 +14,7 @@ export const ACADEMIC_TRACKS: AcademicTrackCategory[] = [
   {
     id: 'secondary-baccalaureate',
     name: 'Secondary & Baccalaureate',
-    nameAr: 'الثانوية العامة والبكالوريا (عربي ولغات)',
+    nameAr: 'Ø§Ù„Ø«Ø§Ù†ÙˆÙŠØ© Ø§Ù„Ø¹Ø§Ù…Ø© ÙˆØ§Ù„Ø¨ÙƒØ§Ù„ÙˆØ±ÙŠØ§ (Ø¹Ø±Ø¨ÙŠ ÙˆÙ„ØºØ§Øª)',
     description: 'The National Curriculum (Egyptian Public Secondary Arabic & Language Schools) and the French Baccalaureate. Systematic decomposition of physical sciences, chemistry, and mathematics from first principles.',
     badge: 'Secondary & Baccalaureate',
     romanNumeral: 'TRACK I',
@@ -24,16 +23,16 @@ export const ACADEMIC_TRACKS: AcademicTrackCategory[] = [
   {
     id: 'igcse-alevels',
     name: 'IGCSE & A-Levels',
-    nameAr: 'الشهادة البريطانية الدولية (Cambridge & Edexcel)',
+    nameAr: 'Ø§Ù„Ø´Ù‡Ø§Ø¯Ø© Ø§Ù„Ø¨Ø±ÙŠØ·Ø§Ù†ÙŠØ© Ø§Ù„Ø¯ÙˆÙ„ÙŠØ© (Cambridge & Edexcel)',
     description: 'International British Curriculum (Cambridge Assessment, Pearson Edexcel & Oxford AQA). Complete syllabus deconstruction, past-paper forensics, and mark scheme precision.',
-    badge: 'IGCSE • A-Levels',
+    badge: 'IGCSE â€¢ A-Levels',
     romanNumeral: 'TRACK II',
     subjects: ['Chemistry (0620/9701)', 'Physics', 'Biology', 'Pure Mathematics'],
   },
   {
     id: 'undergrads',
     name: 'Undergrads',
-    nameAr: 'التعليم الجامعي التخصصي (صيدلة، طب، علوم، هندسة)',
+    nameAr: 'Ø§Ù„ØªØ¹Ù„ÙŠÙ… Ø§Ù„Ø¬Ø§Ù…Ø¹ÙŠ Ø§Ù„ØªØ®ØµØµÙŠ (ØµÙŠØ¯Ù„Ø©ØŒ Ø·Ø¨ØŒ Ø¹Ù„ÙˆÙ…ØŒ Ù‡Ù†Ø¯Ø³Ø©)',
     description: 'Advanced undergraduate university modules for faculties of Pharmacy, Medicine, Science, and Engineering covering organic reaction mechanisms, spectroscopy, physical kinetics, and biochemistry.',
     badge: 'University Undergrads',
     romanNumeral: 'TRACK III',
@@ -42,7 +41,7 @@ export const ACADEMIC_TRACKS: AcademicTrackCategory[] = [
   {
     id: 'public-courses',
     name: 'Public Courses',
-    nameAr: 'المساقات العامة والمفتوحة للجميع',
+    nameAr: 'Ø§Ù„Ù…Ø³Ø§Ù‚Ø§Øª Ø§Ù„Ø¹Ø§Ù…Ø© ÙˆØ§Ù„Ù…ÙØªÙˆØ­Ø© Ù„Ù„Ø¬Ù…ÙŠØ¹',
     description: 'Open scientific masterclasses for scholars, educators, and lifelong learners. First-principles exploration of natural laws, epistemology, and foundational scientific cognition.',
     badge: 'Public Masterclasses',
     romanNumeral: 'TRACK IV',
@@ -114,10 +113,10 @@ export const CHEMISTRY_QUIZZES: ChemistryQuiz[] = [
     questions: [
       {
         id: 'q1',
-        question: 'What is the rigorous thermodynamic rationale for why phenol (C₆H₅OH) exhibits substantially greater acidity than ethanol (C₂H₅OH)?',
-        molecularSnippet: 'C₆H₅O⁻ ↔ Resonance Hybrid',
+        question: 'What is the rigorous thermodynamic rationale for why phenol (Câ‚†Hâ‚…OH) exhibits substantially greater acidity than ethanol (Câ‚‚Hâ‚…OH)?',
+        molecularSnippet: 'Câ‚†Hâ‚…Oâ» â†” Resonance Hybrid',
         options: [
-          'The resulting phenoxide ion is stabilized by π-electron delocalization across the aromatic ring carbons.',
+          'The resulting phenoxide ion is stabilized by Ï€-electron delocalization across the aromatic ring carbons.',
           'Phenol has a higher molecular mass which mechanically facilitates proton release.',
           'The carbon-oxygen bond length in phenol is significantly longer and weaker than in ethanol.',
           'Stronger intermolecular hydrogen bonds exist between adjacent un-ionized phenol molecules.',
@@ -127,8 +126,8 @@ export const CHEMISTRY_QUIZZES: ChemistryQuiz[] = [
       },
       {
         id: 'q2',
-        question: 'When neutral aqueous Ferric Chloride (FeCl₃) is added to an unknown sample of phenol in the laboratory, what characteristic observation confirms its presence?',
-        molecularSnippet: 'FeCl₃ + Phenol → [Complex] ?',
+        question: 'When neutral aqueous Ferric Chloride (FeClâ‚ƒ) is added to an unknown sample of phenol in the laboratory, what characteristic observation confirms its presence?',
+        molecularSnippet: 'FeClâ‚ƒ + Phenol â†’ [Complex] ?',
         options: [
           'A white precipitate forms that rapidly redissolves in dilute mineral acids.',
           'A distinctive deep violet coloration appears due to coordination complex formation.',
@@ -136,12 +135,12 @@ export const CHEMISTRY_QUIZZES: ChemistryQuiz[] = [
           'No visible change occurs because phenol is inert toward transition metal salts.',
         ],
         correctIndex: 1,
-        scientificExplanation: 'FeCl₃ serves as a diagnostic qualitative test for phenolic compounds through the formation of the octahedral coordination complex [Fe(OC₆H₅)₆]³⁻, producing a characteristic intense violet chromophore.',
+        scientificExplanation: 'FeClâ‚ƒ serves as a diagnostic qualitative test for phenolic compounds through the formation of the octahedral coordination complex [Fe(OCâ‚†Hâ‚…)â‚†]Â³â», producing a characteristic intense violet chromophore.',
       },
       {
         id: 'q3',
-        question: 'Which of the following compounds is the predominant product formed upon exhaustive nitration of phenol with concentrated HNO₃ in the presence of concentrated H₂SO₄ under heat?',
-        molecularSnippet: 'C₆H₅OH + conc. HNO₃ / H₂SO₄ → ?',
+        question: 'Which of the following compounds is the predominant product formed upon exhaustive nitration of phenol with concentrated HNOâ‚ƒ in the presence of concentrated Hâ‚‚SOâ‚„ under heat?',
+        molecularSnippet: 'Câ‚†Hâ‚…OH + conc. HNOâ‚ƒ / Hâ‚‚SOâ‚„ â†’ ?',
         options: [
           '2,4,6-Trinitrophenol (Picric Acid)',
           'Meta-nitrophenol only',
@@ -155,48 +154,6 @@ export const CHEMISTRY_QUIZZES: ChemistryQuiz[] = [
   },
 ];
 
-export const BOOKLETS: Booklet[] = [
-  {
-    id: 'book-1',
-    title: 'Atlas of Organic Reaction Mechanisms — Dr. Omar Magdi',
-    courseName: 'Organic Chemistry',
-    category: 'thanaweya-arabic',
-    pages: 72,
-    size: '14.2 MB',
-    edition: '2026/2027 Academic Edition',
-    description: 'Illustrated hand-annotated mechanistic guide detailing electron pushing, curved-arrow conventions, and transition state geometries for all aromatic pathways.',
-  },
-  {
-    id: 'book-2',
-    title: 'Physical Equilibrium: High-Difficulty Analytical Problem Sets',
-    courseName: 'Physical Chemistry',
-    category: 'thanaweya-languages',
-    pages: 54,
-    size: '9.8 MB',
-    edition: '2026/2027 Academic Edition',
-    description: 'Curated compilation of 150 non-routine multi-concept equilibrium challenges with step-by-step thermodynamic derivations.',
-  },
-  {
-    id: 'book-3',
-    title: 'Cambridge & Edexcel A-Level Chemistry Revision Dossier',
-    courseName: 'IGCSE & A-Level',
-    category: 'igcse-stem',
-    pages: 60,
-    size: '11.5 MB',
-    edition: 'Cambridge 9701 & Edexcel IAL',
-    description: 'Comprehensive syllabus map covering Paper 2 and Paper 4 past paper mechanistic problems, synthetic routes, and organic identification schemes.',
-  },
-  {
-    id: 'book-4',
-    title: 'Spectroscopic Elucidation & Molecular Symmetry Manual',
-    courseName: 'University Chemistry',
-    category: 'university',
-    pages: 48,
-    size: '8.4 MB',
-    edition: 'Pharmacy & Science Edition',
-    description: 'University laboratory reference detailing ¹H-NMR and ¹³C-NMR chemical shift correlations, coupling constant calculations, and infrared absorption tables.',
-  },
-];
 
 // Clean Real Arrays: Empty or live-populated by real applications and submissions
 export const SUBMISSIONS: StudentSubmission[] = [];

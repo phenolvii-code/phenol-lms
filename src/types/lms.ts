@@ -117,12 +117,14 @@ export interface ChemistryQuiz {
 export interface Booklet {
   id: string;
   title: string;
-  courseName: string;
-  category?: AcademicCategory;
-  pages: number;
-  size: string;
-  edition: string;
   description: string;
+  course_id: string | null;
+  course_name: string | null;
+  /** Path inside the private "booklets" storage bucket (migration 015). */
+  storage_path: string;
+  edition: string | null;
+  pages: number | null;
+  size_label: string | null;
 }
 
 export interface StudentSubmission {

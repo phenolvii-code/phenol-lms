@@ -11,7 +11,6 @@ import { WhatsAppPromptModal } from '@/components/auth/WhatsAppPromptModal';
 import { Initials } from '@/components/ui/Initials';
 import {
   CHEMISTRY_COURSES,
-  BOOKLETS,
   ENROLLED_STUDENTS,
   ACADEMIC_TRACKS,
   setGlobalInstructorAvatar,
@@ -23,6 +22,7 @@ import {
   StudentSubmission,
   WaitlistApplication,
   EnrolledStudent,
+  Booklet,
 } from '@/types/lms';
 import { BookletsView } from '@/components/booklets/BookletsView';
 import { supabase } from '@/lib/supabase';
@@ -112,6 +112,7 @@ export default function DashboardPage() {
   const [courses, setCourses] = useState<ChemistryCourse[]>(() => getStoredCourses());
   const [submissions, setSubmissions] = useState<StudentSubmission[]>([]);
   const [waitlist, setWaitlist] = useState<WaitlistApplication[]>([]);
+  const [booklets, setBooklets] = useState<Booklet[]>([]);
   const [students, setStudents] = useState<EnrolledStudent[]>(ENROLLED_STUDENTS);
   const [rosterSearchQuery, setRosterSearchQuery] = useState('');
 
@@ -309,6 +310,17 @@ export default function DashboardPage() {
     if (currentUser) {
       loadEnrollments();
       syncWithServerCourses().then((c) => setCourses(c));
+
+      // Gated dossier library (migration 015): RLS returns only booklets of
+      // the user's actively-enrolled courses (students) or own courses
+      // (instructors). Downloading is verified again by the storage policy.
+      supabase
+        .from('booklets')
+        .select('*')
+        .order('created_at', { ascending: true })
+        .then(({ data }) => {
+          if (data) setBooklets(data as unknown as Booklet[]);
+        });
 
       if (currentUser.role === 'INSTRUCTOR') {
         // Waitlist applications — the DB (RLS, migration 013) returns only
@@ -1640,7 +1652,7 @@ export default function DashboardPage() {
             )}
 
             {/* STUDENT TAB 3: BOOKLETS */}
-            {studentTab === 'booklets' && <BookletsView booklets={BOOKLETS} />}
+            {studentTab === 'booklets' && <BookletsView booklets={booklets} />}
 
             {/* STUDENT TAB 4: QUIZZES */}
             {studentTab === 'quizzes' && (
