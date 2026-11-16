@@ -1556,7 +1556,7 @@ export default function DashboardPage() {
                   Welcome, {currentUser.name || 'Scholar'}
                 </h1>
                 <p className="text-xs sm:text-sm text-charcoal-100 font-sans max-w-xl leading-relaxed">
-                  Active academic portal for chemistry lectures, diagnostic problem sets, and personalized evaluation under Dr. Omar Magdi.
+                  Your active academic portal for lectures, problem sets, and personalized evaluation across Phenol Academy's faculty.
                 </p>
               </div>
 

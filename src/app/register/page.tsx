@@ -245,7 +245,7 @@ function RegisterFormContent() {
                 />
               </div>
               <p className="text-[10px] text-charcoal-50 mt-1">
-                Required for direct academic coordination with Dr. Omar Magdi and the faculty.
+                Required for direct academic coordination with the academy and its faculty.
               </p>
             </div>
 
