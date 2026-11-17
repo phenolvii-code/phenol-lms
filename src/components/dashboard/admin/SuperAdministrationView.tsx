@@ -121,10 +121,10 @@ export const SuperAdministrationView: React.FC<SuperAdministrationViewProps> = (
     });
 
     const handleUpdate = () => {
+      // Read the fresh cache only — never call syncPlatformInstructors() here:
+      // sync broadcasts 'phenol_instructors_updated', and listening + syncing
+      // created an infinite network loop that hammered the database.
       loadInst();
-      syncPlatformInstructors().then((list) => {
-        if (list && list.length > 0) setPlatformInstructors(list);
-      });
     };
 
     window.addEventListener('phenol_instructors_updated', handleUpdate);
@@ -178,6 +178,12 @@ export const SuperAdministrationView: React.FC<SuperAdministrationViewProps> = (
             : r
         )
       );
+      // Approving creates the directory row server-side (migration 016) — pull it
+      // immediately (force) instead of waiting for a page reload.
+      if (decision === 'approved') {
+        const list = await syncPlatformInstructors(true);
+        if (list && list.length > 0) setPlatformInstructors(list);
+      }
     } catch (err: any) {
       alert(`Failed to ${decision === 'approved' ? 'approve' : 'reject'} application: ${err?.message || 'unknown error'}`);
     } finally {

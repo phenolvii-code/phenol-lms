@@ -30,6 +30,21 @@ const FOUNDER_FALLBACK: InstructorProfile[] = [FOUNDER_INSTRUCTOR];
 
 let inMemoryInstructors: InstructorProfile[] = [...FOUNDER_FALLBACK];
 
+const INSTRUCTORS_CACHE_KEY = 'phenol_all_instructors';
+
+/**
+ * Sync performance guards:
+ * - single-flight: concurrent callers share ONE network round;
+ * - TTL: a sync younger than this is reused instead of hammering the DB
+ *   (explicit actions such as a role change or a faculty approval pass
+ *   force=true and always hit the database);
+ * - the update event is only broadcast when the list ACTUALLY changed, so a
+ *   listener that calls sync again can never create a feedback loop.
+ */
+const SYNC_TTL_MS = 60_000;
+let lastSyncAt = 0;
+let inflightSync: Promise<InstructorProfile[]> | null = null;
+
 const slugFromEmail = (email: string): string =>
   email.split('@')[0].replace(/[^a-zA-Z0-9_-]/g, '-');
 
@@ -41,7 +56,7 @@ export const getPlatformInstructors = (): InstructorProfile[] => {
 
   // localStorage is a CACHE of the last DB sync - never the source of truth.
   try {
-    const raw = localStorage.getItem('phenol_all_instructors');
+    const raw = localStorage.getItem(INSTRUCTORS_CACHE_KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed) && parsed.length > 0) {
@@ -57,67 +72,86 @@ export const getPlatformInstructors = (): InstructorProfile[] => {
   return inMemoryInstructors;
 };
 
-export const syncPlatformInstructors = async (): Promise<InstructorProfile[]> => {
+export const syncPlatformInstructors = async (force = false): Promise<InstructorProfile[]> => {
+  // Reuse a fresh sync (TTL) unless the caller explicitly forces a refresh.
+  if (!force && lastSyncAt > 0 && Date.now() - lastSyncAt < SYNC_TTL_MS) {
+    return getPlatformInstructors();
+  }
+  // Single-flight: every concurrent caller awaits the same network round.
+  if (inflightSync) return inflightSync;
+
+  inflightSync = runInstructorSync();
+  try {
+    return await inflightSync;
+  } finally {
+    inflightSync = null;
+  }
+};
+
+const runInstructorSync = async (): Promise<InstructorProfile[]> => {
   const currentList: InstructorProfile[] = [FOUNDER_INSTRUCTOR];
 
-  // 0) Refresh the aggregate review stats first (PII-free, one call) so the
-  //    getInstructorRating() reads below are fresh, not a stale cache.
-  await syncReviewsWithServer();
-
-  // 1) REAL DB source: published instructor profiles (migration 016).
+  // 0+1) Review stats AND published directory rows in PARALLEL (no waterfall):
+  //      the list is built once both are in, so ratings are fresh.
+  let profiles: any[] = [];
   try {
-    const { data: profiles } = await supabase
-      .from('instructor_profiles')
-      .select('*')
-      .eq('is_published', true);
-
-    (profiles || []).forEach((p: any) => {
-      const email = (p.email || '').toLowerCase().trim();
-      if (!email) return;
-
-      const existingIdx = currentList.findIndex(
-        (i) => (i.email || '').toLowerCase() === email
-      );
-      const instId =
-        existingIdx >= 0
-          ? currentList[existingIdx].id || slugFromEmail(email)
-          : slugFromEmail(email);
-      const ratingData = getInstructorRating(instId);
-
-      const instProfile: InstructorProfile = {
-        id: instId,
-        name: p.name || email.split('@')[0],
-        title: p.title || 'Academic Instructor & Faculty Fellow',
-        bio:
-          p.bio ||
-          'Faculty educator dedicated to first-principles conceptual clarity and causal curricular deconstruction.',
-        avatar: p.avatar || '',
-        specialization: p.specialization || 'General Sciences',
-        supervisionScope: p.supervision_scope || 'Faculty Teaching Fellow',
-        whatsapp: waLink(p.whatsapp),
-        email,
-        subjects: [p.specialization || 'Sciences'],
-        coursesCount: 0,
-        rating: ratingData.rating,
-        reviewsCount: ratingData.count,
-      };
-
-      if (existingIdx >= 0) {
-        currentList[existingIdx] = { ...currentList[existingIdx], ...instProfile };
-      } else {
-        currentList.push(instProfile);
-      }
-    });
+    const [, profilesResult] = await Promise.all([
+      syncReviewsWithServer(),
+      supabase
+        .from('instructor_profiles')
+        .select('*')
+        .eq('is_published', true),
+    ]);
+    profiles = Array.isArray(profilesResult.data) ? profilesResult.data : [];
   } catch (err) {
     console.warn('Notice syncing instructor profiles:', err);
   }
 
-  // 2) Safety net: instructors who own published courses but have no profile
-  //    row yet (they appear with their course ownership columns).
+  profiles.forEach((p: any) => {
+    const email = (p.email || '').toLowerCase().trim();
+    if (!email) return;
+
+    const existingIdx = currentList.findIndex(
+      (i) => (i.email || '').toLowerCase() === email
+    );
+    const instId =
+      existingIdx >= 0
+        ? currentList[existingIdx].id || slugFromEmail(email)
+        : slugFromEmail(email);
+    const ratingData = getInstructorRating(instId);
+
+    const instProfile: InstructorProfile = {
+      id: instId,
+      name: p.name || email.split('@')[0],
+      title: p.title || 'Academic Instructor & Faculty Fellow',
+      bio:
+        p.bio ||
+        'Faculty educator dedicated to first-principles conceptual clarity and causal curricular deconstruction.',
+      avatar: p.avatar || '',
+      specialization: p.specialization || 'General Sciences',
+      supervisionScope: p.supervision_scope || 'Faculty Teaching Fellow',
+      whatsapp: waLink(p.whatsapp),
+      email,
+      subjects: [p.specialization || 'Sciences'],
+      coursesCount: 0,
+      rating: ratingData.rating,
+      reviewsCount: ratingData.count,
+    };
+
+    if (existingIdx >= 0) {
+      currentList[existingIdx] = { ...currentList[existingIdx], ...instProfile };
+    } else {
+      currentList.push(instProfile);
+    }
+  });
+
+  // 2) Safety net: instructors who own courses but have no directory row yet.
+  //    NOTE: `courses` has NO instructor_whatsapp column — selecting it made the
+  //    whole request fail with HTTP 400 (dead safety net + wasted round trip).
   try {
     const { data: supaCourses } = await supabase
       .from('courses')
-      .select('instructor_id, instructor_name, instructor_email, instructor_avatar, instructor_whatsapp');
+      .select('instructor_id, instructor_name, instructor_email, instructor_avatar');
 
     (supaCourses || []).forEach((c: any) => {
       const email = (c.instructor_email || '').toLowerCase().trim();
@@ -142,7 +176,7 @@ export const syncPlatformInstructors = async (): Promise<InstructorProfile[]> =>
         avatar: c.instructor_avatar || '',
         specialization: 'General Sciences',
         supervisionScope: 'Faculty Teaching Fellow',
-        whatsapp: waLink(c.instructor_whatsapp),
+        whatsapp: undefined,
         email,
         subjects: ['Sciences'],
         coursesCount: 1,
@@ -164,11 +198,25 @@ export const syncPlatformInstructors = async (): Promise<InstructorProfile[]> =>
     } catch (e) {}
   }
 
-  inMemoryInstructors = currentList;
+  let previousSnapshot: string | null = null;
   if (typeof window !== 'undefined') {
     try {
-      localStorage.setItem('phenol_all_instructors', JSON.stringify(currentList));
-      window.dispatchEvent(new Event('phenol_instructors_updated'));
+      previousSnapshot = localStorage.getItem(INSTRUCTORS_CACHE_KEY);
+    } catch (e) {}
+  }
+
+  inMemoryInstructors = currentList;
+  lastSyncAt = Date.now();
+
+  if (typeof window !== 'undefined') {
+    try {
+      const nextSnapshot = JSON.stringify(currentList);
+      const changed = previousSnapshot !== nextSnapshot;
+      localStorage.setItem(INSTRUCTORS_CACHE_KEY, nextSnapshot);
+      // Only broadcast when something actually changed (loop prevention).
+      if (changed) {
+        window.dispatchEvent(new Event('phenol_instructors_updated'));
+      }
     } catch (e) {}
   }
 
@@ -261,7 +309,7 @@ export const updateInstructorProfileData = async (
   inMemoryInstructors = all;
   if (typeof window !== 'undefined') {
     try {
-      localStorage.setItem('phenol_all_instructors', JSON.stringify(all));
+      localStorage.setItem(INSTRUCTORS_CACHE_KEY, JSON.stringify(all));
       const targetId = idx >= 0 ? all[idx].id : (updatedData.id || target);
       const targetObj = idx >= 0 ? all[idx] : all[all.length - 1];
       localStorage.setItem(

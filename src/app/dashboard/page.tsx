@@ -745,7 +745,7 @@ export default function DashboardPage() {
       window.dispatchEvent(new Event('phenol_instructors_updated'));
     }
 
-    await syncPlatformInstructors();
+    await syncPlatformInstructors(true);
     setEnrollmentToast(`User ${email} role switched to ${newRole === 'instructor' ? 'Academic Instructor' : 'Student / Scholar'}`);
     setTimeout(() => setEnrollmentToast(null), 4000);
   };
