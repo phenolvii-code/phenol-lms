@@ -99,6 +99,10 @@ export const SuperAdministrationView: React.FC<SuperAdministrationViewProps> = (
   } | null>(null);
   const [globalInstructorAvatar, setGlobalInstructorAvatar] = useState('');
   const [platformInstructors, setPlatformInstructors] = useState<InstructorProfile[]>(() => getPlatformInstructors());
+  // Bumped whenever the roster store changes (after sync / 'phenol_students_updated')
+  // so the accounts-table memo recomputes immediately instead of waiting for an
+  // unrelated enrollments update (fix: instructors appeared minutes late).
+  const [rosterVersion, setRosterVersion] = useState(0);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -118,6 +122,11 @@ export const SuperAdministrationView: React.FC<SuperAdministrationViewProps> = (
     });
     syncWithServerStudents().then(() => {
       loadInst();
+      // Roster rows (incl. instructors) just landed in the in-memory store.
+      // The accounts-table memo below depends on [enrollments] only, so it must
+      // be told explicitly that the student directory changed - otherwise
+      // instructors only appear after the NEXT unrelated enrollments update.
+      setRosterVersion((v) => v + 1);
     });
 
     const handleUpdate = () => {
@@ -125,6 +134,7 @@ export const SuperAdministrationView: React.FC<SuperAdministrationViewProps> = (
       // sync broadcasts 'phenol_instructors_updated', and listening + syncing
       // created an infinite network loop that hammered the database.
       loadInst();
+      setRosterVersion((v) => v + 1);
     };
 
     window.addEventListener('phenol_instructors_updated', handleUpdate);
@@ -191,10 +201,13 @@ export const SuperAdministrationView: React.FC<SuperAdministrationViewProps> = (
     }
   };
 
-  // Compute student directory (all users, enrolled or not)
+  // Compute student directory (all users, enrolled or not).
+  // rosterVersion is a deliberate dependency: the directory reads the module-level
+  // roster store that syncWithServerStudents()/events mutate, so we must recompute
+  // when it changes (the store itself is not a reactive value).
   const studentDirectory = useMemo(() => {
     return getAggregatedStudentsDirectory(enrollments);
-  }, [enrollments]);
+  }, [enrollments, rosterVersion]);
 
   // Combined real-time list of all instructors across platform
   const combinedInstructors = useMemo(() => {
@@ -334,7 +347,7 @@ export const SuperAdministrationView: React.FC<SuperAdministrationViewProps> = (
       const isSuper = st.email?.toLowerCase() === 'phenolvii@gmail.com';
       const isInst =
         isSuper ||
-        (st as any).role === 'instructor' ||
+        ((st as any).role || '').toString().toLowerCase() === 'instructor' ||
         (typeof window !== 'undefined' && localStorage.getItem(`phenol_user_role_${st.email?.toLowerCase()}`) === 'instructor');
 
       if (userFilter === 'instructors' && !isInst) return false;
