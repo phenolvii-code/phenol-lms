@@ -14,7 +14,8 @@ from (values
   ('registered_students'), ('course_enrollments'), ('referrals'),
   ('quizzes'), ('quiz_submissions'), ('instructor_requests'),
   ('lesson_progress'), ('lesson_comments'), ('media_access_log'),
-  ('booklets'), ('instructor_profiles'), ('question_bank_items')
+  ('booklets'), ('instructor_profiles'), ('question_bank_items'),
+  ('payments'), ('platform_settings'), ('audit_logs')
 ) as t(name)
 
 union all
@@ -32,7 +33,11 @@ from (values
   ('list_instructor_quizzes'), ('get_quiz_for_editing'), ('save_quiz'), ('delete_quiz'),
   ('can_download_booklet'),
   ('get_instructor_reviews'), ('get_review_stats'), ('admin_delete_student_account'),
-  ('admin_set_user_role'), ('is_secretary')
+  ('admin_set_user_role'), ('is_secretary'),
+  ('trg_protect_commission_pct'), ('trg_pricing_guard'), ('trg_payments_guard'),
+  ('log_academy_action'), ('trg_audit_logs_guard'), ('trg_audit_role_change'),
+  ('trg_audit_logs_guard_statement'),
+  ('record_payment'), ('set_payment_status'), ('waive_enrollment_payment')
 ) as t(name)
 
 union all
@@ -65,6 +70,10 @@ from (values
   ('instructor_profiles', 'instructor profiles manage own'),
   ('question_bank_items', 'question banks read'),
   ('question_bank_items', 'question banks manage'),
+  ('payments', 'payments read own or course owner'),
+  ('platform_settings', 'settings read staff'),
+  ('platform_settings', 'settings manage super_admin'),
+  ('audit_logs', 'audit logs read super_admin'),
   ('student_notifications', 'notifications admin manage'),
   ('instructor_reviews', 'reviews read involved'),
   ('instructor_reviews', 'reviews insert enrolled')
@@ -212,6 +221,163 @@ select 'POLICY AUDIT', 'quiz_submissions writes are RPC-only (migration 010 desi
 
 union all
 
+-- 6j. Migration 021 audits: financial foundation -------------------------------
+--     J1: payments has EXACTLY ONE client policy (the SELECT one) - writes are
+--     RPC/webhook-only, like quiz_submissions.
+select 'FINANCE AUDIT', 'payments writes are RPC/webhook-only (migration 021)',
+       case when (select count(*) from pg_policies
+                  where schemaname = 'public' and tablename = 'payments') = 1
+            then 'OK' else 'REVIEW - unexpected client write policy on payments' end
+
+union all
+
+--     J2: the immutability guard is bound to payments.
+select 'FINANCE AUDIT', 'payments immutability guard bound (migration 021)',
+       case when exists (select 1 from pg_trigger t join pg_class c on c.oid = t.tgrelid
+          join pg_namespace n on n.oid = c.relnamespace
+          where n.nspname = 'public' and c.relname = 'payments'
+            and t.tgname = 'trg_payments_guard' and not t.tgisinternal)
+       then 'OK' else 'MISSING - re-run migration 021 step 4b' end
+
+union all
+
+--     J3: pricing guard bound to courses + commission guard to profiles.
+select 'FINANCE AUDIT', 'pricing + commission guards bound (migration 021)',
+       case when exists (select 1 from pg_trigger t join pg_class c on c.oid = t.tgrelid
+          join pg_namespace n on n.oid = c.relnamespace
+          where n.nspname = 'public' and c.relname = 'courses'
+            and t.tgname = 'trg_courses_pricing_guard' and not t.tgisinternal)
+        and exists (select 1 from pg_trigger t join pg_class c on c.oid = t.tgrelid
+          join pg_namespace n on n.oid = c.relnamespace
+          where n.nspname = 'public' and c.relname = 'profiles'
+            and t.tgname = 'trg_profiles_protect_commission' and not t.tgisinternal)
+       then 'OK' else 'MISSING - re-run migration 021 steps 3/5' end
+
+union all
+
+--     J4: settings seeded (exactly the two defaults, nothing fabricated).
+select 'FINANCE AUDIT', 'platform_settings seeded (migration 021)',
+       case when (select count(*) from public.platform_settings
+                  where key in ('default_platform_commission_pct', 'platform_currency')) = 2
+       then 'OK' else 'MISSING - re-run migration 021 step 1' end
+
+union all
+
+--     J5: pricing columns exist on courses; commission column on profiles.
+select 'FINANCE AUDIT', 'pricing + commission columns exist (migration 021)',
+       case when exists (select 1 from information_schema.columns
+             where table_schema = 'public' and table_name = 'courses'
+               and column_name = 'price')
+        and exists (select 1 from information_schema.columns
+             where table_schema = 'public' and table_name = 'profiles'
+               and column_name = 'platform_commission_pct')
+       then 'OK' else 'MISSING - re-run migration 021 steps 2/3' end
+
+union all
+
+--     J6: TRUTH check - the ledger and prices start EMPTY (nothing fabricated).
+--     Informational; values shown so the owner sees the actual state.
+select 'FINANCE STATE', 'payments rows / priced courses / set commissions (informational)',
+       (select count(*) from public.payments)::text || ' payments, '
+       || (select count(*) from public.courses where price is not null)::text || ' priced courses, '
+       || (select count(*) from public.profiles where platform_commission_pct is not null)::text || ' commission overrides'
+
+union all
+
+-- 6k. Migration 022 audits: audit_logs (append-only governance ledger) ----------
+--     K1: EXACTLY ONE client policy on audit_logs (the super-admin SELECT).
+select 'AUDIT AUDIT', 'audit_logs has exactly 1 client policy - super_admin read (migration 022)',
+       case when (select count(*) from pg_policies
+                  where schemaname = 'public' and tablename = 'audit_logs') = 1
+            then 'OK' else 'REVIEW - unexpected policy on audit_logs' end
+
+union all
+
+--     K2: the append-only guards are bound to audit_logs (row-level AND
+--     statement-level - the statement guard refuses even on an EMPTY table,
+--     addendum 022b).
+select 'AUDIT AUDIT', 'audit_logs append-only guards bound (migration 022/022b)',
+       case when exists (select 1 from pg_trigger t join pg_class c on c.oid = t.tgrelid
+          join pg_namespace n on n.oid = c.relnamespace
+          where n.nspname = 'public' and c.relname = 'audit_logs'
+            and t.tgname = 'trg_audit_logs_guard' and not t.tgisinternal)
+        and exists (select 1 from pg_trigger t join pg_class c on c.oid = t.tgrelid
+          join pg_namespace n on n.oid = c.relnamespace
+          where n.nspname = 'public' and c.relname = 'audit_logs'
+            and t.tgname = 'trg_audit_logs_guard_statement' and not t.tgisinternal)
+       then 'OK' else 'MISSING - re-run migration 022 step 1b + 022b addendum' end
+
+union all
+
+--     K3: the automatic role-change capture is bound to profiles.
+select 'AUDIT AUDIT', 'role-change audit trigger bound to profiles (migration 022)',
+       case when exists (select 1 from pg_trigger t join pg_class c on c.oid = t.tgrelid
+          join pg_namespace n on n.oid = c.relnamespace
+          where n.nspname = 'public' and c.relname = 'profiles'
+            and t.tgname = 'trg_audit_role_change' and not t.tgisinternal)
+       then 'OK' else 'MISSING - re-run migration 022 step 3' end
+
+union all
+
+--     K4: log RPC exists and is definer (runs as owner, bypassing RLS closure).
+select 'AUDIT AUDIT', 'log_academy_action exists + security definer (migration 022)',
+       case when exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+                  where n.nspname = 'public' and p.proname = 'log_academy_action'
+                    and p.prosecdef)
+       then 'OK' else 'MISSING/NOT DEFINER - re-run migration 022 step 2' end
+
+union all
+
+--     K5: TRUTH check - the ledger starts EMPTY (no fabricated history).
+select 'AUDIT STATE', 'audit rows by action (informational)',
+       coalesce((select count(*)::text from public.audit_logs), '0') || ' rows total'
+       || case when exists (select 1 from public.audit_logs limit 1) then '' else ' (empty - as designed)' end
+
+union all
+
+-- 6l. Migration 023 audits: centralized enrollment + payment RPCs ---------------
+--     L1: the enrollment RPCs are gated to the academy office (no owns_course).
+select 'GOVERNANCE AUDIT', 'enrollment RPCs gated to office, instructor branch removed (migration 023)',
+       case when (select prosrc from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+                  where n.nspname = 'public' and p.proname = 'admin_enroll_student') ilike '%is_secretary%'
+        and (select prosrc from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+                  where n.nspname = 'public' and p.proname = 'admin_enroll_student') not ilike '%owns_course%'
+        and (select prosrc from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+                  where n.nspname = 'public' and p.proname = 'set_enrollment_status') ilike '%is_secretary%'
+        and (select prosrc from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+                  where n.nspname = 'public' and p.proname = 'set_enrollment_status') not ilike '%owns_course%'
+       then 'OK' else 'MISSING - re-run migration 023 steps 1/2' end
+
+union all
+
+--     L2: the three payment RPCs exist and write audit rows.
+select 'GOVERNANCE AUDIT', 'payment RPCs exist + audit-logged (migration 023)',
+       case when (select prosrc from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+                  where n.nspname = 'public' and p.proname = 'record_payment') ilike '%payment.record%'
+        and (select prosrc from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+                  where n.nspname = 'public' and p.proname = 'set_payment_status') ilike '%payment.status%'
+        and (select prosrc from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+                  where n.nspname = 'public' and p.proname = 'waive_enrollment_payment') ilike '%enrollment.waiver%'
+       then 'OK' else 'MISSING - re-run migration 023 steps 3/4/5' end
+
+union all
+
+--     L3: the subscription gate - VERIFIED payment auto-activates enrollment.
+select 'GOVERNANCE AUDIT', 'VERIFIED payment auto-activates enrollment (migration 023)',
+       case when (select prosrc from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+                  where n.nspname = 'public' and p.proname = 'set_payment_status') ilike '%course_enrollments%'
+       then 'OK' else 'MISSING - re-run migration 023 step 4' end
+
+union all
+
+--     L4: TRUTH check - nothing fabricated: 0 payments, 0 audited office actions
+--     until real usage. Informational.
+select 'GOVERNANCE STATE', 'payments / audit rows (informational)',
+       (select count(*) from public.payments)::text || ' payments, '
+       || (select count(*) from public.audit_logs)::text || ' audit rows'
+
+union all
+
 -- 7. Migration 015 audit: the `booklets` bucket is PRIVATE ----------------------
 select 'STORAGE AUDIT', 'bucket booklets is private (migration 015)',
        case when exists (select 1 from storage.buckets
@@ -222,18 +388,24 @@ union all
 
 -- 8. Schema audit marker (shows the highest migration actually applied) ---------
 select 'AUDIT MARKER', 'schema comment',
-       case when obj_description('public'::regnamespace, 'pg_namespace') like '%020%'
-       then 'OK (through 020)'
+       case when obj_description('public'::regnamespace, 'pg_namespace') like '%023%'
+       then 'OK (through 023)'
+       when obj_description('public'::regnamespace, 'pg_namespace') like '%022%'
+       then 'PARTIAL (022 only - 023 not applied)'
+       when obj_description('public'::regnamespace, 'pg_namespace') like '%021%'
+       then 'PARTIAL (021 only - 022/023 not applied)'
+       when obj_description('public'::regnamespace, 'pg_namespace') like '%020%'
+       then 'PARTIAL (020 only - 021/022/023 not applied)'
        when obj_description('public'::regnamespace, 'pg_namespace') like '%019%'
-       then 'PARTIAL (019 only - 020 not applied)'
+       then 'PARTIAL (019 only - 020/021/022/023 not applied)'
        when obj_description('public'::regnamespace, 'pg_namespace') like '%018%'
-       then 'PARTIAL (018 only - 019/020 not applied)'
+       then 'PARTIAL (018 only - 019/020/021/022/023 not applied)'
        when obj_description('public'::regnamespace, 'pg_namespace') like '%017%'
-       then 'PARTIAL (017 only - 018/019/020 not applied)'
+       then 'PARTIAL (017 only - 018/019/020/021/022/023 not applied)'
        when obj_description('public'::regnamespace, 'pg_namespace') like '%016%'
-       then 'PARTIAL (016 only - 017/018/019/020 not applied)'
+       then 'PARTIAL (016 only - 017/018/019/020/021/022/023 not applied)'
        when obj_description('public'::regnamespace, 'pg_namespace') like '%014%'
-       then 'PARTIAL (014 only - 015/016/019/020 not applied)'
+       then 'PARTIAL (014 only - 015/016/019/020/021/022/023 not applied)'
        else 'MISSING/OLDER' end
 
 order by kind, item;

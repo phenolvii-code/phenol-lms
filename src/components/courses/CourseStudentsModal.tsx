@@ -30,6 +30,8 @@ interface CourseStudentsModalProps {
   course: ChemistryCourse;
   onClose: () => void;
   onEnrollmentsUpdated?: () => void;
+  /** Migration 023: access decisions are centralized (academy office). */
+  canManageEnrollments?: boolean;
 }
 
 export const CourseStudentsModal: React.FC<CourseStudentsModalProps> = ({
@@ -37,6 +39,7 @@ export const CourseStudentsModal: React.FC<CourseStudentsModalProps> = ({
   course,
   onClose,
   onEnrollmentsUpdated,
+  canManageEnrollments = false,
 }) => {
   const [enrollments, setEnrollments] = useState<CourseEnrollmentRecord[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -296,15 +299,24 @@ export const CourseStudentsModal: React.FC<CourseStudentsModalProps> = ({
                       </a>
 
                       {enr.status === 'PENDING' ? (
-                        <button
-                          type="button"
-                          onClick={() => handleApprove(enr.id)}
-                          className="px-3.5 py-1.5 rounded-lg bg-burgundy-900 hover:bg-black text-ivory-100 text-xs font-semibold shadow-sm transition-colors flex items-center gap-1"
-                        >
-                          <CheckCircle2 className="w-3.5 h-3.5" />
-                          <span>Activate Access Now</span>
-                        </button>
-                      ) : (
+                        canManageEnrollments ? (
+                          <button
+                            type="button"
+                            onClick={() => handleApprove(enr.id)}
+                            className="px-3.5 py-1.5 rounded-lg bg-burgundy-900 hover:bg-black text-ivory-100 text-xs font-semibold shadow-sm transition-colors flex items-center gap-1"
+                          >
+                            <CheckCircle2 className="w-3.5 h-3.5" />
+                            <span>Activate Access Now</span>
+                          </button>
+                        ) : (
+                          <span
+                            className="px-3 py-1.5 rounded-lg bg-ivory-200 text-charcoal-50 text-[10px] font-mono border border-hairline"
+                            title="Access decisions are handled by the academy administration"
+                          >
+                            Office-Managed
+                          </span>
+                        )
+                      ) : canManageEnrollments ? (
                         <button
                           type="button"
                           onClick={() => handleToggleStatus(enr.id, enr.status)}
@@ -316,6 +328,13 @@ export const CourseStudentsModal: React.FC<CourseStudentsModalProps> = ({
                         >
                           {enr.status === 'ACTIVE' ? 'Revoke Access' : 'Reactivate Access'}
                         </button>
+                      ) : (
+                        <span
+                          className="px-3 py-1.5 rounded-lg bg-ivory-200 text-charcoal-50 text-[10px] font-mono border border-hairline"
+                          title="Access decisions are handled by the academy administration"
+                        >
+                          Office-Managed
+                        </span>
                       )}
                     </div>
                   </div>

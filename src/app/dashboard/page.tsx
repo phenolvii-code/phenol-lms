@@ -514,6 +514,11 @@ export default function DashboardPage() {
   };
 
   const handleApproveEnrollment = async (enrId: string) => {
+    // Migration 023: enrollment decisions are centralized (academy office).
+    if (!isSuperAdminUser) {
+      alert('Access decisions are handled by the academy administration (secretary/founder).');
+      return;
+    }
     try {
       await setEnrollmentStatus(enrId, 'ACTIVE');
       await loadEnrollments();
@@ -525,13 +530,13 @@ export default function DashboardPage() {
   };
 
   const handleRevokeEnrollment = async (enrId: string) => {
-    const targetEnr = enrollments.find((e) => e.id === enrId);
-    if (!targetEnr) return;
-    const targetCourse = courses.find((c) => c.id === targetEnr.course_id);
-    if (!isSuperAdminUser && targetCourse && !isCourseOwnedByCurrentInstructor(targetCourse)) {
-      alert("You are not authorized to revoke access from another instructor's course.");
+    // Migration 023: enrollment decisions are centralized (academy office).
+    if (!isSuperAdminUser) {
+      alert('Access decisions are handled by the academy administration (secretary/founder).');
       return;
     }
+    const targetEnr = enrollments.find((e) => e.id === enrId);
+    if (!targetEnr) return;
     if (typeof window !== 'undefined' && !window.confirm('Are you sure you want to revoke student access to this course?')) return;
     try {
       await adminRevokeEnrollment(enrId);
@@ -565,8 +570,9 @@ export default function DashboardPage() {
     const courseObj = courses.find((c) => c.id === selectedCourseIdToEnroll);
     if (!courseObj) return;
 
-    if (!isSuperAdminUser && !isCourseOwnedByCurrentInstructor(courseObj)) {
-      alert('You are only authorized to enroll students into your own courses.');
+    // Migration 023: direct enrollment is an academy-office power.
+    if (!isSuperAdminUser) {
+      alert('Direct enrollment is handled by the academy administration (secretary/founder).');
       return;
     }
 
@@ -1703,6 +1709,7 @@ export default function DashboardPage() {
           course={selectedCourseForStudents}
           onClose={() => setIsCourseStudentsOpen(false)}
           onEnrollmentsUpdated={loadEnrollments}
+          canManageEnrollments={isSuperAdminUser}
         />
       )}
 

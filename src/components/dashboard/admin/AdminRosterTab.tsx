@@ -308,7 +308,8 @@ export function AdminRosterTab({
                                     className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-emerald-50 text-emerald-900 border border-emerald-200 text-[10px] font-mono"
                                   >
                                     <span>{enr.course_code || enr.course_title || 'Course'}</span>
-                                    {handleRevokeEnrollment && (
+                                    {/* Migration 023: access decisions are centralized (academy office) */}
+                                    {isSuperAdmin && handleRevokeEnrollment && (
                                       <button
                                         type="button"
                                         onClick={() => handleRevokeEnrollment(enr.id)}
@@ -328,23 +329,32 @@ export function AdminRosterTab({
                             )}
                           </td>
 
-                          {/* Actions: 1-Click Enroll in this instructor's courses */}
+                          {/* Actions: direct enroll is an academy-office power (migration 023) */}
                           <td className="py-3.5 px-4 text-right">
-                            <div className="flex items-center justify-end gap-1.5 flex-wrap">
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setDirectEnrollStudent(st);
-                                  setSelectedCourseIdToEnroll(myCourses[0]?.id || '');
-                                  setIsDirectEnrollModalOpen(true);
-                                }}
-                                className="px-2.5 py-1 rounded-lg bg-burgundy-500 hover:bg-burgundy-900 text-ivory-100 text-xs font-bold transition-colors shadow-sm flex items-center gap-1"
-                                title="Enroll student in one of your courses"
+                            {isSuperAdmin ? (
+                              <div className="flex items-center justify-end gap-1.5 flex-wrap">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setDirectEnrollStudent(st);
+                                    setSelectedCourseIdToEnroll(myCourses[0]?.id || '');
+                                    setIsDirectEnrollModalOpen(true);
+                                  }}
+                                  className="px-2.5 py-1 rounded-lg bg-burgundy-500 hover:bg-burgundy-900 text-ivory-100 text-xs font-bold transition-colors shadow-sm flex items-center gap-1"
+                                  title="Enroll student in one of your courses"
+                                >
+                                  <Plus className="w-3 h-3" />
+                                  <span>Enroll in Course</span>
+                                </button>
+                              </div>
+                            ) : (
+                              <span
+                                className="text-charcoal-50 text-[10px] font-mono italic"
+                                title="Course access decisions are handled by the academy administration"
                               >
-                                <Plus className="w-3 h-3" />
-                                <span>Enroll in Course</span>
-                              </button>
-                            </div>
+                                Office-managed
+                              </span>
+                            )}
                           </td>
                         </tr>
                       );
@@ -455,10 +465,16 @@ export function AdminRosterTab({
                       <button
                         type="button"
                         onClick={() => handleApproveEnrollment(req.id)}
-                        className="px-4 py-2 rounded-xl bg-burgundy-500 hover:bg-burgundy-900 text-ivory-100 text-xs font-bold shadow-md transition-colors flex items-center gap-1.5"
+                        disabled={!isSuperAdmin}
+                        title={isSuperAdmin ? 'Activate access' : 'Access decisions are handled by the academy administration'}
+                        className={`px-4 py-2 rounded-xl text-xs font-bold shadow-md transition-colors flex items-center gap-1.5 ${
+                          isSuperAdmin
+                            ? 'bg-burgundy-500 hover:bg-burgundy-900 text-ivory-100'
+                            : 'bg-ivory-200 text-charcoal-50 cursor-not-allowed'
+                        }`}
                       >
                         <CheckCircle2 className="w-3.5 h-3.5" />
-                        <span>Activate Access Now</span>
+                        <span>{isSuperAdmin ? 'Activate Access Now' : 'Office-Managed Activation'}</span>
                       </button>
                     </div>
                   </div>
