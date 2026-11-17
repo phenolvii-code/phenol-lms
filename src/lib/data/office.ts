@@ -176,3 +176,171 @@ export async function waiveEnrollmentPayment(
   });
   if (error) throw error;
 }
+
+// ==============================================================================
+// Settlements, Commissions & Financial Ledgers (migration 025).
+// ==============================================================================
+
+export interface InstructorSettlementRow {
+  id: string;
+  instructor_email: string;
+  period_start: string;
+  period_end: string;
+  verified_payments_count: number;
+  gross_collected: number;
+  platform_share: number;
+  processing_fees: number;
+  net_instructor_payout: number;
+  currency: string;
+  status: 'PENDING' | 'PAID' | 'CANCELLED';
+  payout_method: string | null;
+  payout_reference: string | null;
+  paid_at: string | null;
+  note: string | null;
+  created_at: string;
+}
+
+export interface InstructorPaymentLedgerItem {
+  id: string;
+  course_id: string;
+  course_title: string | null;
+  method: string;
+  gross_amount: number;
+  currency: string;
+  status: string;
+  platform_commission_pct: number | null;
+  platform_amount: number | null;
+  processing_fee: number;
+  instructor_amount: number | null;
+  verified_at: string | null;
+  created_at: string;
+}
+
+export interface InstructorFinancialLedger {
+  instructor_email: string;
+  currency: string;
+  custom_commission_pct: number | null;
+  default_commission_pct: number;
+  effective_commission_pct: number;
+  verified_payments_count: number;
+  gross_collected: number;
+  platform_share: number;
+  processing_fees: number;
+  net_instructor_earnings: number;
+  paid_settlements_total: number;
+  pending_settlements_total: number;
+  unsettled_balance: number;
+  payments: InstructorPaymentLedgerItem[];
+  settlements: InstructorSettlementRow[];
+}
+
+export interface InstructorRevenueSummary {
+  email: string;
+  name: string;
+  custom_commission_pct: number | null;
+  effective_commission_pct: number;
+  courses_count: number;
+  verified_payments_count: number;
+  gross_collected: number;
+  platform_share: number;
+  instructor_net: number;
+  paid_out: number;
+  pending_settlement: number;
+}
+
+export interface SuperAdminFinancialOverview {
+  default_commission_pct: number;
+  currency: string;
+  verified_payments_count: number;
+  pending_payments_count: number;
+  refunded_payments_count: number;
+  total_gross_verified: number;
+  total_platform_revenue: number;
+  total_instructor_share: number;
+  total_processing_fees: number;
+  total_refunded_gross: number;
+  total_settled_paid: number;
+  total_settlements_pending: number;
+  instructors: InstructorRevenueSummary[];
+  settlements: InstructorSettlementRow[];
+}
+
+export async function getInstructorFinancialLedger(
+  instructorEmail?: string
+): Promise<InstructorFinancialLedger | null> {
+  const { data, error } = await supabase.rpc('get_instructor_financial_ledger', {
+    p_instructor_email: instructorEmail ? instructorEmail.trim().toLowerCase() : null,
+  });
+  if (error) {
+    console.error('Error loading instructor financial ledger:', error.message);
+    return null;
+  }
+  return (data as InstructorFinancialLedger) || null;
+}
+
+export async function getSuperAdminFinancialOverview(): Promise<SuperAdminFinancialOverview | null> {
+  const { data, error } = await supabase.rpc('get_super_admin_financial_overview');
+  if (error) {
+    console.error('Error loading super-admin financial overview:', error.message);
+    return null;
+  }
+  return (data as SuperAdminFinancialOverview) || null;
+}
+
+export async function setInstructorCommission(
+  instructorEmail: string,
+  commissionPct: number | null,
+  note?: string
+): Promise<void> {
+  const { error } = await supabase.rpc('set_instructor_commission', {
+    p_instructor_email: instructorEmail.trim().toLowerCase(),
+    p_commission_pct: commissionPct,
+    p_note: note ?? null,
+  });
+  if (error) throw error;
+}
+
+export async function setDefaultPlatformCommission(
+  commissionPct: number,
+  note?: string
+): Promise<void> {
+  const { error } = await supabase.rpc('set_default_platform_commission', {
+    p_commission_pct: commissionPct,
+    p_note: note ?? null,
+  });
+  if (error) throw error;
+}
+
+export async function createInstructorSettlement(input: {
+  instructorEmail: string;
+  periodStart: string;
+  periodEnd: string;
+  note?: string;
+}): Promise<string> {
+  const { data, error } = await supabase.rpc('create_instructor_settlement', {
+    p_instructor_email: input.instructorEmail.trim().toLowerCase(),
+    p_period_start: input.periodStart,
+    p_period_end: input.periodEnd,
+    p_note: input.note ?? null,
+  });
+  if (error) throw error;
+  return data as string;
+}
+
+export async function setSettlementStatus(input: {
+  settlementId: string;
+  newStatus: 'PAID' | 'CANCELLED';
+  payoutMethod?: 'bank_transfer' | 'instapay' | 'vodafone_cash' | 'cash' | 'other' | null;
+  payoutReference?: string | null;
+  note?: string | null;
+}): Promise<void> {
+  const { error } = await supabase.rpc('set_settlement_status', {
+    p_settlement_id: input.settlementId,
+    p_new_status: input.newStatus,
+    p_payout_method: input.payoutMethod ?? null,
+    p_payout_reference: input.payoutReference ?? null,
+    p_note: input.note ?? null,
+  });
+  if (error) throw error;
+}
+

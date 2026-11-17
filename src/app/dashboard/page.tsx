@@ -71,6 +71,7 @@ import { AdminWaitlistTab } from '@/components/dashboard/admin/AdminWaitlistTab'
 import { AdminSubmissionsTab } from '@/components/dashboard/admin/AdminSubmissionsTab';
 import { AdminRosterTab } from '@/components/dashboard/admin/AdminRosterTab';
 import { AdminQuizzesTab } from '@/components/dashboard/admin/AdminQuizzesTab';
+import { AdminEarningsTab } from '@/components/dashboard/admin/AdminEarningsTab';
 import { SuperAdministrationView } from '@/components/dashboard/admin/SuperAdministrationView';
 
 // Subcomponents: Student Tabs
@@ -99,7 +100,7 @@ export default function DashboardPage() {
   const [adminViewMode, setAdminViewMode] = useState<'ADMIN' | 'STUDENT_PREVIEW'>('ADMIN');
 
   // Instructor Admin Tabs
-  const [adminTab, setAdminTab] = useState<'curriculum' | 'waitlist' | 'submissions' | 'roster' | 'quizzes'>('curriculum');
+  const [adminTab, setAdminTab] = useState<'curriculum' | 'waitlist' | 'submissions' | 'roster' | 'quizzes' | 'earnings'>('curriculum');
   const [isSuperAdminCockpitOpen, setIsSuperAdminCockpitOpen] = useState(false);
 
   // Student Tabs
@@ -1439,6 +1440,17 @@ export default function DashboardPage() {
                 >
                   <span>Quizzes</span>
                 </button>
+
+                <button
+                  onClick={() => setAdminTab('earnings')}
+                  className={`pb-3 border-b-2 transition-colors flex items-center gap-2 whitespace-nowrap ${
+                    adminTab === 'earnings'
+                      ? 'border-burgundy-500 text-burgundy-500'
+                      : 'border-transparent text-charcoal-100 hover:text-charcoal-900'
+                  }`}
+                >
+                  <span>Earnings &amp; Ledger</span>
+                </button>
               </nav>
 
               {/* Action Buttons based on active tab */}
@@ -1545,6 +1557,11 @@ export default function DashboardPage() {
             {/* TAB 5: QUIZZES */}
             {adminTab === 'quizzes' && (
               <AdminQuizzesTab courses={myInstructorCourses} />
+            )}
+
+            {/* TAB 6: EARNINGS & LEDGER (Read-Only for Instructor, 025) */}
+            {adminTab === 'earnings' && (
+              <AdminEarningsTab />
             )}
           </div>
           )

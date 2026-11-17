@@ -15,7 +15,8 @@ from (values
   ('quizzes'), ('quiz_submissions'), ('instructor_requests'),
   ('lesson_progress'), ('lesson_comments'), ('media_access_log'),
   ('booklets'), ('instructor_profiles'), ('question_bank_items'),
-  ('payments'), ('platform_settings'), ('audit_logs')
+  ('payments'), ('platform_settings'), ('audit_logs'),
+  ('course_price_history'), ('instructor_settlements')
 ) as t(name)
 
 union all
@@ -39,7 +40,11 @@ from (values
   ('trg_audit_logs_guard_statement'),
   ('record_payment'), ('set_payment_status'), ('waive_enrollment_payment'),
   ('set_course_price'), ('set_course_published'), ('office_list_courses'),
-  ('trg_capture_price_history')
+  ('trg_capture_price_history'),
+  ('trg_settlements_guard'), ('set_instructor_commission'),
+  ('set_default_platform_commission'), ('create_instructor_settlement'),
+  ('set_settlement_status'), ('get_instructor_financial_ledger'),
+  ('get_super_admin_financial_overview')
 ) as t(name)
 
 union all
@@ -77,6 +82,7 @@ from (values
   ('platform_settings', 'settings manage super_admin'),
   ('audit_logs', 'audit logs read super_admin'),
   ('course_price_history', 'price history read office'),
+  ('instructor_settlements', 'settlements read own or office'),
   ('student_notifications', 'notifications admin manage'),
   ('instructor_reviews', 'reviews read involved'),
   ('instructor_reviews', 'reviews insert enrolled')
@@ -429,6 +435,57 @@ select 'PRICING STATE', 'priced courses / history rows (informational)',
 
 union all
 
+-- 6n. Migration 025 audits: settlements + ledgers + commissions ------------------
+--     N1: exactly ONE client policy on instructor_settlements (read-only).
+select 'SETTLEMENT AUDIT', 'instructor_settlements has exactly 1 client policy - read only (migration 025)',
+       case when (select count(*) from pg_policies
+                  where schemaname = 'public' and tablename = 'instructor_settlements') = 1
+            then 'OK' else 'REVIEW - unexpected policy on instructor_settlements' end
+
+union all
+
+--     N2: immutability guard bound to instructor_settlements.
+select 'SETTLEMENT AUDIT', 'settlements immutability guard bound (migration 025)',
+       case when exists (select 1 from pg_trigger t join pg_class c on c.oid = t.tgrelid
+          join pg_namespace n on n.oid = c.relnamespace
+          where n.nspname = 'public' and c.relname = 'instructor_settlements'
+            and t.tgname = 'trg_settlements_guard' and not t.tgisinternal)
+       then 'OK' else 'MISSING - re-run migration 025 step 1b' end
+
+union all
+
+--     N3: commission + settlement RPCs exist, are security definer, and audit-logged.
+select 'SETTLEMENT AUDIT', 'commission & settlement RPCs gated + audited (migration 025)',
+       case when (select prosrc from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+                  where n.nspname = 'public' and p.proname = 'set_instructor_commission') ilike '%commission.instructor.set%'
+        and (select prosrc from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+                  where n.nspname = 'public' and p.proname = 'set_default_platform_commission') ilike '%commission.default.set%'
+        and (select prosrc from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+                  where n.nspname = 'public' and p.proname = 'create_instructor_settlement') ilike '%settlement.create%'
+        and (select prosrc from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+                  where n.nspname = 'public' and p.proname = 'set_settlement_status') ilike '%settlement.status%'
+       then 'OK' else 'MISSING - re-run migration 025 steps 2/3/4' end
+
+union all
+
+--     N4: instructor ledger + super-admin overview RPCs exist and are security definer.
+select 'SETTLEMENT AUDIT', 'instructor ledger & super-admin overview RPCs exist (migration 025)',
+       case when (select count(*) from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+                  where n.nspname = 'public'
+                    and p.proname in ('get_instructor_financial_ledger', 'get_super_admin_financial_overview')
+                    and p.prosecdef) = 2
+       then 'OK' else 'MISSING - re-run migration 025 steps 5/6' end
+
+union all
+
+--     N5: TRUTH check - settlements state (informational).
+select 'SETTLEMENT STATE', 'settlement rows (informational)',
+       (select count(*) from public.instructor_settlements)::text || ' settlements ('
+       || (select count(*) from public.instructor_settlements where status = 'PAID')::text || ' paid, '
+       || (select count(*) from public.instructor_settlements where status = 'PENDING')::text || ' pending)'
+
+union all
+
 -- 7. Migration 015 audit: the `booklets` bucket is PRIVATE ----------------------
 select 'STORAGE AUDIT', 'bucket booklets is private (migration 015)',
        case when exists (select 1 from storage.buckets
@@ -439,8 +496,10 @@ union all
 
 -- 8. Schema audit marker (shows the highest migration actually applied) ---------
 select 'AUDIT MARKER', 'schema comment',
-       case when obj_description('public'::regnamespace, 'pg_namespace') like '%024%'
-       then 'OK (through 024)'
+       case when obj_description('public'::regnamespace, 'pg_namespace') like '%025%'
+       then 'OK (through 025)'
+       when obj_description('public'::regnamespace, 'pg_namespace') like '%024%'
+       then 'PARTIAL (024 only - 025 not applied)'
        when obj_description('public'::regnamespace, 'pg_namespace') like '%023%'
        then 'PARTIAL (023 only - 024 not applied)'
        when obj_description('public'::regnamespace, 'pg_namespace') like '%022%'

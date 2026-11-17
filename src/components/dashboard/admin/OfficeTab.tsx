@@ -4,12 +4,17 @@ import React, { useEffect, useMemo, useState } from 'react';
 import {
   Search, Plus, Wallet, History, CheckCircle2, XCircle, Clock, Ban,
   RefreshCw, ChevronDown, ChevronRight, ShieldCheck, BookOpen, UserCheck,
+  TrendingUp, Percent, Banknote,
 } from 'lucide-react';
 import {
   OfficeCourseRow, PaymentRow, PriceHistoryRow,
+  SuperAdminFinancialOverview, InstructorSettlementRow,
   listOfficeCourses, listPayments, listPriceHistory,
   setCoursePrice, setCoursePublished, setCourseApproval,
   recordPayment, setPaymentStatus, waiveEnrollmentPayment,
+  getSuperAdminFinancialOverview, setInstructorCommission,
+  setDefaultPlatformCommission, createInstructorSettlement,
+  setSettlementStatus,
 } from '@/lib/data/office';
 
 // ==============================================================================
@@ -39,8 +44,9 @@ const fmtEGP = (v: number | null | undefined) =>
 export const OfficeTab: React.FC = () => {
   const [courses, setCourses] = useState<OfficeCourseRow[]>([]);
   const [payments, setPayments] = useState<PaymentRow[]>([]);
+  const [overview, setOverview] = useState<SuperAdminFinancialOverview | null>(null);
   const [loading, setLoading] = useState(true);
-  const [section, setSection] = useState<'pricing' | 'payments'>('pricing');
+  const [section, setSection] = useState<'pricing' | 'payments' | 'settlements'>('pricing');
   const [searchQuery, setSearchQuery] = useState('');
 
   // ---------------- pricing editing state ----------------
@@ -66,11 +72,31 @@ export const OfficeTab: React.FC = () => {
   const [waiverNote, setWaiverNote] = useState('');
   const [waiverBusy, setWaiverBusy] = useState(false);
 
+  // ---------------- settlements & commissions state (025) ----------------
+  const [defaultCommDraft, setDefaultCommDraft] = useState('');
+  const [defaultCommBusy, setDefaultCommBusy] = useState(false);
+  const [instCommDraft, setInstCommDraft] = useState<Record<string, string>>({});
+  const [instCommBusy, setInstCommBusy] = useState<string | null>(null);
+  const [settleEmail, setSettleEmail] = useState('');
+  const [settleStart, setSettleStart] = useState('');
+  const [settleEnd, setSettleEnd] = useState('');
+  const [settleNote, setSettleNote] = useState('');
+  const [settleBusy, setSettleBusy] = useState(false);
+  const [settleActionBusy, setSettleActionBusy] = useState<string | null>(null);
+
   const loadAll = async () => {
     setLoading(true);
-    const [c, p] = await Promise.all([listOfficeCourses(), listPayments()]);
+    const [c, p, ov] = await Promise.all([
+      listOfficeCourses(),
+      listPayments(),
+      getSuperAdminFinancialOverview(),
+    ]);
     setCourses(c);
     setPayments(p);
+    setOverview(ov);
+    if (ov) {
+      setDefaultCommDraft(String(ov.default_commission_pct));
+    }
     setLoading(false);
   };
 
@@ -221,6 +247,107 @@ export const OfficeTab: React.FC = () => {
     }
   };
 
+  // ---------------- settlements & commissions handlers (025) ----------------
+
+  const handleSaveDefaultCommission = async () => {
+    const val = Number(defaultCommDraft);
+    if (Number.isNaN(val) || val < 0 || val > 100) {
+      alert('Default platform commission must be between 0 and 100.');
+      return;
+    }
+    setDefaultCommBusy(true);
+    try {
+      await setDefaultPlatformCommission(val, 'Updated from Academy Office');
+      await loadAll();
+    } catch (err: any) {
+      alert(err.message || 'Error updating default commission');
+    } finally {
+      setDefaultCommBusy(false);
+    }
+  };
+
+  const handleSaveInstructorCommission = async (email: string, clearToDefault = false) => {
+    setInstCommBusy(email);
+    try {
+      if (clearToDefault) {
+        await setInstructorCommission(email, null, 'Reset to platform default fallback');
+      } else {
+        const raw = (instCommDraft[email] ?? '').trim();
+        const pct = raw === '' ? null : Number(raw);
+        if (raw !== '' && (Number.isNaN(pct) || pct! < 0 || pct! > 100)) {
+          alert('Commission percentage must be between 0 and 100 (or empty to use platform default).');
+          return;
+        }
+        await setInstructorCommission(email, pct);
+      }
+      await loadAll();
+    } catch (err: any) {
+      alert(err.message || 'Error updating instructor commission');
+    } finally {
+      setInstCommBusy(null);
+    }
+  };
+
+  const handleCreateSettlement = async () => {
+    if (!settleEmail.trim() || !settleStart || !settleEnd) {
+      alert('Instructor, period start date, and period end date are required.');
+      return;
+    }
+    setSettleBusy(true);
+    try {
+      await createInstructorSettlement({
+        instructorEmail: settleEmail,
+        periodStart: settleStart,
+        periodEnd: settleEnd,
+        note: settleNote.trim() || undefined,
+      });
+      setSettleNote('');
+      await loadAll();
+      alert('Settlement prepared from verified payments (PENDING).');
+    } catch (err: any) {
+      alert(err.message || 'Error creating settlement');
+    } finally {
+      setSettleBusy(false);
+    }
+  };
+
+  const handleSettlementDecision = async (row: InstructorSettlementRow, next: 'PAID' | 'CANCELLED') => {
+    let method: 'bank_transfer' | 'instapay' | 'vodafone_cash' | 'cash' | 'other' | null = null;
+    let reference: string | null = null;
+    let note: string | null = null;
+
+    if (next === 'PAID') {
+      const m = window.prompt(
+        `Payout method for ${fmtEGP(row.net_instructor_payout)} to ${row.instructor_email} (instapay / vodafone_cash / bank_transfer / cash / other):`,
+        'instapay'
+      );
+      if (!m) return;
+      method = (['bank_transfer', 'instapay', 'vodafone_cash', 'cash', 'other'].includes(m.trim().toLowerCase())
+        ? m.trim().toLowerCase()
+        : 'instapay') as any;
+      reference = window.prompt('Payout transaction / receipt reference (optional):') || null;
+    } else {
+      note = window.prompt(`Written reason for cancelling settlement (${row.period_start} .. ${row.period_end}):`);
+      if (!note || !note.trim()) return;
+    }
+
+    setSettleActionBusy(row.id);
+    try {
+      await setSettlementStatus({
+        settlementId: row.id,
+        newStatus: next,
+        payoutMethod: method,
+        payoutReference: reference,
+        note,
+      });
+      await loadAll();
+    } catch (err: any) {
+      alert(err.message || 'Error updating settlement status');
+    } finally {
+      setSettleActionBusy(null);
+    }
+  };
+
   // ------------------------------------------------------------------ view --
 
   return (
@@ -230,10 +357,10 @@ export const OfficeTab: React.FC = () => {
         <div>
           <h2 className="text-xl font-bold text-charcoal-900 font-display">Academy Office</h2>
           <p className="text-xs text-charcoal-100 font-sans mt-0.5">
-            Centralized pricing and the payments desk. Every action here is permanently audit-logged.
+            Centralized pricing, payments desk, commissions, and instructor settlements. Every action is permanently audit-logged.
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <button
             type="button"
             onClick={() => setSection('pricing')}
@@ -254,6 +381,19 @@ export const OfficeTab: React.FC = () => {
             <Wallet className="w-3.5 h-3.5" />
             <span>Payments Desk</span>
             {payments.filter((p) => p.status === 'PENDING' || p.status === 'UNDER_REVIEW').length > 0 && (
+              <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+            )}
+          </button>
+          <button
+            type="button"
+            onClick={() => setSection('settlements')}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-colors flex items-center gap-1.5 ${
+              section === 'settlements' ? 'bg-burgundy-500 text-ivory-100 shadow-sm' : 'bg-ivory-200 text-charcoal-900 border border-hairline'
+            }`}
+          >
+            <TrendingUp className="w-3.5 h-3.5" />
+            <span>Financial Overview & Settlements</span>
+            {(overview?.total_settlements_pending ?? 0) > 0 && (
               <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
             )}
           </button>
@@ -646,6 +786,337 @@ export const OfficeTab: React.FC = () => {
                 {waiverBusy ? 'Granting...' : 'Grant Waiver'}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ======================================= SECTION 3: SETTLEMENTS & FINANCIAL OVERVIEW (025) === */}
+      {section === 'settlements' && (
+        <div className="space-y-6">
+          {/* Truthful Empty State Banner when 0 verified payments exist */}
+          {overview && overview.verified_payments_count === 0 && (
+            <div className="p-4 rounded-2xl bg-ivory-100 border border-hairline flex items-start gap-3">
+              <Clock className="w-4 h-4 text-charcoal-100 mt-0.5 shrink-0" />
+              <div className="text-xs text-charcoal-100 leading-relaxed">
+                <span className="font-bold text-charcoal-900">No verified payments recorded yet.</span>{' '}
+                Financial totals below reflect real verified transactions only — never estimates or fabricated numbers.
+              </div>
+            </div>
+          )}
+
+          {/* KPI Summary Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+            <div className="p-4 rounded-2xl bg-ivory-100 border border-hairline space-y-1">
+              <span className="text-[10px] font-mono uppercase tracking-wider text-charcoal-100 block">
+                Gross Verified ({overview?.verified_payments_count ?? 0} tx)
+              </span>
+              <span className="text-lg font-bold font-mono text-charcoal-900 block">
+                {overview && overview.verified_payments_count > 0 ? fmtEGP(overview.total_gross_verified) : 'No verified payments'}
+              </span>
+            </div>
+            <div className="p-4 rounded-2xl bg-ivory-100 border border-hairline space-y-1">
+              <span className="text-[10px] font-mono uppercase tracking-wider text-charcoal-100 block">
+                Academy Commission Share
+              </span>
+              <span className="text-lg font-bold font-mono text-burgundy-500 block">
+                {overview && overview.verified_payments_count > 0 ? fmtEGP(overview.total_platform_revenue) : '—'}
+              </span>
+            </div>
+            <div className="p-4 rounded-2xl bg-ivory-100 border border-hairline space-y-1">
+              <span className="text-[10px] font-mono uppercase tracking-wider text-charcoal-100 block">
+                Instructors Net Share
+              </span>
+              <span className="text-lg font-bold font-mono text-emerald-700 block">
+                {overview && overview.verified_payments_count > 0 ? fmtEGP(overview.total_instructor_share) : '—'}
+              </span>
+            </div>
+            <div className="p-4 rounded-2xl bg-ivory-100 border border-hairline space-y-1">
+              <span className="text-[10px] font-mono uppercase tracking-wider text-charcoal-100 block">
+                Settled & Paid Out
+              </span>
+              <span className="text-lg font-bold font-mono text-charcoal-900 block">
+                {overview && overview.total_settled_paid > 0 ? fmtEGP(overview.total_settled_paid) : '—'}
+              </span>
+            </div>
+            <div className="p-4 rounded-2xl bg-ivory-100 border border-hairline space-y-1">
+              <span className="text-[10px] font-mono uppercase tracking-wider text-charcoal-100 block">
+                Pending Settlements
+              </span>
+              <span className="text-lg font-bold font-mono text-amber-800 block">
+                {overview && overview.total_settlements_pending > 0 ? fmtEGP(overview.total_settlements_pending) : '—'}
+              </span>
+            </div>
+          </div>
+
+          {/* Default Platform Commission Fallback + Per-Instructor Commissions */}
+          <div className="p-5 rounded-2xl bg-ivory-100 border border-hairline space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-hairline">
+              <div>
+                <h3 className="text-sm font-bold text-charcoal-900 font-display flex items-center gap-1.5">
+                  <Percent className="w-4 h-4 text-burgundy-500" />
+                  <span>Instructor Commission Policy & Revenue Breakdown</span>
+                </h3>
+                <p className="text-[11px] text-charcoal-100 mt-0.5">
+                  Each payment snapshots the instructor&apos;s commission % at transaction time. Changing a commission rate applies to future payments only.
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-[11px] font-mono text-charcoal-100">Default Fallback %:</span>
+                <input
+                  type="number"
+                  min={0}
+                  max={100}
+                  step="0.5"
+                  value={defaultCommDraft}
+                  onChange={(e) => setDefaultCommDraft(e.target.value)}
+                  className="w-20 px-2.5 py-1.5 text-xs font-mono bg-white border border-hairline rounded-lg focus:outline-none focus:border-burgundy-500"
+                />
+                <button
+                  type="button"
+                  disabled={defaultCommBusy}
+                  onClick={handleSaveDefaultCommission}
+                  className="px-3 py-1.5 rounded-lg bg-burgundy-500 hover:bg-burgundy-800 text-ivory-100 text-xs font-bold transition-colors disabled:opacity-50"
+                >
+                  {defaultCommBusy ? 'Saving...' : 'Update Default'}
+                </button>
+              </div>
+            </div>
+
+            {!overview || overview.instructors.length === 0 ? (
+              <p className="text-xs text-charcoal-100 italic py-4 text-center">
+                No instructor profiles found.
+              </p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="border-b border-hairline text-[10px] font-mono text-charcoal-100 uppercase">
+                      <th className="py-2.5 px-3">Instructor</th>
+                      <th className="py-2.5 px-3">Courses</th>
+                      <th className="py-2.5 px-3">Effective %</th>
+                      <th className="py-2.5 px-3">Custom Override %</th>
+                      <th className="py-2.5 px-3">Verified Gross</th>
+                      <th className="py-2.5 px-3">Academy Share</th>
+                      <th className="py-2.5 px-3">Instructor Net</th>
+                      <th className="py-2.5 px-3">Paid / Pending</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-hairline text-xs">
+                    {overview.instructors.map((inst) => {
+                      const draftVal =
+                        instCommDraft[inst.email] !== undefined
+                          ? instCommDraft[inst.email]
+                          : inst.custom_commission_pct !== null && inst.custom_commission_pct !== undefined
+                          ? String(inst.custom_commission_pct)
+                          : '';
+                      return (
+                        <tr key={inst.email} className="hover:bg-ivory-200/40 transition-colors">
+                          <td className="py-2.5 px-3">
+                            <div className="font-bold text-charcoal-900">{inst.name}</div>
+                            <div className="text-[11px] font-mono text-charcoal-100">{inst.email}</div>
+                          </td>
+                          <td className="py-2.5 px-3 font-mono">{inst.courses_count}</td>
+                          <td className="py-2.5 px-3 font-mono font-bold text-burgundy-500">
+                            {inst.effective_commission_pct}%{' '}
+                            <span className="text-[10px] font-normal text-charcoal-100">
+                              ({inst.custom_commission_pct !== null ? 'custom' : 'default'})
+                            </span>
+                          </td>
+                          <td className="py-2.5 px-3">
+                            <div className="flex items-center gap-1.5">
+                              <input
+                                type="number"
+                                min={0}
+                                max={100}
+                                step="0.5"
+                                placeholder={`Default (${overview.default_commission_pct}%)`}
+                                value={draftVal}
+                                onChange={(e) =>
+                                  setInstCommDraft((prev) => ({ ...prev, [inst.email]: e.target.value }))
+                                }
+                                className="w-28 px-2 py-1 text-xs font-mono bg-white border border-hairline rounded-lg focus:outline-none focus:border-burgundy-500"
+                              />
+                              <button
+                                type="button"
+                                disabled={instCommBusy === inst.email}
+                                onClick={() => handleSaveInstructorCommission(inst.email, false)}
+                                className="px-2.5 py-1 rounded-lg bg-burgundy-500 hover:bg-burgundy-800 text-ivory-100 text-[11px] font-bold transition-colors disabled:opacity-50"
+                              >
+                                Save
+                              </button>
+                              {inst.custom_commission_pct !== null && (
+                                <button
+                                  type="button"
+                                  disabled={instCommBusy === inst.email}
+                                  onClick={() => handleSaveInstructorCommission(inst.email, true)}
+                                  className="px-2 py-1 rounded-lg bg-ivory-200 hover:bg-ivory-300 border border-hairline text-charcoal-100 text-[10px] font-bold transition-colors"
+                                >
+                                  Reset
+                                </button>
+                              )}
+                            </div>
+                          </td>
+                          <td className="py-2.5 px-3 font-mono">
+                            {inst.verified_payments_count > 0
+                              ? `${fmtEGP(inst.gross_collected)} (${inst.verified_payments_count})`
+                              : '—'}
+                          </td>
+                          <td className="py-2.5 px-3 font-mono text-burgundy-500">
+                            {inst.verified_payments_count > 0 ? fmtEGP(inst.platform_share) : '—'}
+                          </td>
+                          <td className="py-2.5 px-3 font-mono font-bold text-emerald-700">
+                            {inst.verified_payments_count > 0 ? fmtEGP(inst.instructor_net) : '—'}
+                          </td>
+                          <td className="py-2.5 px-3 font-mono text-[11px]">
+                            {inst.paid_out > 0 || inst.pending_settlement > 0
+                              ? `${fmtEGP(inst.paid_out)} / ${fmtEGP(inst.pending_settlement)}`
+                              : '—'}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+
+          {/* Prepare Settlement Form */}
+          <div className="p-5 rounded-2xl bg-ivory-100 border border-hairline space-y-4">
+            <div className="flex items-center gap-2 text-xs font-bold text-charcoal-900 font-display">
+              <Banknote className="w-4 h-4 text-burgundy-500" />
+              <span>Prepare Instructor Settlement (from real VERIFIED payments only)</span>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+              <select
+                value={settleEmail}
+                onChange={(e) => setSettleEmail(e.target.value)}
+                className="px-3 py-2 text-xs bg-white border border-hairline rounded-xl focus:outline-none focus:border-burgundy-500"
+              >
+                <option value="">Select instructor...</option>
+                {(overview?.instructors || []).map((inst) => (
+                  <option key={inst.email} value={inst.email}>
+                    {inst.name} ({inst.email})
+                  </option>
+                ))}
+              </select>
+              <input
+                type="date"
+                value={settleStart}
+                onChange={(e) => setSettleStart(e.target.value)}
+                className="px-3 py-2 text-xs font-mono bg-white border border-hairline rounded-xl focus:outline-none focus:border-burgundy-500"
+              />
+              <input
+                type="date"
+                value={settleEnd}
+                onChange={(e) => setSettleEnd(e.target.value)}
+                className="px-3 py-2 text-xs font-mono bg-white border border-hairline rounded-xl focus:outline-none focus:border-burgundy-500"
+              />
+              <input
+                type="text"
+                placeholder="Note (optional)"
+                value={settleNote}
+                onChange={(e) => setSettleNote(e.target.value)}
+                className="px-3 py-2 text-xs bg-white border border-hairline rounded-xl focus:outline-none focus:border-burgundy-500"
+              />
+              <button
+                type="button"
+                disabled={settleBusy}
+                onClick={handleCreateSettlement}
+                className="px-4 py-2 rounded-xl bg-burgundy-500 hover:bg-burgundy-800 text-ivory-100 text-xs font-bold transition-colors disabled:opacity-50"
+              >
+                {settleBusy ? 'Preparing...' : 'Prepare Settlement'}
+              </button>
+            </div>
+          </div>
+
+          {/* Settlements Ledger Table */}
+          <div className="p-5 rounded-2xl bg-ivory-100 border border-hairline space-y-3">
+            <h3 className="text-sm font-bold text-charcoal-900 font-display">
+              Instructor Settlements Ledger
+            </h3>
+            {!overview || overview.settlements.length === 0 ? (
+              <p className="text-xs text-charcoal-100 italic py-6 text-center">
+                No instructor settlements recorded yet. Settlements can only be created when verified payments exist in the selected period.
+              </p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="border-b border-hairline text-[10px] font-mono text-charcoal-100 uppercase">
+                      <th className="py-2.5 px-3">Instructor</th>
+                      <th className="py-2.5 px-3">Period</th>
+                      <th className="py-2.5 px-3">Verified Tx</th>
+                      <th className="py-2.5 px-3">Gross</th>
+                      <th className="py-2.5 px-3">Academy Share</th>
+                      <th className="py-2.5 px-3">Net Payout</th>
+                      <th className="py-2.5 px-3">Status</th>
+                      <th className="py-2.5 px-3 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-hairline text-xs">
+                    {overview.settlements.map((s) => (
+                      <tr key={s.id} className="hover:bg-ivory-200/40 transition-colors">
+                        <td className="py-2.5 px-3 font-mono">{s.instructor_email}</td>
+                        <td className="py-2.5 px-3 font-mono text-[11px]">
+                          {s.period_start} → {s.period_end}
+                        </td>
+                        <td className="py-2.5 px-3 font-mono">{s.verified_payments_count}</td>
+                        <td className="py-2.5 px-3 font-mono">{fmtEGP(s.gross_collected)}</td>
+                        <td className="py-2.5 px-3 font-mono text-burgundy-500">{fmtEGP(s.platform_share)}</td>
+                        <td className="py-2.5 px-3 font-mono font-bold text-emerald-700">
+                          {fmtEGP(s.net_instructor_payout)}
+                        </td>
+                        <td className="py-2.5 px-3">
+                          <span
+                            className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-bold border ${
+                              s.status === 'PAID'
+                                ? 'bg-emerald-100 text-emerald-800 border-emerald-200'
+                                : s.status === 'PENDING'
+                                ? 'bg-amber-100 text-amber-800 border-amber-200'
+                                : 'bg-ivory-300 text-charcoal-100 border-hairline'
+                            }`}
+                          >
+                            {s.status}
+                          </span>
+                          {s.payout_reference && (
+                            <span className="block text-[10px] font-mono text-charcoal-100 mt-0.5">
+                              Ref: {s.payout_reference}
+                            </span>
+                          )}
+                        </td>
+                        <td className="py-2.5 px-3 text-right">
+                          {s.status === 'PENDING' ? (
+                            <div className="inline-flex items-center gap-1.5">
+                              <button
+                                type="button"
+                                disabled={settleActionBusy === s.id}
+                                onClick={() => handleSettlementDecision(s, 'PAID')}
+                                className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold transition-colors disabled:opacity-50"
+                              >
+                                Mark Paid
+                              </button>
+                              <button
+                                type="button"
+                                disabled={settleActionBusy === s.id}
+                                onClick={() => handleSettlementDecision(s, 'CANCELLED')}
+                                className="px-2.5 py-1 rounded-lg bg-ivory-200 hover:bg-ivory-300 border border-hairline text-charcoal-100 text-[11px] font-bold transition-colors disabled:opacity-50"
+                              >
+                                Cancel
+                              </button>
+                            </div>
+                          ) : (
+                            <span className="text-[10px] font-mono text-charcoal-50 italic">
+                              final — immutable
+                            </span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         </div>
       )}
