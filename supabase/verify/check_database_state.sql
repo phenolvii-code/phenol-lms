@@ -31,7 +31,8 @@ from (values
   ('get_course_quiz_metadata'), ('get_quiz_questions'), ('submit_quiz_attempt'),
   ('list_instructor_quizzes'), ('get_quiz_for_editing'), ('save_quiz'), ('delete_quiz'),
   ('can_download_booklet'),
-  ('get_instructor_reviews'), ('get_review_stats'), ('admin_delete_student_account')
+  ('get_instructor_reviews'), ('get_review_stats'), ('admin_delete_student_account'),
+  ('admin_set_user_role')
 ) as t(name)
 
 union all
@@ -119,6 +120,25 @@ select 'POLICY AUDIT', 'no is_admin()-based policies remain (migration 018)',
 
 union all
 
+-- 6c. Migration 019 audit: every instructor-role account has a directory row ---
+--     A promoted instructor without an instructor_profiles row is invisible on
+--     /faculty (public read shows published rows only). Expected: 0 missing.
+select 'DIRECTORY AUDIT', 'every instructor-role account has a directory row (migration 019)',
+       case when not exists (
+         select 1
+         from auth.users u
+         left join public.profiles p on p.id = u.id
+         left join public.registered_students rs
+           on lower(trim(rs.email)) = lower(trim(u.email))
+         where (p.role = 'instructor' or upper(coalesce(rs.role, '')) = 'INSTRUCTOR')
+           and not exists (
+             select 1 from public.instructor_profiles ip where ip.user_id = u.id
+           )
+       )
+       then 'OK' else 'MISSING rows - re-run migration 019 step 1' end
+
+union all
+
 -- 7. Migration 015 audit: the `booklets` bucket is PRIVATE ----------------------
 select 'STORAGE AUDIT', 'bucket booklets is private (migration 015)',
        case when exists (select 1 from storage.buckets
@@ -129,14 +149,16 @@ union all
 
 -- 8. Schema audit marker (shows the highest migration actually applied) ---------
 select 'AUDIT MARKER', 'schema comment',
-       case when obj_description('public'::regnamespace, 'pg_namespace') like '%018%'
-       then 'OK (through 018)'
+       case when obj_description('public'::regnamespace, 'pg_namespace') like '%019%'
+       then 'OK (through 019)'
+       when obj_description('public'::regnamespace, 'pg_namespace') like '%018%'
+       then 'PARTIAL (018 only - 019 not applied)'
        when obj_description('public'::regnamespace, 'pg_namespace') like '%017%'
-       then 'PARTIAL (017 only - 018 not applied)'
+       then 'PARTIAL (017 only - 018/019 not applied)'
        when obj_description('public'::regnamespace, 'pg_namespace') like '%016%'
-       then 'PARTIAL (016 only - 017/018 not applied)'
+       then 'PARTIAL (016 only - 017/018/019 not applied)'
        when obj_description('public'::regnamespace, 'pg_namespace') like '%014%'
-       then 'PARTIAL (014 only - 015/016 not applied)'
+       then 'PARTIAL (014 only - 015/016/019 not applied)'
        else 'MISSING/OLDER' end
 
 order by kind, item;
