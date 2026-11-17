@@ -37,7 +37,9 @@ from (values
   ('trg_protect_commission_pct'), ('trg_pricing_guard'), ('trg_payments_guard'),
   ('log_academy_action'), ('trg_audit_logs_guard'), ('trg_audit_role_change'),
   ('trg_audit_logs_guard_statement'),
-  ('record_payment'), ('set_payment_status'), ('waive_enrollment_payment')
+  ('record_payment'), ('set_payment_status'), ('waive_enrollment_payment'),
+  ('set_course_price'), ('set_course_published'), ('office_list_courses'),
+  ('trg_capture_price_history')
 ) as t(name)
 
 union all
@@ -74,6 +76,7 @@ from (values
   ('platform_settings', 'settings read staff'),
   ('platform_settings', 'settings manage super_admin'),
   ('audit_logs', 'audit logs read super_admin'),
+  ('course_price_history', 'price history read office'),
   ('student_notifications', 'notifications admin manage'),
   ('instructor_reviews', 'reviews read involved'),
   ('instructor_reviews', 'reviews insert enrolled')
@@ -378,6 +381,54 @@ select 'GOVERNANCE STATE', 'payments / audit rows (informational)',
 
 union all
 
+-- 6m. Migration 024 audits: course governance + pricing --------------------------
+--     M1: exactly ONE client policy on course_price_history (office read).
+select 'PRICING AUDIT', 'course_price_history has exactly 1 client policy - office read (migration 024)',
+       case when (select count(*) from pg_policies
+                  where schemaname = 'public' and tablename = 'course_price_history') = 1
+            then 'OK' else 'REVIEW - unexpected policy on course_price_history' end
+
+union all
+
+--     M2: the automatic pricing-capture trigger is bound to courses.
+select 'PRICING AUDIT', 'pricing-capture trigger bound to courses (migration 024)',
+       case when exists (select 1 from pg_trigger t join pg_class c on c.oid = t.tgrelid
+          join pg_namespace n on n.oid = c.relnamespace
+          where n.nspname = 'public' and c.relname = 'courses'
+            and t.tgname = 'trg_course_price_history' and not t.tgisinternal)
+       then 'OK' else 'MISSING - re-run migration 024 step 2' end
+
+union all
+
+--     M3: course RPCs are office-gated + audit-logged.
+select 'PRICING AUDIT', 'course governance RPCs office-gated + audited (migration 024)',
+       case when (select prosrc from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+                  where n.nspname = 'public' and p.proname = 'set_course_approval') ilike '%is_secretary%'
+        and (select prosrc from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+                  where n.nspname = 'public' and p.proname = 'set_course_approval') ilike '%course.approval%'
+        and (select prosrc from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+                  where n.nspname = 'public' and p.proname = 'set_course_published') ilike '%course.publish%'
+        and (select prosrc from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+                  where n.nspname = 'public' and p.proname = 'set_course_price') ilike '%course.price.set%'
+       then 'OK' else 'MISSING - re-run migration 024 steps 3/4/5' end
+
+union all
+
+--     M4: publish gate - no publishing past review (must check APPROVED).
+select 'PRICING AUDIT', 'publish requires APPROVED status (migration 024)',
+       case when (select prosrc from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+                  where n.nspname = 'public' and p.proname = 'set_course_published') ilike '%only APPROVED courses go live%'
+       then 'OK' else 'MISSING - re-run migration 024 step 4' end
+
+union all
+
+--     M5: TRUTH check - pricing state (informational).
+select 'PRICING STATE', 'priced courses / history rows (informational)',
+       (select count(*) from public.courses where price is not null)::text || ' priced courses, '
+       || (select count(*) from public.course_price_history)::text || ' price-history rows'
+
+union all
+
 -- 7. Migration 015 audit: the `booklets` bucket is PRIVATE ----------------------
 select 'STORAGE AUDIT', 'bucket booklets is private (migration 015)',
        case when exists (select 1 from storage.buckets
@@ -388,24 +439,26 @@ union all
 
 -- 8. Schema audit marker (shows the highest migration actually applied) ---------
 select 'AUDIT MARKER', 'schema comment',
-       case when obj_description('public'::regnamespace, 'pg_namespace') like '%023%'
-       then 'OK (through 023)'
+       case when obj_description('public'::regnamespace, 'pg_namespace') like '%024%'
+       then 'OK (through 024)'
+       when obj_description('public'::regnamespace, 'pg_namespace') like '%023%'
+       then 'PARTIAL (023 only - 024 not applied)'
        when obj_description('public'::regnamespace, 'pg_namespace') like '%022%'
-       then 'PARTIAL (022 only - 023 not applied)'
+       then 'PARTIAL (022 only - 023/024 not applied)'
        when obj_description('public'::regnamespace, 'pg_namespace') like '%021%'
-       then 'PARTIAL (021 only - 022/023 not applied)'
+       then 'PARTIAL (021 only - 022/023/024 not applied)'
        when obj_description('public'::regnamespace, 'pg_namespace') like '%020%'
-       then 'PARTIAL (020 only - 021/022/023 not applied)'
+       then 'PARTIAL (020 only - 021/022/023/024 not applied)'
        when obj_description('public'::regnamespace, 'pg_namespace') like '%019%'
-       then 'PARTIAL (019 only - 020/021/022/023 not applied)'
+       then 'PARTIAL (019 only - 020/021/022/023/024 not applied)'
        when obj_description('public'::regnamespace, 'pg_namespace') like '%018%'
-       then 'PARTIAL (018 only - 019/020/021/022/023 not applied)'
+       then 'PARTIAL (018 only - 019/020/021/022/023/024 not applied)'
        when obj_description('public'::regnamespace, 'pg_namespace') like '%017%'
-       then 'PARTIAL (017 only - 018/019/020/021/022/023 not applied)'
+       then 'PARTIAL (017 only - 018/019/020/021/022/023/024 not applied)'
        when obj_description('public'::regnamespace, 'pg_namespace') like '%016%'
-       then 'PARTIAL (016 only - 017/018/019/020/021/022/023 not applied)'
+       then 'PARTIAL (016 only - 017/018/019/020/021/022/023/024 not applied)'
        when obj_description('public'::regnamespace, 'pg_namespace') like '%014%'
-       then 'PARTIAL (014 only - 015/016/019/020/021/022/023 not applied)'
+       then 'PARTIAL (014 only - 015/016/019/020/021/022/023/024 not applied)'
        else 'MISSING/OLDER' end
 
 order by kind, item;

@@ -37,7 +37,9 @@ import {
   FileSignature,
   Mail,
   XCircle,
+  Wallet,
 } from 'lucide-react';
+import { OfficeTab } from '@/components/dashboard/admin/OfficeTab';
 
 interface FacultyRequestRecord {
   id: string;
@@ -83,7 +85,7 @@ export const SuperAdministrationView: React.FC<SuperAdministrationViewProps> = (
   onExpelUser,
   onOpenCreateCourse,
 }) => {
-  const [activeTab, setActiveTab] = useState<'accounts' | 'approvals' | 'tracks' | 'instructors' | 'applications'>('accounts');
+  const [activeTab, setActiveTab] = useState<'accounts' | 'approvals' | 'office' | 'tracks' | 'instructors' | 'applications'>('accounts');
   const [userSearchQuery, setUserSearchQuery] = useState('');
   const [userFilter, setUserFilter] = useState<'all' | 'instructors' | 'students'>('all');
   const [facultyRequests, setFacultyRequests] = useState<FacultyRequestRecord[]>([]);
@@ -444,7 +446,24 @@ export const SuperAdministrationView: React.FC<SuperAdministrationViewProps> = (
           </span>
         </button>
 
-        {/* Tab 3: The 4 Academic Tracks */}
+        {/* Tab 3: Academy Office (pricing + payments desk, migration 024) */}
+        <button
+          onClick={() => {
+            setActiveTab('office');
+            setSelectedTrackId(null);
+            setSelectedInstructorId(null);
+          }}
+          className={`pb-3.5 border-b-2 transition-all flex items-center gap-2 whitespace-nowrap ${
+            activeTab === 'office'
+              ? 'border-burgundy-500 text-burgundy-500 font-bold'
+              : 'border-transparent text-charcoal-100 hover:text-charcoal-900'
+          }`}
+        >
+          <Wallet className="w-4 h-4" />
+          <span>Academy Office</span>
+        </button>
+
+        {/* Tab 4: The 4 Academic Tracks */}
         <button
           onClick={() => {
             setActiveTab('tracks');
@@ -817,6 +836,9 @@ export const SuperAdministrationView: React.FC<SuperAdministrationViewProps> = (
           )}
         </div>
       )}
+
+      {/* TAB: ACADEMY OFFICE (migration 024) */}
+      {activeTab === 'office' && <OfficeTab />}
 
       {/* TAB 3: THE 4 ACADEMIC TRACKS */}
       {activeTab === 'tracks' && (
