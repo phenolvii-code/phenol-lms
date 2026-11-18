@@ -93,7 +93,7 @@ DECLARE
   v_entity_id text := nullif(btrim(coalesce(p_entity_id, '')), '');
   v_source text := nullif(lower(btrim(coalesce(p_source, ''))), '');
 BEGIN
-  -- Founder only. is_admin()/is_secretary() are never trusted here.
+  -- Founder only - parity with the 022 SELECT policy on audit_logs.
   IF NOT public.is_super_admin() THEN
     RAISE EXCEPTION 'forbidden: the audit log is readable by the academy founder only';
   END IF;
