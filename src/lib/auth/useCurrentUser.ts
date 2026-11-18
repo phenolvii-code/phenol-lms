@@ -30,9 +30,7 @@ export function useCurrentUser() {
       const isInstructor = isSuperAdmin || dbRole === 'instructor';
       const isSecretary = !isSuperAdmin && !isInstructor && dbRole === 'secretary';
 
-      const role: UserRole = isSuperAdmin
-        ? 'SUPER_ADMIN'
-        : isInstructor
+      const role: UserRole = isInstructor
         ? 'INSTRUCTOR'
         : isSecretary
         ? 'SECRETARY'
