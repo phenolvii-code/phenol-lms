@@ -38,34 +38,6 @@
 -- ==============================================================================
 
 -- ------------------------------------------------------------------------------
--- 0) Read helper for slots (definer: no RLS recursion, no leakage).
---    True when the caller may see this service at all: published+active, the
---    service's own instructor, or the academy office.
--- ------------------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION public.can_read_private_service(p_service_id uuid)
-RETURNS boolean
-LANGUAGE sql
-STABLE
-SECURITY DEFINER
-SET search_path = public
-AS $$
-  SELECT EXISTS (
-    SELECT 1
-    FROM public.private_services s
-    WHERE s.id = p_service_id
-      AND (
-        (s.status = 'ACTIVE' AND s.is_published)
-        OR lower(btrim(s.instructor_email)) = lower(btrim(coalesce(auth.jwt() ->> 'email', '')))
-        OR public.is_secretary()
-        OR public.is_super_admin()
-      )
-  );
-$$;
-
-REVOKE ALL ON FUNCTION public.can_read_private_service(uuid) FROM public, anon;
-GRANT EXECUTE ON FUNCTION public.can_read_private_service(uuid) TO authenticated;
-
--- ------------------------------------------------------------------------------
 -- 1) private_services: what an instructor offers (price + visibility = office).
 -- ------------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS public.private_services (
@@ -152,6 +124,36 @@ CREATE UNIQUE INDEX IF NOT EXISTS uq_private_service_slots_service_start
 CREATE INDEX IF NOT EXISTS idx_private_service_slots_open
   ON public.private_service_slots (starts_at)
   WHERE status = 'OPEN';
+
+-- ------------------------------------------------------------------------------
+-- 2b) Read helper for slots (definer: no RLS recursion, no leakage).
+--     True when the caller may see this service at all: published+active, the
+--     service's own instructor, or the academy office.
+--     NOTE: created AFTER the tables on purpose - PostgreSQL validates
+--     SQL-function bodies at CREATE time (fixes 42P01 on a fresh database).
+-- ------------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION public.can_read_private_service(p_service_id uuid)
+RETURNS boolean
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT EXISTS (
+    SELECT 1
+    FROM public.private_services s
+    WHERE s.id = p_service_id
+      AND (
+        (s.status = 'ACTIVE' AND s.is_published)
+        OR lower(btrim(s.instructor_email)) = lower(btrim(coalesce(auth.jwt() ->> 'email', '')))
+        OR public.is_secretary()
+        OR public.is_super_admin()
+      )
+  );
+$$;
+
+REVOKE ALL ON FUNCTION public.can_read_private_service(uuid) FROM public, anon;
+GRANT EXECUTE ON FUNCTION public.can_read_private_service(uuid) TO authenticated;
 
 -- ------------------------------------------------------------------------------
 -- 3) RLS: read-only for clients, always. Every write is a definer RPC.
