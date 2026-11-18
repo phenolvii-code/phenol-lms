@@ -38,8 +38,10 @@ import {
   Mail,
   XCircle,
   Wallet,
+  ScrollText,
 } from 'lucide-react';
 import { OfficeTab } from '@/components/dashboard/admin/OfficeTab';
+import { AuditLogTab } from '@/components/dashboard/admin/AuditLogTab';
 
 interface FacultyRequestRecord {
   id: string;
@@ -87,7 +89,7 @@ export const SuperAdministrationView: React.FC<SuperAdministrationViewProps> = (
   onOpenCreateCourse,
   onSetUserRole,
 }) => {
-  const [activeTab, setActiveTab] = useState<'accounts' | 'approvals' | 'office' | 'tracks' | 'instructors' | 'applications'>('accounts');
+  const [activeTab, setActiveTab] = useState<'accounts' | 'approvals' | 'office' | 'tracks' | 'instructors' | 'applications' | 'audit'>('accounts');
   const [officeRoleEmail, setOfficeRoleEmail] = useState('');
   const [userSearchQuery, setUserSearchQuery] = useState('');
   const [userFilter, setUserFilter] = useState<'all' | 'instructors' | 'students'>('all');
@@ -528,6 +530,23 @@ export const SuperAdministrationView: React.FC<SuperAdministrationViewProps> = (
           >
             {pendingFacultyRequests}
           </span>
+        </button>
+
+        {/* Tab 6: Audit Log (migration 027, founder-only read-only ledger) */}
+        <button
+          onClick={() => {
+            setActiveTab('audit');
+            setSelectedTrackId(null);
+            setSelectedInstructorId(null);
+          }}
+          className={`pb-3.5 border-b-2 transition-all flex items-center gap-2 whitespace-nowrap ${
+            activeTab === 'audit'
+              ? 'border-burgundy-500 text-burgundy-500 font-bold'
+              : 'border-transparent text-charcoal-100 hover:text-charcoal-900'
+          }`}
+        >
+          <ScrollText className="w-4 h-4" />
+          <span>Audit Log</span>
         </button>
       </div>
 
@@ -1457,6 +1476,9 @@ export const SuperAdministrationView: React.FC<SuperAdministrationViewProps> = (
           )}
         </div>
       )}
+
+      {/* TAB 6: AUDIT LOG (migration 027 - founder-only, read-only) */}
+      {activeTab === 'audit' && <AuditLogTab />}
 
       {/* Password Reset Modal */}
       {resetPasswordStudent && (

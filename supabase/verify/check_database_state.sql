@@ -45,7 +45,8 @@ from (values
   ('set_default_platform_commission'), ('create_instructor_settlement'),
   ('set_settlement_status'), ('get_instructor_financial_ledger'),
   ('get_super_admin_financial_overview'),
-  ('office_list_payments'), ('office_list_enrollment_queue')
+  ('office_list_payments'), ('office_list_enrollment_queue'),
+  ('founder_list_audit_logs')
 ) as t(name)
 
 union all
@@ -569,6 +570,47 @@ select 'OFFICE STATE', 'settled vs unsettled verified payments (informational)',
 
 union all
 
+-- 6d. Migration 027 audit - founder-only audit-log viewer -----------------------
+--     N1: the read RPC exists and is a SECURITY DEFINER.
+select 'AUDIT VIEWER AUDIT', 'founder_list_audit_logs exists (security definer)',
+       case when exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+                  where n.nspname = 'public'
+                    and p.proname = 'founder_list_audit_logs'
+                    and p.prosecdef)
+       then 'OK' else 'MISSING - re-run migration 027 step 2' end
+
+union all
+
+--     N2: gate is is_super_admin ONLY, and the body never writes.
+select 'AUDIT VIEWER AUDIT', 'viewer is super_admin-gated and read-only',
+       case when (select prosrc from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+                  where n.nspname = 'public' and p.proname = 'founder_list_audit_logs')
+                 ilike '%is_super_admin%'
+             and (select prosrc from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+                  where n.nspname = 'public' and p.proname = 'founder_list_audit_logs')
+                 not ilike '%is_secretary%'
+             and (select prosrc from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+                  where n.nspname = 'public' and p.proname = 'founder_list_audit_logs')
+                 not ilike '%insert into%'
+       then 'OK' else 'WRONG - re-run migration 027 step 2' end
+
+union all
+
+--     N3: audit_logs still has ZERO client write policies (022 guarantee intact).
+select 'AUDIT VIEWER AUDIT', 'audit_logs still has no client write policies',
+       case when not exists (select 1 from pg_policies
+                  where schemaname = 'public' and tablename = 'audit_logs'
+                    and cmd in ('INSERT', 'UPDATE', 'DELETE', 'ALL'))
+       then 'OK' else 'LEAK - a write policy appeared on audit_logs' end
+
+union all
+
+-- 6e. TRUTH check - audit ledger size (informational: 0 rows on a fresh ledger).
+select 'AUDIT STATE', 'audit_logs rows (informational)',
+       (select count(*)::text from public.audit_logs) || ' logged actions'
+
+union all
+
 -- 7. Migration 015 audit: the `booklets` bucket is PRIVATE ----------------------
 select 'STORAGE AUDIT', 'bucket booklets is private (migration 015)',
        case when exists (select 1 from storage.buckets
@@ -579,30 +621,32 @@ union all
 
 -- 8. Schema audit marker (shows the highest migration actually applied) ---------
 select 'AUDIT MARKER', 'schema comment',
-       case when obj_description('public'::regnamespace, 'pg_namespace') like '%026%'
-       then 'OK (through 026)'
+       case when obj_description('public'::regnamespace, 'pg_namespace') like '%027%'
+       then 'OK (through 027)'
+       when obj_description('public'::regnamespace, 'pg_namespace') like '%026%'
+       then 'PARTIAL (026 only - 027 not applied)'
        when obj_description('public'::regnamespace, 'pg_namespace') like '%025%'
-       then 'PARTIAL (025 only - 026 not applied)'
+       then 'PARTIAL (025 only - 026/027 not applied)'
        when obj_description('public'::regnamespace, 'pg_namespace') like '%024%'
-       then 'PARTIAL (024 only - 025/026 not applied)'
+       then 'PARTIAL (024 only - 025/026/027 not applied)'
        when obj_description('public'::regnamespace, 'pg_namespace') like '%023%'
-       then 'PARTIAL (023 only - 024/025/026 not applied)'
+       then 'PARTIAL (023 only - 024/025/026/027 not applied)'
        when obj_description('public'::regnamespace, 'pg_namespace') like '%022%'
-       then 'PARTIAL (022 only - 023/024/025/026 not applied)'
+       then 'PARTIAL (022 only - 023/024/025/026/027 not applied)'
        when obj_description('public'::regnamespace, 'pg_namespace') like '%021%'
-       then 'PARTIAL (021 only - 022/023/024/025/026 not applied)'
+       then 'PARTIAL (021 only - 022/023/024/025/026/027 not applied)'
        when obj_description('public'::regnamespace, 'pg_namespace') like '%020%'
-       then 'PARTIAL (020 only - 021/022/023/024/025/026 not applied)'
+       then 'PARTIAL (020 only - 021/022/023/024/025/026/027 not applied)'
        when obj_description('public'::regnamespace, 'pg_namespace') like '%019%'
-       then 'PARTIAL (019 only - 020/021/022/023/024/025/026 not applied)'
+       then 'PARTIAL (019 only - 020/021/022/023/024/025/026/027 not applied)'
        when obj_description('public'::regnamespace, 'pg_namespace') like '%018%'
-       then 'PARTIAL (018 only - 019/020/021/022/023/024/025/026 not applied)'
+       then 'PARTIAL (018 only - 019/020/021/022/023/024/025/026/027 not applied)'
        when obj_description('public'::regnamespace, 'pg_namespace') like '%017%'
-       then 'PARTIAL (017 only - 018/019/020/021/022/023/024/025/026 not applied)'
+       then 'PARTIAL (017 only - 018/019/020/021/022/023/024/025/026/027 not applied)'
        when obj_description('public'::regnamespace, 'pg_namespace') like '%016%'
-       then 'PARTIAL (016 only - 017/018/019/020/021/022/023/024/025/026 not applied)'
+       then 'PARTIAL (016 only - 017/018/019/020/021/022/023/024/025/026/027 not applied)'
        when obj_description('public'::regnamespace, 'pg_namespace') like '%014%'
-       then 'PARTIAL (014 only - 015/016/019/020/021/022/023/024/025/026 not applied)'
+       then 'PARTIAL (014 only - 015/016/019/020/021/022/023/024/025/026/027 not applied)'
        else 'MISSING/OLDER' end
 
 order by kind, item;
