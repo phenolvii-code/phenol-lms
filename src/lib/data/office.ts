@@ -45,8 +45,24 @@ export interface PaymentRow {
   platform_amount: number | null;
   instructor_amount: number | null;
   processing_fee: number;
+  settlement_id: string | null;
   created_at: string;
   note: string | null;
+}
+
+export interface EnrollmentQueueRow {
+  id: string;
+  student_email: string;
+  student_name: string;
+  student_phone: string | null;
+  student_code: string | null;
+  student_track: string | null;
+  course_id: string;
+  course_title: string;
+  course_code: string | null;
+  status: 'PENDING' | 'ACTIVE' | 'REJECTED';
+  requested_at: string | null;
+  approved_at: string | null;
 }
 
 // ---------------------------------------------------------------- courses ----
@@ -115,16 +131,24 @@ export async function listPriceHistory(courseId: string): Promise<PriceHistoryRo
 // --------------------------------------------------------------- payments ----
 
 export async function listPayments(): Promise<PaymentRow[]> {
-  const { data, error } = await supabase
-    .from('payments')
-    .select('*')
-    .order('created_at', { ascending: false })
-    .limit(100);
+  // 026: definer RPC - the office reads the ledger without direct table access
+  // (the payments RLS policy is owner/super-admin scoped, which silently
+  // returned zero rows for the secretary).
+  const { data, error } = await supabase.rpc('office_list_payments');
   if (error) {
     console.error('Error loading payments:', error.message);
     return [];
   }
   return (data as PaymentRow[]) || [];
+}
+
+export async function listEnrollmentQueue(): Promise<EnrollmentQueueRow[]> {
+  const { data, error } = await supabase.rpc('office_list_enrollment_queue');
+  if (error) {
+    console.error('Error loading enrollment queue:', error.message);
+    return [];
+  }
+  return (data as EnrollmentQueueRow[]) || [];
 }
 
 export async function recordPayment(input: {

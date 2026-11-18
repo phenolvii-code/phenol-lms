@@ -1,4 +1,4 @@
-export type UserRole = 'STUDENT' | 'INSTRUCTOR' | 'SUPER_ADMIN' | 'GUEST';
+export type UserRole = 'STUDENT' | 'INSTRUCTOR' | 'SECRETARY' | 'SUPER_ADMIN' | 'GUEST';
 
 export interface AuthUser {
   id: string;
@@ -16,6 +16,7 @@ export interface AuthUser {
   whatsapp?: string;
   academicTrack?: string;
   isSuperAdmin?: boolean;
+  isSecretary?: boolean;
 }
 
 export type AuthModalMode = 'LOGIN' | 'REGISTER' | 'INSTRUCTOR_LOGIN' | 'WHATSAPP_REQUIRED';

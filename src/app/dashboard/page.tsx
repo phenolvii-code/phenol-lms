@@ -130,6 +130,14 @@ export default function DashboardPage() {
   const isSuperAdminUser =
     currentUser?.isSuperAdmin || currentUser?.email?.toLowerCase() === 'phenolvii@gmail.com';
 
+  // 026: the Academy Secretary has a dedicated workspace (office operations),
+  // not the student/instructor dashboard.
+  useEffect(() => {
+    if (currentUser?.role === 'SECRETARY') {
+      router.replace('/office');
+    }
+  }, [currentUser?.role, router]);
+
   useEffect(() => {
     if (currentUser?.avatar) {
       setProfileAvatar(currentUser.avatar);
@@ -716,26 +724,22 @@ export default function DashboardPage() {
   const handleToggleUserRole = async (userId: string, email: string, currentRole: 'instructor' | 'student') => {
     const newRole = currentRole === 'instructor' ? 'student' : 'instructor';
     try {
-      // 1. Database-First: Call dedicated Super Admin RPC to persist to PostgreSQL
+      // Database-first only: admin_set_user_role is the single audited door.
+      // (026: the old direct-table fallback was removed - it silently failed
+      // under RLS and could bypass the audit trail if a policy ever allowed it.)
       const { error: rpcErr } = await supabase.rpc('admin_set_user_role', {
         p_user_email: email,
         p_role: newRole,
       });
-
       if (rpcErr) {
-        console.warn('RPC admin_set_user_role notice, falling back:', rpcErr);
-        if (userId) {
-          await supabase.from('profiles').update({ role: newRole }).eq('id', userId);
-        } else {
-          const { data: st } = await supabase.from('registered_students').select('id').eq('email', email).single();
-          if (st?.id) {
-            await supabase.from('profiles').update({ role: newRole }).eq('id', st.id);
-          }
-        }
-        await supabase.from('registered_students').update({ role: newRole.toUpperCase() }).eq('email', email);
+        setEnrollmentToast(`Role change failed: ${rpcErr.message}`);
+        setTimeout(() => setEnrollmentToast(null), 5000);
+        return;
       }
-    } catch (e) {
-      console.warn('Error updating profile role:', e);
+    } catch (e: any) {
+      setEnrollmentToast(`Role change failed: ${e?.message || 'unknown error'}`);
+      setTimeout(() => setEnrollmentToast(null), 5000);
+      return;
     }
 
     if (typeof window !== 'undefined') {
@@ -755,6 +759,30 @@ export default function DashboardPage() {
     await syncPlatformInstructors(true);
     setEnrollmentToast(`User ${email} role switched to ${newRole === 'instructor' ? 'Academic Instructor' : 'Student / Scholar'}`);
     setTimeout(() => setEnrollmentToast(null), 4000);
+  };
+
+  // 026: explicit role assignment (includes the Academy Secretary role) via the
+  // audited super-admin RPC. Used by the "Academy Office Access" card.
+  const handleSetUserRole = async (
+    email: string,
+    role: 'student' | 'instructor' | 'secretary'
+  ) => {
+    const clean = email.trim().toLowerCase();
+    if (!clean) return;
+    try {
+      const { error } = await supabase.rpc('admin_set_user_role', {
+        p_user_email: clean,
+        p_role: role,
+      });
+      if (error) throw error;
+      setEnrollmentToast(`Role updated: ${clean} → ${role}`);
+      setTimeout(() => setEnrollmentToast(null), 5000);
+      await syncPlatformInstructors(true);
+      await refreshUser();
+    } catch (e: any) {
+      setEnrollmentToast(`Role change failed: ${e?.message || 'unknown error'}`);
+      setTimeout(() => setEnrollmentToast(null), 5000);
+    }
   };
 
   const handleOpenEditCourse = (course: ChemistryCourse) => {
@@ -1122,6 +1150,19 @@ export default function DashboardPage() {
     );
   }
 
+  // The secretary never sees the student/instructor dashboard.
+  if (currentUser.role === 'SECRETARY') {
+    return (
+      <div className="min-h-screen bg-ivory-200 flex flex-col items-center justify-center p-6 text-center font-sans">
+        <div className="w-10 h-10 rounded-full border-2 border-burgundy-500 border-t-transparent animate-spin mb-4" />
+        <p className="text-xs font-semibold text-charcoal-100 mb-3">Opening the Academy Office...</p>
+        <Link href="/office" className="text-xs font-bold text-burgundy-500 underline">
+          Open the Academy Office now
+        </Link>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-ivory-200 text-charcoal-900 flex flex-col font-sans selection:bg-burgundy-500 selection:text-ivory-100">
       {/* Header */}
@@ -1233,6 +1274,7 @@ export default function DashboardPage() {
               onApproveCourse={handleApproveCourse}
               onRejectCourse={handleRejectCourse}
               onToggleUserRole={handleToggleUserRole}
+              onSetUserRole={handleSetUserRole}
               onDeleteCourse={handleDeleteCourse}
               onExpelUser={handleExpelUser}
               onOpenCreateCourse={(trackId, instName) => {

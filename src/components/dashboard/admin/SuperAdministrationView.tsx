@@ -69,6 +69,7 @@ interface SuperAdministrationViewProps {
   onDeleteCourse?: (courseId: string, title: string) => void;
   onExpelUser?: (email: string, id?: string) => void;
   onOpenCreateCourse?: (trackId?: string, instructorName?: string) => void;
+  onSetUserRole?: (email: string, role: 'student' | 'instructor' | 'secretary') => void;
 }
 
 export const SuperAdministrationView: React.FC<SuperAdministrationViewProps> = ({
@@ -84,8 +85,10 @@ export const SuperAdministrationView: React.FC<SuperAdministrationViewProps> = (
   onDeleteCourse,
   onExpelUser,
   onOpenCreateCourse,
+  onSetUserRole,
 }) => {
   const [activeTab, setActiveTab] = useState<'accounts' | 'approvals' | 'office' | 'tracks' | 'instructors' | 'applications'>('accounts');
+  const [officeRoleEmail, setOfficeRoleEmail] = useState('');
   const [userSearchQuery, setUserSearchQuery] = useState('');
   const [userFilter, setUserFilter] = useState<'all' | 'instructors' | 'students'>('all');
   const [facultyRequests, setFacultyRequests] = useState<FacultyRequestRecord[]>([]);
@@ -549,6 +552,52 @@ export const SuperAdministrationView: React.FC<SuperAdministrationViewProps> = (
               <span>Register Account</span>
             </button>
           </div>
+
+          {/* Academy Office Access (migration 026): role grant without a directory row */}
+          {onSetUserRole && (
+            <div className="p-5 rounded-2xl border border-burgundy-200 bg-burgundy-50/40 space-y-3">
+              <div className="flex items-center gap-2 text-[10px] font-mono font-bold text-burgundy-600 uppercase tracking-wider">
+                <ShieldCheck className="w-3.5 h-3.5" />
+                <span>Academy Office Access — Secretary</span>
+              </div>
+              <p className="text-[11px] text-charcoal-100 leading-relaxed">
+                Grant or revoke the secretary role by account email. The secretary runs pricing,
+                the enrollment queue, the payments desk, and settlement preparation — never
+                commission policy or payout confirmation (founder only). No directory row is created.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-2">
+                <input
+                  type="email"
+                  placeholder="account email"
+                  value={officeRoleEmail}
+                  onChange={(e) => setOfficeRoleEmail(e.target.value)}
+                  className="flex-1 px-3 py-2 text-xs bg-white border border-hairline rounded-xl focus:outline-none focus:border-burgundy-500"
+                />
+                <button
+                  type="button"
+                  disabled={!officeRoleEmail.trim()}
+                  onClick={() => {
+                    onSetUserRole(officeRoleEmail.trim(), 'secretary');
+                    setOfficeRoleEmail('');
+                  }}
+                  className="px-4 py-2 rounded-xl bg-burgundy-500 hover:bg-burgundy-900 text-ivory-100 text-xs font-bold transition-colors disabled:opacity-50"
+                >
+                  Grant Secretary
+                </button>
+                <button
+                  type="button"
+                  disabled={!officeRoleEmail.trim()}
+                  onClick={() => {
+                    onSetUserRole(officeRoleEmail.trim(), 'student');
+                    setOfficeRoleEmail('');
+                  }}
+                  className="px-4 py-2 rounded-xl bg-ivory-200 hover:bg-ivory-300 border border-hairline text-charcoal-100 text-xs font-bold transition-colors disabled:opacity-50"
+                >
+                  Revoke to Student
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Search & Filter Pills */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">

@@ -4,18 +4,19 @@ import React, { useEffect, useMemo, useState } from 'react';
 import {
   Search, Plus, Wallet, History, CheckCircle2, XCircle, Clock, Ban,
   RefreshCw, ChevronDown, ChevronRight, ShieldCheck, BookOpen, UserCheck,
-  TrendingUp, Percent, Banknote,
+  TrendingUp, Percent, Banknote, Inbox,
 } from 'lucide-react';
 import {
   OfficeCourseRow, PaymentRow, PriceHistoryRow,
-  SuperAdminFinancialOverview, InstructorSettlementRow,
-  listOfficeCourses, listPayments, listPriceHistory,
+  SuperAdminFinancialOverview, InstructorSettlementRow, EnrollmentQueueRow,
+  listOfficeCourses, listPayments, listPriceHistory, listEnrollmentQueue,
   setCoursePrice, setCoursePublished, setCourseApproval,
   recordPayment, setPaymentStatus, waiveEnrollmentPayment,
   getSuperAdminFinancialOverview, setInstructorCommission,
   setDefaultPlatformCommission, createInstructorSettlement,
   setSettlementStatus,
 } from '@/lib/data/office';
+import { setEnrollmentStatus } from '@/lib/data/enrollments';
 
 // ==============================================================================
 // Academy Office tab (migration 024): centralized pricing + payments desk.
@@ -41,13 +42,22 @@ const APPROVAL_STYLES: Record<string, string> = {
 const fmtEGP = (v: number | null | undefined) =>
   v === null || v === undefined ? '—' : `${v.toLocaleString('en-EG', { maximumFractionDigits: 2 })} EGP`;
 
-export const OfficeTab: React.FC = () => {
+interface OfficeTabProps {
+  /** secretary mode hides founder-only controls (commission policy, PAID confirmation). */
+  mode?: 'super_admin' | 'secretary';
+}
+
+export const OfficeTab: React.FC<OfficeTabProps> = ({ mode = 'super_admin' }) => {
+  const isSuperAdmin = mode !== 'secretary';
   const [courses, setCourses] = useState<OfficeCourseRow[]>([]);
   const [payments, setPayments] = useState<PaymentRow[]>([]);
+  const [queue, setQueue] = useState<EnrollmentQueueRow[]>([]);
   const [overview, setOverview] = useState<SuperAdminFinancialOverview | null>(null);
   const [loading, setLoading] = useState(true);
-  const [section, setSection] = useState<'pricing' | 'payments' | 'settlements'>('pricing');
+  const [section, setSection] = useState<'pricing' | 'enrollments' | 'payments' | 'settlements'>('pricing');
   const [searchQuery, setSearchQuery] = useState('');
+  const [queueFilter, setQueueFilter] = useState<'PENDING' | 'ACTIVE' | 'REJECTED' | 'ALL'>('PENDING');
+  const [queueBusy, setQueueBusy] = useState<string | null>(null);
 
   // ---------------- pricing editing state ----------------
   const [expandedCourse, setExpandedCourse] = useState<string | null>(null);
@@ -86,13 +96,15 @@ export const OfficeTab: React.FC = () => {
 
   const loadAll = async () => {
     setLoading(true);
-    const [c, p, ov] = await Promise.all([
+    const [c, p, q, ov] = await Promise.all([
       listOfficeCourses(),
       listPayments(),
+      listEnrollmentQueue(),
       getSuperAdminFinancialOverview(),
     ]);
     setCourses(c);
     setPayments(p);
+    setQueue(q);
     setOverview(ov);
     if (ov) {
       setDefaultCommDraft(String(ov.default_commission_pct));
@@ -114,6 +126,11 @@ export const OfficeTab: React.FC = () => {
         (c.instructor_email || '').toLowerCase().includes(q)
     );
   }, [courses, searchQuery]);
+
+  const filteredQueue = useMemo(() => {
+    if (queueFilter === 'ALL') return queue;
+    return queue.filter((q) => q.status === queueFilter);
+  }, [queue, queueFilter]);
 
   const courseTitle = (id: string) => courses.find((c) => c.id === id)?.title || id;
 
@@ -247,6 +264,34 @@ export const OfficeTab: React.FC = () => {
     }
   };
 
+  // ---------------- enrollment queue handler (026) ----------------
+
+  const handleQueueDecision = async (row: EnrollmentQueueRow, next: 'ACTIVE' | 'REJECTED' | 'PENDING') => {
+    if (next === 'ACTIVE') {
+      const ok = window.confirm(
+        `Activate ${row.student_email} in "${row.course_title}" WITHOUT a verified payment?\n\n` +
+        `Paid cases should go through the Payments Desk (VERIFIED auto-activates) or the audited waiver. ` +
+        `This manual activation is audit-logged.`
+      );
+      if (!ok) return;
+    }
+    if (next === 'REJECTED') {
+      const ok = window.confirm(
+        `Reject the enrollment request from ${row.student_email} for "${row.course_title}"?`
+      );
+      if (!ok) return;
+    }
+    setQueueBusy(row.id);
+    try {
+      await setEnrollmentStatus(row.id, next);
+      await loadAll();
+    } catch (err: any) {
+      alert(err.message || 'Error updating the enrollment');
+    } finally {
+      setQueueBusy(null);
+    }
+  };
+
   // ---------------- settlements & commissions handlers (025) ----------------
 
   const handleSaveDefaultCommission = async () => {
@@ -317,14 +362,17 @@ export const OfficeTab: React.FC = () => {
     let note: string | null = null;
 
     if (next === 'PAID') {
+      const allowed = ['bank_transfer', 'instapay', 'vodafone_cash', 'cash', 'other'];
       const m = window.prompt(
-        `Payout method for ${fmtEGP(row.net_instructor_payout)} to ${row.instructor_email} (instapay / vodafone_cash / bank_transfer / cash / other):`,
-        'instapay'
+        `Payout method for ${fmtEGP(row.net_instructor_payout)} to ${row.instructor_email} (bank_transfer / instapay / vodafone_cash / cash / other):`
       );
-      if (!m) return;
-      method = (['bank_transfer', 'instapay', 'vodafone_cash', 'cash', 'other'].includes(m.trim().toLowerCase())
-        ? m.trim().toLowerCase()
-        : 'instapay') as any;
+      if (!m || !m.trim()) return; // never invent a payout method
+      const clean = m.trim().toLowerCase();
+      if (!allowed.includes(clean)) {
+        alert('Invalid payout method. Use: bank_transfer, instapay, vodafone_cash, cash, or other.');
+        return;
+      }
+      method = clean as any;
       reference = window.prompt('Payout transaction / receipt reference (optional):') || null;
     } else {
       note = window.prompt(`Written reason for cancelling settlement (${row.period_start} .. ${row.period_end}):`);
@@ -357,7 +405,7 @@ export const OfficeTab: React.FC = () => {
         <div>
           <h2 className="text-xl font-bold text-charcoal-900 font-display">Academy Office</h2>
           <p className="text-xs text-charcoal-100 font-sans mt-0.5">
-            Centralized pricing, payments desk, commissions, and instructor settlements. Every action is permanently audit-logged.
+            Centralized pricing, the enrollment queue, the payments desk, and instructor settlements. Every action is permanently audit-logged.
           </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
@@ -370,6 +418,21 @@ export const OfficeTab: React.FC = () => {
           >
             <BookOpen className="w-3.5 h-3.5" />
             <span>Courses & Pricing</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setSection('enrollments')}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-colors flex items-center gap-1.5 ${
+              section === 'enrollments' ? 'bg-burgundy-500 text-ivory-100 shadow-sm' : 'bg-ivory-200 text-charcoal-900 border border-hairline'
+            }`}
+          >
+            <Inbox className="w-3.5 h-3.5" />
+            <span>Enrollment Queue</span>
+            {queue.filter((q) => q.status === 'PENDING').length > 0 && (
+              <span className="text-[10px] font-mono px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-200">
+                {queue.filter((q) => q.status === 'PENDING').length}
+              </span>
+            )}
           </button>
           <button
             type="button"
@@ -586,7 +649,130 @@ export const OfficeTab: React.FC = () => {
         </div>
       )}
 
-      {/* ================= SECTION B: PAYMENTS DESK ================= */}
+      {/* ================= SECTION B: ENROLLMENT QUEUE (026) ================= */}
+      {!loading && section === 'enrollments' && (
+        <div className="space-y-4">
+          <div className="flex items-center gap-2 flex-wrap">
+            {(['PENDING', 'ACTIVE', 'REJECTED', 'ALL'] as const).map((f) => {
+              const count = f === 'ALL' ? queue.length : queue.filter((q) => q.status === f).length;
+              return (
+                <button
+                  key={f}
+                  type="button"
+                  onClick={() => setQueueFilter(f)}
+                  className={`px-3 py-1.5 rounded-lg text-[11px] font-bold border transition-colors ${
+                    queueFilter === f
+                      ? 'bg-burgundy-500 text-ivory-100 border-transparent'
+                      : 'bg-ivory-100 text-charcoal-100 border-hairline hover:bg-ivory-200'
+                  }`}
+                >
+                  {f === 'PENDING' ? 'Pending Requests' : f === 'ACTIVE' ? 'Active' : f === 'REJECTED' ? 'Rejected' : 'All'}
+                  <span className="ml-1.5 font-mono opacity-80">{count}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          {filteredQueue.length === 0 ? (
+            <div className="p-12 text-center bg-ivory-100 rounded-2xl border border-hairline text-xs space-y-2">
+              <Inbox className="w-8 h-8 text-charcoal-50 mx-auto" />
+              <h3 className="text-sm font-bold text-charcoal-900 font-display">
+                {queueFilter === 'PENDING' ? 'No Pending Enrollment Requests' : 'Nothing In This View'}
+              </h3>
+              <p className="text-charcoal-100">
+                Student requests appear here the moment they ask to join a course — never fabricated.
+              </p>
+            </div>
+          ) : (
+            <div className="border border-hairline rounded-2xl bg-ivory-100 overflow-hidden shadow-quiet">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs border-collapse">
+                  <thead>
+                    <tr className="border-b border-hairline bg-ivory-200/60 font-formula text-[10px] text-charcoal-50 uppercase tracking-wider">
+                      <th className="py-3 px-4 font-bold">Student</th>
+                      <th className="py-3 px-4 font-bold">Course</th>
+                      <th className="py-3 px-4 font-bold">Requested</th>
+                      <th className="py-3 px-4 font-bold">Status</th>
+                      <th className="py-3 px-4 font-bold text-right">Office Decision</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-hairline">
+                    {filteredQueue.map((q) => (
+                      <tr key={q.id} className="hover:bg-ivory-200/40 transition-colors">
+                        <td className="py-3 px-4">
+                          <div className="font-bold text-charcoal-900">{q.student_name || '—'}</div>
+                          <div className="font-mono text-[10px] text-charcoal-100">{q.student_email}</div>
+                          {q.student_code && (
+                            <div className="font-mono text-[10px] text-charcoal-50">{q.student_code}</div>
+                          )}
+                        </td>
+                        <td className="py-3 px-4">
+                          <div className="text-[11px] font-bold">{q.course_title}</div>
+                          {q.course_code && (
+                            <div className="font-mono text-[10px] text-charcoal-100">{q.course_code}</div>
+                          )}
+                        </td>
+                        <td className="py-3 px-4 font-mono text-[10px] text-charcoal-100">
+                          {q.requested_at ? new Date(q.requested_at).toLocaleString('en-GB') : '—'}
+                        </td>
+                        <td className="py-3 px-4">
+                          <span
+                            className={`text-[10px] font-mono px-2 py-0.5 rounded border ${
+                              q.status === 'PENDING'
+                                ? 'bg-amber-100 text-amber-800 border-amber-200'
+                                : q.status === 'ACTIVE'
+                                ? 'bg-emerald-100 text-emerald-800 border-emerald-200'
+                                : 'bg-red-100 text-red-800 border-red-200'
+                            }`}
+                          >
+                            {q.status}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4">
+                          <div className="flex items-center justify-end gap-1.5 flex-wrap">
+                            {q.status === 'PENDING' && (
+                              <>
+                                <button
+                                  type="button"
+                                  disabled={queueBusy === q.id}
+                                  onClick={() => handleQueueDecision(q, 'ACTIVE')}
+                                  className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold transition-colors disabled:opacity-50"
+                                >
+                                  Activate
+                                </button>
+                                <button
+                                  type="button"
+                                  disabled={queueBusy === q.id}
+                                  onClick={() => handleQueueDecision(q, 'REJECTED')}
+                                  className="px-2.5 py-1 rounded-lg bg-ivory-200 hover:bg-red-50 text-charcoal-100 hover:text-red-700 border border-hairline text-[11px] font-bold transition-colors disabled:opacity-50"
+                                >
+                                  Reject
+                                </button>
+                              </>
+                            )}
+                            {q.status !== 'PENDING' && (
+                              <button
+                                type="button"
+                                disabled={queueBusy === q.id}
+                                onClick={() => handleQueueDecision(q, 'PENDING')}
+                                className="px-2.5 py-1 rounded-lg bg-ivory-200 hover:bg-ivory-300 border border-hairline text-charcoal-100 text-[11px] font-bold transition-colors disabled:opacity-50"
+                              >
+                                Re-open
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ================= SECTION C: PAYMENTS DESK ================= */}
       {!loading && section === 'payments' && (
         <div className="space-y-6">
           {/* Record a payment */}
@@ -712,6 +898,11 @@ export const OfficeTab: React.FC = () => {
                           <span className={`text-[10px] font-mono px-2 py-0.5 rounded border ${STATUS_STYLES[p.status] || 'bg-ivory-200 border-hairline text-charcoal-100'}`}>
                             {p.status}
                           </span>
+                          {p.settlement_id && (
+                            <span className="block text-[9px] font-mono text-emerald-700 mt-0.5">
+                              in settlement
+                            </span>
+                          )}
                         </td>
                         <td className="py-3 px-4">
                           <div className="flex items-center justify-end gap-1.5 flex-wrap">
@@ -848,7 +1039,8 @@ export const OfficeTab: React.FC = () => {
             </div>
           </div>
 
-          {/* Default Platform Commission Fallback + Per-Instructor Commissions */}
+          {/* Default Platform Commission Fallback + Per-Instructor Commissions (founder only) */}
+          {isSuperAdmin && (
           <div className="p-5 rounded-2xl bg-ivory-100 border border-hairline space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-hairline">
               <div>
@@ -980,6 +1172,7 @@ export const OfficeTab: React.FC = () => {
               </div>
             )}
           </div>
+          )}
 
           {/* Prepare Settlement Form */}
           <div className="p-5 rounded-2xl bg-ivory-100 border border-hairline space-y-4">
@@ -1088,14 +1281,21 @@ export const OfficeTab: React.FC = () => {
                         <td className="py-2.5 px-3 text-right">
                           {s.status === 'PENDING' ? (
                             <div className="inline-flex items-center gap-1.5">
-                              <button
-                                type="button"
-                                disabled={settleActionBusy === s.id}
-                                onClick={() => handleSettlementDecision(s, 'PAID')}
-                                className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold transition-colors disabled:opacity-50"
-                              >
-                                Mark Paid
-                              </button>
+                              {isSuperAdmin && (
+                                <button
+                                  type="button"
+                                  disabled={settleActionBusy === s.id}
+                                  onClick={() => handleSettlementDecision(s, 'PAID')}
+                                  className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold transition-colors disabled:opacity-50"
+                                >
+                                  Mark Paid
+                                </button>
+                              )}
+                              {!isSuperAdmin && (
+                                <span className="text-[10px] font-mono text-charcoal-50 italic">
+                                  payout confirmation: founder only
+                                </span>
+                              )}
                               <button
                                 type="button"
                                 disabled={settleActionBusy === s.id}

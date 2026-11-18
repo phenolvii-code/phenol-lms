@@ -28,8 +28,15 @@ export function useCurrentUser() {
       const dbRole = (profile?.role || '').toLowerCase().trim();
       const isSuperAdmin = authUser.email?.toLowerCase() === 'phenolvii@gmail.com' || dbRole === 'super_admin';
       const isInstructor = isSuperAdmin || dbRole === 'instructor';
+      const isSecretary = !isSuperAdmin && !isInstructor && dbRole === 'secretary';
 
-      const role: UserRole = isSuperAdmin ? 'SUPER_ADMIN' : isInstructor ? 'INSTRUCTOR' : 'STUDENT';
+      const role: UserRole = isSuperAdmin
+        ? 'SUPER_ADMIN'
+        : isInstructor
+        ? 'INSTRUCTOR'
+        : isSecretary
+        ? 'SECRETARY'
+        : 'STUDENT';
 
       // 2. Fetch student details from public.registered_students if student
       let studentDetails: {
@@ -39,7 +46,7 @@ export function useCurrentUser() {
         academic_track?: string;
       } | null = null;
 
-      if (!isInstructor && !isSuperAdmin) {
+      if (!isInstructor && !isSuperAdmin && !isSecretary) {
         const { data: student } = await supabase
           .from('registered_students')
           .select('name, phone, academic_code, academic_track')
@@ -85,13 +92,14 @@ export function useCurrentUser() {
         name: displayName,
         phone,
         whatsapp: phone,
-        role: isInstructor ? 'INSTRUCTOR' : 'STUDENT',
+        role,
         isSuperAdmin,
+        isSecretary,
         avatar,
         academicCode: studentDetails?.academic_code,
         academicTrack: studentDetails?.academic_track || 'Secondary & Baccalaureate',
         registeredAt: authUser.created_at,
-        title: localProfile?.title || authUser.user_metadata?.title || (isSuperAdmin ? 'Academic Director & Senior Fellow' : isInstructor ? 'Academic Instructor' : undefined),
+        title: localProfile?.title || authUser.user_metadata?.title || (isSuperAdmin ? 'Academic Director & Senior Fellow' : isSecretary ? 'Academy Secretary' : isInstructor ? 'Academic Instructor' : undefined),
         bio: localProfile?.bio || authUser.user_metadata?.bio || (isSuperAdmin ? 'PharmD graduate and chemistry educator. Focused on first-principles causality, physical chemistry, reaction mechanisms, and intellectual scientific pedagogy.' : undefined),
         specialization: localProfile?.specialization || authUser.user_metadata?.specialization || (isSuperAdmin ? 'Organic Reaction Mechanisms & Physical Chemistry' : undefined),
       };

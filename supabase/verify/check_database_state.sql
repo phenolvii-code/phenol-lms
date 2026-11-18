@@ -44,7 +44,8 @@ from (values
   ('trg_settlements_guard'), ('set_instructor_commission'),
   ('set_default_platform_commission'), ('create_instructor_settlement'),
   ('set_settlement_status'), ('get_instructor_financial_ledger'),
-  ('get_super_admin_financial_overview')
+  ('get_super_admin_financial_overview'),
+  ('office_list_payments'), ('office_list_enrollment_queue')
 ) as t(name)
 
 union all
@@ -486,6 +487,88 @@ select 'SETTLEMENT STATE', 'settlement rows (informational)',
 
 union all
 
+-- 6n. Migration 026 audits: settlement integrity + office reads ------------------
+--     N1: payments.settlement_id exists (the payout link).
+select 'OFFICE AUDIT', 'payments.settlement_id linkage column exists (migration 026)',
+       case when exists (select 1 from information_schema.columns
+                  where table_schema = 'public' and table_name = 'payments'
+                    and column_name = 'settlement_id')
+       then 'OK' else 'MISSING - re-run migration 026 step 1' end
+
+union all
+
+--     N2: one ACTIVE settlement per instructor + period (unique partial index).
+select 'OFFICE AUDIT', 'duplicate-period guard index exists (migration 026)',
+       case when exists (select 1 from pg_indexes
+                  where schemaname = 'public'
+                    and tablename = 'instructor_settlements'
+                    and indexname = 'uq_settlements_instructor_period_active')
+       then 'OK' else 'MISSING - re-run migration 026 step 1' end
+
+union all
+
+--     N3: settlements only pay unsettled payments + lock + stamp.
+select 'OFFICE AUDIT', 'settlements select unsettled-only, lock rows, stamp settlement_id (migration 026)',
+       case when (select prosrc from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+                  where n.nspname = 'public' and p.proname = 'create_instructor_settlement')
+                 ilike '%settlement_id is null%'
+        and (select prosrc from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+                  where n.nspname = 'public' and p.proname = 'create_instructor_settlement')
+                 ilike '%for update%'
+        and (select prosrc from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+                  where n.nspname = 'public' and p.proname = 'create_instructor_settlement')
+                 ilike '%set settlement_id = v_settlement_id%'
+       then 'OK' else 'MISSING - re-run migration 026 step 3' end
+
+union all
+
+--     N4: refund is blocked while a payment belongs to a settlement.
+select 'OFFICE AUDIT', 'refund blocked on settled payments (migration 026)',
+       case when (select prosrc from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+                  where n.nspname = 'public' and p.proname = 'set_payment_status')
+                 ilike '%linked to a settlement%'
+       then 'OK' else 'MISSING - re-run migration 026 step 5' end
+
+union all
+
+--     N5: cancelling a settlement unlinks its payments.
+select 'OFFICE AUDIT', 'settlement cancellation unlinks payments (migration 026)',
+       case when (select prosrc from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+                  where n.nspname = 'public' and p.proname = 'set_settlement_status')
+                 ilike '%settlement_id = null%'
+       then 'OK' else 'MISSING - re-run migration 026 step 4' end
+
+union all
+
+--     N6: office read RPCs exist, are definer, and are office-gated.
+select 'OFFICE AUDIT', 'office_list_payments + office_list_enrollment_queue gated (migration 026)',
+       case when (select count(*) from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+                  where n.nspname = 'public'
+                    and p.proname in ('office_list_payments', 'office_list_enrollment_queue')
+                    and p.prosecdef
+                    and p.prosrc ilike '%is_secretary%') = 2
+       then 'OK' else 'MISSING - re-run migration 026 steps 6/7' end
+
+union all
+
+--     N7: payment guard recognises the office-only settlement-link update.
+select 'OFFICE AUDIT', 'payments guard allows office-only settlement linkage (migration 026)',
+       case when (select prosrc from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+                  where n.nspname = 'public' and p.proname = 'trg_payments_guard')
+                 ilike '%only the academy office can link a payment to a settlement%'
+       then 'OK' else 'MISSING - re-run migration 026 step 2' end
+
+union all
+
+--     N8: TRUTH check - settlement coverage (informational).
+select 'OFFICE STATE', 'settled vs unsettled verified payments (informational)',
+       (select count(*) from public.payments where status = 'VERIFIED' and settlement_id is not null)::text
+       || ' settled, '
+       || (select count(*) from public.payments where status = 'VERIFIED' and settlement_id is null)::text
+       || ' unsettled verified payments'
+
+union all
+
 -- 7. Migration 015 audit: the `booklets` bucket is PRIVATE ----------------------
 select 'STORAGE AUDIT', 'bucket booklets is private (migration 015)',
        case when exists (select 1 from storage.buckets
@@ -496,28 +579,30 @@ union all
 
 -- 8. Schema audit marker (shows the highest migration actually applied) ---------
 select 'AUDIT MARKER', 'schema comment',
-       case when obj_description('public'::regnamespace, 'pg_namespace') like '%025%'
-       then 'OK (through 025)'
+       case when obj_description('public'::regnamespace, 'pg_namespace') like '%026%'
+       then 'OK (through 026)'
+       when obj_description('public'::regnamespace, 'pg_namespace') like '%025%'
+       then 'PARTIAL (025 only - 026 not applied)'
        when obj_description('public'::regnamespace, 'pg_namespace') like '%024%'
-       then 'PARTIAL (024 only - 025 not applied)'
+       then 'PARTIAL (024 only - 025/026 not applied)'
        when obj_description('public'::regnamespace, 'pg_namespace') like '%023%'
-       then 'PARTIAL (023 only - 024 not applied)'
+       then 'PARTIAL (023 only - 024/025/026 not applied)'
        when obj_description('public'::regnamespace, 'pg_namespace') like '%022%'
-       then 'PARTIAL (022 only - 023/024 not applied)'
+       then 'PARTIAL (022 only - 023/024/025/026 not applied)'
        when obj_description('public'::regnamespace, 'pg_namespace') like '%021%'
-       then 'PARTIAL (021 only - 022/023/024 not applied)'
+       then 'PARTIAL (021 only - 022/023/024/025/026 not applied)'
        when obj_description('public'::regnamespace, 'pg_namespace') like '%020%'
-       then 'PARTIAL (020 only - 021/022/023/024 not applied)'
+       then 'PARTIAL (020 only - 021/022/023/024/025/026 not applied)'
        when obj_description('public'::regnamespace, 'pg_namespace') like '%019%'
-       then 'PARTIAL (019 only - 020/021/022/023/024 not applied)'
+       then 'PARTIAL (019 only - 020/021/022/023/024/025/026 not applied)'
        when obj_description('public'::regnamespace, 'pg_namespace') like '%018%'
-       then 'PARTIAL (018 only - 019/020/021/022/023/024 not applied)'
+       then 'PARTIAL (018 only - 019/020/021/022/023/024/025/026 not applied)'
        when obj_description('public'::regnamespace, 'pg_namespace') like '%017%'
-       then 'PARTIAL (017 only - 018/019/020/021/022/023/024 not applied)'
+       then 'PARTIAL (017 only - 018/019/020/021/022/023/024/025/026 not applied)'
        when obj_description('public'::regnamespace, 'pg_namespace') like '%016%'
-       then 'PARTIAL (016 only - 017/018/019/020/021/022/023/024 not applied)'
+       then 'PARTIAL (016 only - 017/018/019/020/021/022/023/024/025/026 not applied)'
        when obj_description('public'::regnamespace, 'pg_namespace') like '%014%'
-       then 'PARTIAL (014 only - 015/016/019/020/021/022/023/024 not applied)'
+       then 'PARTIAL (014 only - 015/016/019/020/021/022/023/024/025/026 not applied)'
        else 'MISSING/OLDER' end
 
 order by kind, item;
