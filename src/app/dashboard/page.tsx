@@ -80,6 +80,7 @@ import { SuperAdministrationView } from '@/components/dashboard/admin/SuperAdmin
 import { StudentCoursesTab } from '@/components/dashboard/student/StudentCoursesTab';
 import { StudentTasksTab } from '@/components/dashboard/student/StudentTasksTab';
 import { StudentQuizzesTab } from '@/components/dashboard/student/StudentQuizzesTab';
+import { StudentPrivateServicesTab } from '@/components/dashboard/student/StudentPrivateServicesTab';
 
 // Subcomponents: Modals
 import { InstructorProfileModal } from '@/components/dashboard/modals/InstructorProfileModal';
@@ -106,7 +107,7 @@ export default function DashboardPage() {
   const [isSuperAdminCockpitOpen, setIsSuperAdminCockpitOpen] = useState(false);
 
   // Student Tabs
-  const [studentTab, setStudentTab] = useState<'courses' | 'tasks' | 'booklets' | 'quizzes'>('courses');
+  const [studentTab, setStudentTab] = useState<'courses' | 'tasks' | 'booklets' | 'quizzes' | 'services'>('courses');
 
   // Filter Track for Curriculum and Waitlist
   const [trackFilter, setTrackFilter] = useState<AcademicCategory | 'all'>('all');
@@ -1736,6 +1737,17 @@ export default function DashboardPage() {
               >
                 Diagnostic Quizzes
               </button>
+
+              <button
+                onClick={() => setStudentTab('services')}
+                className={`pb-3 border-b-2 transition-colors whitespace-nowrap ${
+                  studentTab === 'services'
+                    ? 'border-burgundy-500 text-burgundy-500'
+                    : 'border-transparent text-charcoal-100 hover:text-charcoal-900'
+                }`}
+              >
+                1:1 Private Services
+              </button>
             </div>
 
             {/* STUDENT TAB 1: COURSES */}
@@ -1770,6 +1782,9 @@ export default function DashboardPage() {
                 enrollments={enrollments}
               />
             )}
+
+            {/* STUDENT TAB 5: 1:1 PRIVATE SERVICES (029) */}
+            {studentTab === 'services' && <StudentPrivateServicesTab />}
           </div>
         )}
       </main>

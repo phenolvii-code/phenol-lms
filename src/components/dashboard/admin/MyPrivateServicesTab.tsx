@@ -1,18 +1,34 @@
 'use client';
 
 import React, { useCallback, useEffect, useState } from 'react';
-import { AlertCircle, CheckCircle2, Clock, Plus, RefreshCw, Sparkles, Video, Pencil, X } from 'lucide-react';
 import {
+  AlertCircle,
+  CalendarClock,
+  CheckCircle2,
+  Clock,
+  ExternalLink,
+  Pencil,
+  Plus,
+  RefreshCw,
+  Sparkles,
+  Video,
+  X,
+} from 'lucide-react';
+import {
+  InstructorPrivateBookingRow,
   MyPrivateServiceRow,
+  listInstructorPrivateBookings,
   listMyPrivateServices,
   proposePrivateService,
   updateMyPrivateService,
 } from '@/lib/data/privateServices';
 
 // ==============================================================================
-// Instructor - My Private Services (migration 028).
+// Instructor - My Private Services & Bookings (migrations 028 & 029).
 // Propose + edit while PROPOSED. The instructor NEVER prices: the academy
 // office sets the price and decides whether the service goes live.
+// Instructors also see a read-only schedule of bookings for their services
+// (without student phone/email PII).
 // ==============================================================================
 
 const EMPTY_FORM = {
@@ -24,6 +40,7 @@ const EMPTY_FORM = {
 
 export const MyPrivateServicesTab: React.FC = () => {
   const [rows, setRows] = useState<MyPrivateServiceRow[]>([]);
+  const [bookings, setBookings] = useState<InstructorPrivateBookingRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -35,8 +52,12 @@ export const MyPrivateServicesTab: React.FC = () => {
 
   const load = useCallback(async () => {
     setLoading(true);
-    const list = await listMyPrivateServices();
+    const [list, bkgList] = await Promise.all([
+      listMyPrivateServices(),
+      listInstructorPrivateBookings(),
+    ]);
     setRows(list);
+    setBookings(bkgList);
     setLoading(false);
   }, []);
 
@@ -64,7 +85,9 @@ export const MyPrivateServicesTab: React.FC = () => {
         deliveryMode: form.deliveryMode,
       });
       setForm(EMPTY_FORM);
-      setSuccess('Proposal sent. The academy office will price it and decide whether it goes live.');
+      setSuccess(
+        'Proposal sent. The academy office will price it and decide whether it goes live.'
+      );
       await load();
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
@@ -339,6 +362,82 @@ export const MyPrivateServicesTab: React.FC = () => {
           ))}
         </div>
       )}
+
+      {/* Instructor schedule of bookings for their services (029 - read-only, no student PII) */}
+      <div className="pt-4 border-t border-hairline space-y-3">
+        <div className="flex items-center justify-between">
+          <div>
+            <h4 className="text-sm font-bold text-charcoal-900 font-display flex items-center gap-2">
+              <CalendarClock className="w-4 h-4 text-burgundy-500" />
+              <span>Session Bookings ({bookings.length})</span>
+            </h4>
+            <p className="text-[11px] text-charcoal-100">
+              Read-only schedule of bookings for your private services. Session links appear once the
+              academy office verifies payment and confirms the session.
+            </p>
+          </div>
+        </div>
+
+        {bookings.length === 0 ? (
+          <div className="py-8 rounded-2xl border border-hairline bg-white text-center text-xs text-charcoal-100">
+            No bookings for your private services yet.
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {bookings.map((b) => (
+              <div
+                key={b.id}
+                className="rounded-2xl border border-hairline bg-white p-3.5 flex flex-wrap items-center justify-between gap-3"
+              >
+                <div className="space-y-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span
+                      className={`px-2 py-0.5 rounded-full border text-[10px] font-mono font-bold ${
+                        b.status === 'CONFIRMED'
+                          ? 'bg-emerald-100 text-emerald-800 border-emerald-200'
+                          : b.status === 'COMPLETED'
+                          ? 'bg-blue-100 text-blue-800 border-blue-200'
+                          : b.status === 'CANCELLED' || b.status === 'NO_SHOW'
+                          ? 'bg-ivory-200 text-charcoal-100 border-hairline'
+                          : 'bg-amber-50 text-amber-800 border-amber-200'
+                      }`}
+                    >
+                      {b.status}
+                    </span>
+                    <span className="text-xs font-bold text-charcoal-900">{b.service_title}</span>
+                    <span className="text-[11px] text-charcoal-100">
+                      • Scholar: <strong>{b.student_name || 'Scholar'}</strong>
+                    </span>
+                  </div>
+                  <p className="text-[11px] font-mono text-charcoal-100">
+                    {new Date(b.scheduled_starts_at).toLocaleString()} →{' '}
+                    {new Date(b.scheduled_ends_at).toLocaleTimeString()} ({b.timezone})
+                  </p>
+                  {b.student_notes && (
+                    <p className="text-[11px] text-charcoal-100">Topic: {b.student_notes}</p>
+                  )}
+                </div>
+
+                {b.session_link ? (
+                  <a
+                    href={b.session_link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-colors"
+                  >
+                    <span>Join Session</span>
+                    <ExternalLink className="w-3.5 h-3.5" />
+                  </a>
+                ) : b.internal_room_ref ? (
+                  <span className="px-3 py-1 rounded-xl bg-ivory-200 border border-hairline text-[11px] font-mono text-charcoal-900">
+                    Room: {b.internal_room_ref}
+                  </span>
+                ) : null}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 };

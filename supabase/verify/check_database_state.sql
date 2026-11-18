@@ -17,7 +17,8 @@ from (values
   ('booklets'), ('instructor_profiles'), ('question_bank_items'),
   ('payments'), ('platform_settings'), ('audit_logs'),
   ('course_price_history'), ('instructor_settlements'),
-  ('private_services'), ('private_service_slots')
+  ('private_services'), ('private_service_slots'),
+  ('private_service_bookings')
 ) as t(name)
 
 union all
@@ -54,7 +55,14 @@ from (values
   ('close_private_service_slot'), ('office_list_private_services'),
   ('list_my_private_services'), ('office_list_private_service_slots'),
   ('trg_private_services_guard'), ('trg_private_service_slots_guard'),
-  ('trg_audit_private_services')
+  ('trg_audit_private_services'),
+  ('trg_private_service_bookings_guard'), ('trg_audit_private_service_bookings'),
+  ('list_published_private_services'), ('list_open_private_service_slots'),
+  ('request_private_service_booking'), ('cancel_my_private_service_booking'),
+  ('list_my_student_private_bookings'), ('list_instructor_private_bookings'),
+  ('office_list_private_service_bookings'), ('office_mark_private_booking_awaiting_payment'),
+  ('office_verify_private_booking_payment'), ('office_confirm_private_service_booking'),
+  ('office_set_private_booking_status')
 ) as t(name)
 
 union all
@@ -95,7 +103,8 @@ from (values
   ('instructor_settlements', 'settlements read own or office'),
   ('student_notifications', 'notifications admin manage'),
   ('instructor_reviews', 'reviews read involved'),
-  ('instructor_reviews', 'reviews insert enrolled')
+  ('instructor_reviews', 'reviews insert enrolled'),
+  ('private_service_bookings', 'private service bookings read')
 ) as t(tablename_ref, policyname_ref)
 
 union all
@@ -688,6 +697,79 @@ select 'PRIVATE SERVICE STATE', 'services / active / slots (informational)',
 
 union all
 
+-- 6h. Migration 029 audit - private service bookings ----------------------------
+--     N1: private_service_bookings locked (RLS enabled, zero client write policies).
+select 'PRIVATE BOOKING AUDIT', 'bookings table locked (RLS, no client write policies)',
+       case when exists (select 1 from pg_class c join pg_namespace n on n.oid = c.relnamespace
+                  where n.nspname = 'public' and c.relname = 'private_service_bookings' and c.relrowsecurity)
+             and not exists (select 1 from pg_policies
+                  where schemaname = 'public' and tablename = 'private_service_bookings'
+                    and cmd in ('INSERT','UPDATE','DELETE','ALL'))
+       then 'OK' else 'LEAK - bookings write policy or RLS disabled' end
+
+union all
+
+--     N2: pay-first-then-confirm enforced by table constraint + trigger + RPC.
+select 'PRIVATE BOOKING AUDIT', 'pay-first-then-confirm enforced (constraint + trigger + RPC)',
+       case when exists (select 1 from pg_constraint
+                  where conrelid = 'public.private_service_bookings'::regclass
+                    and conname = 'private_service_bookings_pay_first_check')
+             and (select prosrc from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+                  where n.nspname = 'public' and p.proname = 'trg_private_service_bookings_guard')
+                 ilike '%pay-first rule - a booking cannot be CONFIRMED without a verified payment%'
+             and (select prosrc from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+                  where n.nspname = 'public' and p.proname = 'office_confirm_private_service_booking')
+                 ilike '%pay-first rule - verify payment before confirming%'
+       then 'OK' else 'MISSING - re-run migration 029 steps 1/4/8' end
+
+union all
+
+--     N3: active-slot unique partial index prevents double-booking.
+select 'PRIVATE BOOKING AUDIT', 'active-slot unique guard index exists (migration 029)',
+       case when exists (select 1 from pg_indexes
+                  where schemaname = 'public' and tablename = 'private_service_bookings'
+                    and indexname = 'uq_private_service_bookings_active_slot')
+       then 'OK' else 'MISSING - re-run migration 029 step 1' end
+
+union all
+
+--     N4: guard and audit triggers bound to private_service_bookings.
+select 'PRIVATE BOOKING AUDIT', 'guard + audit triggers bound to private_service_bookings',
+       case when (select count(*) from pg_trigger t join pg_class c on c.oid = t.tgrelid
+                  join pg_namespace n on n.oid = c.relnamespace
+                  where n.nspname = 'public' and c.relname = 'private_service_bookings'
+                    and t.tgname in ('trg_private_service_bookings_guard', 'trg_audit_private_service_bookings')
+                    and not t.tgisinternal) = 2
+       then 'OK' else 'MISSING - re-run migration 029 steps 4/5' end
+
+union all
+
+--     N5: all 5 office booking RPCs gated to the academy office.
+select 'PRIVATE BOOKING AUDIT', 'office booking RPCs gated to secretary/super_admin (migration 029)',
+       case when (select count(*) from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+                  where n.nspname = 'public'
+                    and p.proname in (
+                      'office_list_private_service_bookings',
+                      'office_mark_private_booking_awaiting_payment',
+                      'office_verify_private_booking_payment',
+                      'office_confirm_private_service_booking',
+                      'office_set_private_booking_status'
+                    )
+                    and p.prosecdef
+                    and p.prosrc ilike '%is_secretary()%'
+                    and p.prosrc ilike '%is_super_admin()%') = 5
+       then 'OK' else 'MISSING - re-run migration 029 step 8' end
+
+union all
+
+-- 6i. TRUTH check - private service bookings state (informational: 0 until real requests).
+select 'PRIVATE BOOKING STATE', 'bookings / awaiting payment / confirmed (informational)',
+       (select count(*)::text from public.private_service_bookings) || ' bookings, '
+       || (select count(*)::text from public.private_service_bookings where status = 'AWAITING_PAYMENT') || ' awaiting payment, '
+       || (select count(*)::text from public.private_service_bookings where status = 'CONFIRMED') || ' confirmed'
+
+union all
+
 -- 7. Migration 015 audit: the `booklets` bucket is PRIVATE ----------------------
 select 'STORAGE AUDIT', 'bucket booklets is private (migration 015)',
        case when exists (select 1 from storage.buckets
@@ -698,8 +780,10 @@ union all
 
 -- 8. Schema audit marker (shows the highest migration actually applied) ---------
 select 'AUDIT MARKER', 'schema comment',
-       case when obj_description('public'::regnamespace, 'pg_namespace') like '%028%'
-       then 'OK (through 028)'
+       case when obj_description('public'::regnamespace, 'pg_namespace') like '%029%'
+       then 'OK (through 029)'
+       when obj_description('public'::regnamespace, 'pg_namespace') like '%028%'
+       then 'PARTIAL (028 only - 029 not applied)'
        when obj_description('public'::regnamespace, 'pg_namespace') like '%027%'
        then 'PARTIAL (027 only - 028 not applied)'
        when obj_description('public'::regnamespace, 'pg_namespace') like '%026%'
