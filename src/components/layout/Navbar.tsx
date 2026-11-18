@@ -59,6 +59,8 @@ export const Navbar: React.FC<NavbarProps> = ({
   };
 
   const isInstructor = currentUser?.role === 'INSTRUCTOR' || currentUser?.role === 'SUPER_ADMIN';
+  // Secretary accounts get their own office destination; students stay untouched.
+  const isSecretary = currentUser?.role === 'SECRETARY' || currentUser?.isSecretary === true;
 
   return (
     <header
@@ -129,23 +131,23 @@ export const Navbar: React.FC<NavbarProps> = ({
                 <NotificationBell />
 
                 <Link
-                  href="/dashboard"
+                  href={isSecretary ? '/office' : '/dashboard'}
                   className={`flex items-center gap-2 px-3 py-1.5 rounded border transition-colors text-xs sm:text-sm font-medium ${
-                    isInstructor
+                    isInstructor || isSecretary
                       ? 'border-burgundy-500/40 bg-burgundy-50 text-burgundy-800 hover:bg-burgundy-100'
                       : 'border-hairline hover:border-charcoal-100 bg-ivory-100 text-charcoal-900'
                   }`}
                 >
-                  {isInstructor ? (
+                  {isInstructor || isSecretary ? (
                     <ShieldCheck className="w-4 h-4 text-burgundy-500" />
                   ) : (
                     <LayoutDashboard className="w-4 h-4 text-burgundy-500" />
                   )}
                   <span className="hidden sm:inline">
-                    {isInstructor ? 'Administration' : 'Student Dashboard'}
+                    {isInstructor ? 'Administration' : isSecretary ? 'Secretary Office' : 'Student Dashboard'}
                   </span>
                   <span className="sm:hidden">
-                    {isInstructor ? 'Admin' : currentUser.name.split(' ')[0]}
+                    {isInstructor ? 'Admin' : isSecretary ? 'Office' : currentUser.name.split(' ')[0]}
                   </span>
                 </Link>
 
@@ -162,7 +164,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                       {currentUser.name}
                     </span>
                     <span className="text-[11px] text-charcoal-100 font-sans">
-                      {isInstructor ? 'Academic Director' : 'Enrolled Student'}
+                      {isInstructor ? 'Academic Director' : isSecretary ? 'Academy Secretary' : 'Enrolled Student'}
                     </span>
                   </div>
                 </div>
@@ -227,11 +229,11 @@ export const Navbar: React.FC<NavbarProps> = ({
           ) : (
             <div className="flex flex-col gap-2 pt-2 border-t border-hairline">
               <Link
-                href="/dashboard"
+                href={isSecretary ? '/office' : '/dashboard'}
                 onClick={() => setMobileMenuOpen(false)}
                 className="w-full py-2.5 text-center text-sm font-semibold rounded bg-burgundy-500 text-ivory-100"
               >
-                {isInstructor ? 'Enter Administration Portal' : 'Enter Student Dashboard'}
+                {isInstructor ? 'Enter Administration Portal' : isSecretary ? 'Enter Secretary Office' : 'Enter Student Dashboard'}
               </Link>
               <button
                 onClick={() => {

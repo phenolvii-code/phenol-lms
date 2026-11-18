@@ -36,6 +36,8 @@ export default function CourseDetailsPage() {
 
   const [coursesList, setCoursesList] = useState<ChemistryCourse[]>([]);
   const { user: currentUser } = useCurrentUser();
+  // Secretary accounts see "Secretary Office" (→ /office); students and instructors are unchanged.
+  const isSecretaryUser = currentUser?.role === 'SECRETARY' || currentUser?.isSecretary === true;
   const [enrollmentStatus, setEnrollmentStatus] = useState<'ACTIVE' | 'PENDING' | 'NOT_ENROLLED'>('NOT_ENROLLED');
   const [requestToast, setRequestToast] = useState(false);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
@@ -147,10 +149,10 @@ export default function CourseDetailsPage() {
               <div className="flex items-center gap-3">
                 {currentUser ? (
                   <Link
-                    href="/dashboard"
+                    href={isSecretaryUser ? '/office' : '/dashboard'}
                     className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs sm:text-sm text-charcoal-100 hover:text-charcoal-900 border border-hairline rounded transition-colors font-sans"
                   >
-                    <span>{currentUser.role === 'INSTRUCTOR' ? 'Admin Portal' : 'Student Dashboard'}</span>
+                    <span>{currentUser.role === 'INSTRUCTOR' ? 'Admin Portal' : isSecretaryUser ? 'Secretary Office' : 'Student Dashboard'}</span>
                   </Link>
                 ) : (
                   <Link
@@ -218,8 +220,11 @@ export default function CourseDetailsPage() {
                 <span>/</span>
                 {currentUser ? (
                   <>
-                    <Link href="/dashboard" className="hover:text-charcoal-900 transition-colors">
-                      {currentUser.role === 'INSTRUCTOR' ? 'Dashboard' : 'My Courses'}
+                    <Link
+                      href={isSecretaryUser ? '/office' : '/dashboard'}
+                      className="hover:text-charcoal-900 transition-colors"
+                    >
+                      {currentUser.role === 'INSTRUCTOR' ? 'Dashboard' : isSecretaryUser ? 'Secretary Office' : 'My Courses'}
                     </Link>
                     <span>/</span>
                   </>
@@ -240,10 +245,10 @@ export default function CourseDetailsPage() {
             <div className="flex items-center gap-3">
               {currentUser ? (
                 <Link
-                  href="/dashboard"
+                  href={isSecretaryUser ? '/office' : '/dashboard'}
                   className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs sm:text-sm text-charcoal-100 hover:text-charcoal-900 border border-hairline rounded transition-colors font-sans"
                 >
-                  <span>{currentUser.role === 'INSTRUCTOR' ? 'Admin Portal' : 'Student Dashboard'}</span>
+                  <span>{currentUser.role === 'INSTRUCTOR' ? 'Admin Portal' : isSecretaryUser ? 'Secretary Office' : 'Student Dashboard'}</span>
                 </Link>
               ) : (
                 <Link
