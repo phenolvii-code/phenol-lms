@@ -7,7 +7,7 @@ import { useCurrentUser } from '@/lib/auth/useCurrentUser';
 import { Navbar } from '@/components/layout/Navbar';
 import { PhenolLogo } from '@/components/brand/PhenolLogo';
 import { ACADEMIC_TRACKS, normalizeTrackSlug, INSTRUCTOR } from '@/data/mock-data';
-import { getStoredCourses, syncWithServerCourses } from '@/lib/courses-storage';
+import { getStoredCourses, syncWithServerCourses, filterStudentVisibleCourses } from '@/lib/courses-storage';
 import { ChemistryCourse } from '@/types/lms';
 import {
   Sparkles,
@@ -52,11 +52,8 @@ export default function TrackPage() {
     };
   }, []);
 
-  // Filter courses that belong to this track and are approved
-  const trackCourses = coursesList.filter((c) => {
-    if (c.approvalStatus === 'PENDING' || c.approvalStatus === 'REJECTED') {
-      return false;
-    }
+  // Filter courses that belong to this track, are approved, and are published live
+  const trackCourses = filterStudentVisibleCourses(coursesList).filter((c) => {
     const norm = normalizeTrackSlug(c.category);
     return norm === track.id || c.trackSlug === track.id;
   });

@@ -27,7 +27,7 @@ select 'FUNCTION', name,
        case when exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
          where n.nspname = 'public' and p.proname = name) then 'OK' else 'MISSING' end
 from (values
-  ('is_admin'), ('is_super_admin'), ('owns_course'), ('has_active_enrollment'),
+  ('is_admin'), ('is_super_admin'), ('is_instructor'), ('owns_course'), ('has_active_enrollment'),
   ('handle_new_auth_user'), ('generate_academic_code'),
   ('get_lesson_media'), ('set_course_approval'),
   ('submit_instructor_request'), ('decide_instructor_request'),
@@ -663,6 +663,20 @@ select 'PRIVATE SERVICE AUDIT', 'delivery_mode reserves internal (future live se
                     and conname = 'private_services_delivery_check'
                     and pg_get_constraintdef(oid) ilike '%internal%')
        then 'OK' else 'MISSING - re-run migration 028 step 1' end
+
+union all
+
+--     N5: is_instructor() exists as SECURITY DEFINER and gates both instructor RPCs.
+select 'PRIVATE SERVICE AUDIT', 'is_instructor() exists and gates instructor RPCs (028/028b)',
+       case when exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+                  where n.nspname = 'public' and p.proname = 'is_instructor' and p.prosecdef)
+             and (select prosrc from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+                  where n.nspname = 'public' and p.proname = 'propose_private_service')
+                 ilike '%is_instructor()%'
+             and (select prosrc from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+                  where n.nspname = 'public' and p.proname = 'update_my_private_service')
+                 ilike '%is_instructor()%'
+       then 'OK' else 'MISSING - run migration 028b_post_028_integrity_fixes.sql' end
 
 union all
 

@@ -13,7 +13,7 @@ export interface RegisteredStudent {
   academicCode: string;
   academicTrack: string;
   registeredAt: string;
-  role?: 'instructor' | 'student' | 'SUPER_ADMIN';
+  role?: 'instructor' | 'student' | 'secretary' | 'SUPER_ADMIN';
 }
 
 export interface StudentOverview {
@@ -23,7 +23,7 @@ export interface StudentOverview {
   phone: string;
   code: string;
   track: string;
-  role?: 'instructor' | 'student' | 'SUPER_ADMIN';
+  role?: 'instructor' | 'student' | 'secretary' | 'SUPER_ADMIN';
   registeredAt: string;
   activeCoursesCount: number;
   pendingRequestsCount: number;
@@ -45,7 +45,7 @@ export const recordRegisteredStudent = async (student: {
   email?: string;
   phone?: string;
   academicTrack?: string;
-  role?: 'instructor' | 'student' | 'SUPER_ADMIN';
+  role?: 'instructor' | 'student' | 'secretary' | 'SUPER_ADMIN';
 }): Promise<void> => {
   if (!student.email) return;
   const cleanEmail = student.email.toLowerCase().trim();
@@ -138,7 +138,12 @@ export const getAggregatedStudentsDirectory = (enrollments: any[] = []): Student
                 });
               } else {
                 const existing = studentMap.get(emailKey)!;
-                if (customRole) existing.role = customRole as any;
+                if (
+                  customRole &&
+                  !inMemoryStudents.some((s) => s.email.toLowerCase().trim() === emailKey)
+                ) {
+                  existing.role = customRole as any;
+                }
               }
             }
           });
@@ -207,7 +212,14 @@ export const syncWithServerStudents = async (): Promise<RegisteredStudent[]> => 
           academicCode: d.academic_code || 'PH-SCHOLAR',
           academicTrack: d.academic_track || 'Secondary & Baccalaureate',
           registeredAt: d.registered_at || d.created_at || new Date().toISOString(),
-          role: (d.role || '').toLowerCase() === 'instructor' ? 'instructor' : (em === 'phenolvii@gmail.com' ? 'SUPER_ADMIN' : 'student'),
+          role:
+            (d.role || '').toLowerCase() === 'instructor'
+              ? 'instructor'
+              : (d.role || '').toLowerCase() === 'secretary'
+              ? 'secretary'
+              : em === 'phenolvii@gmail.com'
+              ? 'SUPER_ADMIN'
+              : 'student',
         });
       });
     }
@@ -223,8 +235,16 @@ export const syncWithServerStudents = async (): Promise<RegisteredStudent[]> => 
       });
       studentMap.forEach((st) => {
         if (st.id && roleMap.has(st.id)) {
-          const r = roleMap.get(st.id)!;
-          st.role = (r === 'super_admin' ? 'SUPER_ADMIN' : (r === 'instructor' ? 'instructor' : 'student')) as any;
+          const r = (roleMap.get(st.id) || '').toLowerCase();
+          st.role = (
+            r === 'super_admin'
+              ? 'SUPER_ADMIN'
+              : r === 'instructor'
+              ? 'instructor'
+              : r === 'secretary'
+              ? 'secretary'
+              : 'student'
+          ) as any;
         }
       });
     }

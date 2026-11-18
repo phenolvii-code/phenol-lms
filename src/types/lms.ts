@@ -82,6 +82,7 @@ export interface ChemistryCourse {
   instructorWhatsapp?: string;
   instructorEmail?: string;
   approvalStatus?: 'APPROVED' | 'PENDING' | 'REJECTED';
+  isPublished?: boolean;
   submittedAt?: string;
   level: string;
   molecularFormula?: string;

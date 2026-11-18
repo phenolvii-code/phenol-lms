@@ -33,6 +33,7 @@ import {
   saveSingleCourse,
   markCourseDeleted,
   syncWithServerCourses,
+  filterStudentVisibleCourses,
 } from '@/lib/courses-storage';
 import { StudentProfileModal } from '@/components/profile/StudentProfileModal';
 import { CourseStudentsModal } from '@/components/courses/CourseStudentsModal';
@@ -46,7 +47,7 @@ import {
   adminDeleteStudentAccount,
   CourseEnrollmentRecord,
 } from '@/lib/data/enrollments';
-import { recordRegisteredStudent } from '@/lib/enrollment-storage';
+import { recordRegisteredStudent, syncWithServerStudents } from '@/lib/enrollment-storage';
 import { adminNotifyCourseStudents } from '@/lib/data/notifications';
 import {
   FileCheck2,
@@ -202,6 +203,13 @@ export default function DashboardPage() {
     if (isSuperAdminUser) return enrollments;
     return enrollments.filter((e) => myCourseIds.has(e.course_id));
   }, [enrollments, myCourseIds, isSuperAdminUser]);
+
+  const studentVisibleCourses = useMemo(() => {
+    const activeIds = new Set(
+      enrollments.filter((e) => e.status === 'ACTIVE').map((e) => e.course_id)
+    );
+    return filterStudentVisibleCourses(courses, activeIds);
+  }, [courses, enrollments]);
 
   // Direct Enroll Student Modal State
   const [isDirectEnrollModalOpen, setIsDirectEnrollModalOpen] = useState(false);
@@ -686,38 +694,50 @@ export default function DashboardPage() {
 
   const handleApproveCourse = async (courseId: string) => {
     try {
-      await supabase.rpc('set_course_approval', {
+      const { error: rpcErr } = await supabase.rpc('set_course_approval', {
         p_course_id: courseId,
         p_status: 'APPROVED',
       });
-    } catch (e) {
-      console.warn('RPC set_course_approval failed:', e);
+      if (rpcErr) {
+        setEnrollmentToast(`Course approval failed: ${rpcErr.message}`);
+        setTimeout(() => setEnrollmentToast(null), 5000);
+        return;
+      }
+    } catch (e: any) {
+      setEnrollmentToast(`Course approval failed: ${e?.message || 'unknown error'}`);
+      setTimeout(() => setEnrollmentToast(null), 5000);
+      return;
     }
     const updated = courses.map((c) =>
-      c.id === courseId ? { ...c, approvalStatus: 'APPROVED' as const } : c
+      c.id === courseId ? { ...c, approvalStatus: 'APPROVED' as const, isPublished: true } : c
     );
     setCourses(updated);
-    const target = updated.find((c) => c.id === courseId);
-    if (target) await saveSingleCourse(target);
+    await syncWithServerCourses();
     setEnrollmentToast('Course approved and published live.');
     setTimeout(() => setEnrollmentToast(null), 4000);
   };
 
   const handleRejectCourse = async (courseId: string) => {
     try {
-      await supabase.rpc('set_course_approval', {
+      const { error: rpcErr } = await supabase.rpc('set_course_approval', {
         p_course_id: courseId,
         p_status: 'REJECTED',
       });
-    } catch (e) {
-      console.warn('RPC set_course_approval failed:', e);
+      if (rpcErr) {
+        setEnrollmentToast(`Course rejection failed: ${rpcErr.message}`);
+        setTimeout(() => setEnrollmentToast(null), 5000);
+        return;
+      }
+    } catch (e: any) {
+      setEnrollmentToast(`Course rejection failed: ${e?.message || 'unknown error'}`);
+      setTimeout(() => setEnrollmentToast(null), 5000);
+      return;
     }
     const updated = courses.map((c) =>
-      c.id === courseId ? { ...c, approvalStatus: 'REJECTED' as const } : c
+      c.id === courseId ? { ...c, approvalStatus: 'REJECTED' as const, isPublished: false } : c
     );
     setCourses(updated);
-    const target = updated.find((c) => c.id === courseId);
-    if (target) await saveSingleCourse(target);
+    await syncWithServerCourses();
     setEnrollmentToast('Course proposal rejected.');
     setTimeout(() => setEnrollmentToast(null), 4000);
   };
@@ -776,6 +796,21 @@ export default function DashboardPage() {
         p_role: role,
       });
       if (error) throw error;
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(`phenol_user_role_${clean}`, role);
+        const raw = localStorage.getItem('phenol_registered_students');
+        if (raw) {
+          const list = JSON.parse(raw);
+          const updatedList = list.map((st: any) =>
+            st.email?.toLowerCase() === clean ? { ...st, role } : st
+          );
+          localStorage.setItem('phenol_registered_students', JSON.stringify(updatedList));
+        }
+      }
+      await syncWithServerStudents();
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new Event('phenol_students_updated'));
+      }
       setEnrollmentToast(`Role updated: ${clean} → ${role}`);
       setTimeout(() => setEnrollmentToast(null), 5000);
       await syncPlatformInstructors(true);
@@ -1663,7 +1698,7 @@ export default function DashboardPage() {
                     : 'border-transparent text-charcoal-100 hover:text-charcoal-900'
                 }`}
               >
-                Programs & Courses ({courses.length})
+                Programs & Courses ({studentVisibleCourses.length})
               </button>
 
               <button
@@ -1706,7 +1741,7 @@ export default function DashboardPage() {
             {/* STUDENT TAB 1: COURSES */}
             {studentTab === 'courses' && (
               <StudentCoursesTab
-                courses={courses}
+                courses={studentVisibleCourses}
                 trackFilter={trackFilter}
                 setTrackFilter={setTrackFilter}
                 enrollmentToast={enrollmentToast}
@@ -1731,7 +1766,7 @@ export default function DashboardPage() {
             {/* STUDENT TAB 4: QUIZZES */}
             {studentTab === 'quizzes' && (
               <StudentQuizzesTab
-                courses={courses}
+                courses={studentVisibleCourses}
                 enrollments={enrollments}
               />
             )}

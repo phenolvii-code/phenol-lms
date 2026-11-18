@@ -8,7 +8,7 @@ import { Navbar } from '@/components/layout/Navbar';
 import { PhenolLogo } from '@/components/brand/PhenolLogo';
 import { Initials } from '@/components/ui/Initials';
 import { WhatsAppIcon } from '@/components/auth/AuthIcons';
-import { getStoredCourses, syncWithServerCourses } from '@/lib/courses-storage';
+import { getStoredCourses, syncWithServerCourses, isCourseVisibleToStudent } from '@/lib/courses-storage';
 import { listMyEnrollments, listAllEnrollments, CourseEnrollmentRecord } from '@/lib/data/enrollments';
 import {
   getInstructorByIdOrSlug,
@@ -142,6 +142,15 @@ export default function InstructorProfilePage() {
 
   const canEdit = isSuperAdmin || isInstructorOwner;
 
+  // Active enrolled course IDs for current logged-in user
+  const myActiveCourseIds = useMemo(() => {
+    return new Set(
+      myEnrollments
+        .filter((e) => e.status === 'ACTIVE')
+        .map((e) => e.course_id)
+    );
+  }, [myEnrollments]);
+
   // Filter courses directed by this instructor
   const instructorCourses = useMemo(() => {
     if (!instructor) return [];
@@ -149,6 +158,9 @@ export default function InstructorProfilePage() {
     const instEmail = (instructor.email || '').toLowerCase();
 
     return courses.filter((c) => {
+      if (!canEdit && !isCourseVisibleToStudent(c, myActiveCourseIds)) {
+        return false;
+      }
       if (instId === 'dr-omar-magdi' || instEmail === 'phenolvii@gmail.com') {
         return (
           !c.instructorEmail ||
@@ -163,16 +175,7 @@ export default function InstructorProfilePage() {
         (c.instructorName && c.instructorName.toLowerCase() === instructor.name.toLowerCase())
       );
     });
-  }, [courses, instructor]);
-
-  // Active enrolled course IDs for current logged-in user
-  const myActiveCourseIds = useMemo(() => {
-    return new Set(
-      myEnrollments
-        .filter((e) => e.status === 'ACTIVE')
-        .map((e) => e.course_id)
-    );
-  }, [myEnrollments]);
+  }, [courses, instructor, canEdit, myActiveCourseIds]);
 
   // Is current user an enrolled student with THIS instructor?
   const isEnrolledWithThisInstructor = useMemo(() => {

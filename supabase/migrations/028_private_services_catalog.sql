@@ -426,6 +426,26 @@ CREATE TRIGGER trg_audit_private_services
 -- ------------------------------------------------------------------------------
 -- 7) Instructor RPCs: propose + edit (descriptive fields only).
 -- ------------------------------------------------------------------------------
+-- Define public.is_instructor() idempotently so 028 is self-contained on replay.
+CREATE OR REPLACE FUNCTION public.is_instructor()
+RETURNS boolean
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM public.profiles
+    WHERE id = auth.uid() AND role IN ('instructor', 'super_admin')
+  ) OR EXISTS (
+    SELECT 1 FROM auth.users
+    WHERE id = auth.uid() AND lower(trim(email)) = 'phenolvii@gmail.com'
+  );
+$$;
+
+REVOKE ALL ON FUNCTION public.is_instructor() FROM public;
+GRANT EXECUTE ON FUNCTION public.is_instructor() TO anon, authenticated;
+
 CREATE OR REPLACE FUNCTION public.propose_private_service(
   p_title text,
   p_description text DEFAULT NULL,
@@ -493,6 +513,10 @@ DECLARE
   v_mode text;
   v_row public.private_services;
 BEGIN
+  IF NOT public.is_instructor() THEN
+    RAISE EXCEPTION 'forbidden: only an instructor can edit a private service proposal';
+  END IF;
+
   SELECT * INTO v_row FROM public.private_services WHERE id = p_service_id FOR UPDATE;
   IF NOT FOUND THEN
     RAISE EXCEPTION 'private service not found';

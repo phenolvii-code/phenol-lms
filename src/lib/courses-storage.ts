@@ -18,12 +18,37 @@ if (typeof window !== 'undefined') {
     const raw = localStorage.getItem('phenol_stored_courses');
     if (raw) {
       const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed) && parsed.length > 0) {
+      if (Array.isArray(parsed)) {
         inMemoryCourses = parsed;
       }
     }
   } catch (e) {}
 }
+
+/**
+ * Returns whether a course should be visible to students/visitors (must be approved
+ * and published, or actively enrolled if later unpublished).
+ */
+export const isCourseVisibleToStudent = (
+  course: ChemistryCourse,
+  activeCourseIds?: Set<string>
+): boolean => {
+  if (course.approvalStatus === 'PENDING' || course.approvalStatus === 'REJECTED') {
+    return false;
+  }
+  if (course.isPublished === false && !activeCourseIds?.has(course.id)) {
+    return false;
+  }
+  return true;
+};
+
+/**
+ * Filters a course list down to courses visible in student/public views.
+ */
+export const filterStudentVisibleCourses = (
+  courses: ChemistryCourse[],
+  activeCourseIds?: Set<string>
+): ChemistryCourse[] => courses.filter((c) => isCourseVisibleToStudent(c, activeCourseIds));
 
 export const getDeletedCourseIds = (): string[] => {
   return [];
@@ -50,7 +75,7 @@ export const getStoredCourses = (): ChemistryCourse[] => {
       const raw = localStorage.getItem('phenol_stored_courses');
       if (raw) {
         const parsed = JSON.parse(raw);
-        if (Array.isArray(parsed) && parsed.length > 0) {
+        if (Array.isArray(parsed)) {
           inMemoryCourses = parsed;
         }
       }
@@ -230,7 +255,7 @@ export const syncWithServerCourses = async (): Promise<ChemistryCourse[]> => {
       .from('courses')
       .select('*, lessons(id, course_id, title, duration, type, summary, key_formulas, sort_order, created_at)');
 
-    if (!error && Array.isArray(supaCourses) && supaCourses.length > 0) {
+    if (!error && Array.isArray(supaCourses)) {
       const mappedCourses: ChemistryCourse[] = supaCourses.map((sc) => {
         const rawDesc = sc.description || '';
         const match = rawDesc.match(META_REGEX);
@@ -285,6 +310,7 @@ export const syncWithServerCourses = async (): Promise<ChemistryCourse[]> => {
           instructorEmail: instructorEmail,
           instructorAvatar: sc.instructor_avatar || meta?.instructorAvatar || undefined,
           approvalStatus: sc.approval_status || meta?.approvalStatus || 'APPROVED',
+          isPublished: sc.is_published !== false,
           submittedAt: meta?.submittedAt || undefined,
           lessons: lessonsList,
         };

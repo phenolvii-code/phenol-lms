@@ -104,16 +104,21 @@ select 'A8',
 
 union all
 
--- A9. instructor RPCs are gated by is_instructor() ----------------------------------
+-- A9. instructor RPCs are gated by is_instructor() (and the helper exists) ----------
 select 'A9',
-       'instructor RPCs gated by is_instructor()',
-       case when (select prosrc from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+       'is_instructor() exists (definer) + gates instructor RPCs',
+       case when exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+                  where n.nspname = 'public' and p.proname = 'is_instructor' and p.prosecdef)
+             and (select prosrc from pg_proc p join pg_namespace n on n.oid = p.pronamespace
                   where n.nspname = 'public' and p.proname = 'propose_private_service')
                  ilike '%is_instructor()%'
              and (select prosrc from pg_proc p join pg_namespace n on n.oid = p.pronamespace
                   where n.nspname = 'public' and p.proname = 'update_my_private_service')
+                 ilike '%is_instructor()%'
+             and (select prosrc from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+                  where n.nspname = 'public' and p.proname = 'update_my_private_service')
                  ilike '%belongs to another instructor%'
-            then 'PASS' else 'FAIL - re-run migration 028 step 7' end
+            then 'PASS' else 'FAIL - re-run migration 028 step 7 + 028b addendum' end
 
 union all
 

@@ -43,6 +43,21 @@ import {
 import { OfficeTab } from '@/components/dashboard/admin/OfficeTab';
 import { AuditLogTab } from '@/components/dashboard/admin/AuditLogTab';
 
+/** Classifies an account row into UI governance role flags without letting stale localStorage override secretary/founder roles. */
+function classifyAccountRole(email?: string, role?: string) {
+  const lowerEmail = (email || '').toLowerCase().trim();
+  const isSuper = lowerEmail === 'phenolvii@gmail.com';
+  const roleLower = (role || '').toString().toLowerCase();
+  const isSec = !isSuper && roleLower === 'secretary';
+  const isInst =
+    isSuper ||
+    roleLower === 'instructor' ||
+    (!isSec &&
+      typeof window !== 'undefined' &&
+      localStorage.getItem(`phenol_user_role_${lowerEmail}`) === 'instructor');
+  return { isSuper, isSec, isInst };
+}
+
 interface FacultyRequestRecord {
   id: string;
   user_id: string;
@@ -234,10 +249,7 @@ export const SuperAdministrationView: React.FC<SuperAdministrationViewProps> = (
       const email = (st.email || '').toLowerCase().trim();
       if (!email || email === 'phenolvii@gmail.com') return;
 
-      const isInst =
-        (st as any).role?.toLowerCase() === 'instructor' ||
-        (typeof window !== 'undefined' &&
-          localStorage.getItem(`phenol_user_role_${email}`) === 'instructor');
+      const { isInst } = classifyAccountRole(email, (st as any).role);
 
       if (isInst) {
         const instId = email.split('@')[0].replace(/[^a-zA-Z0-9_-]/g, '-');
@@ -351,14 +363,10 @@ export const SuperAdministrationView: React.FC<SuperAdministrationViewProps> = (
   // Filtered Users
   const filteredUsers = useMemo(() => {
     return studentDirectory.filter((st) => {
-      const isSuper = st.email?.toLowerCase() === 'phenolvii@gmail.com';
-      const isInst =
-        isSuper ||
-        ((st as any).role || '').toString().toLowerCase() === 'instructor' ||
-        (typeof window !== 'undefined' && localStorage.getItem(`phenol_user_role_${st.email?.toLowerCase()}`) === 'instructor');
+      const { isSec, isInst } = classifyAccountRole(st.email, (st as any).role);
 
       if (userFilter === 'instructors' && !isInst) return false;
-      if (userFilter === 'students' && isInst) return false;
+      if (userFilter === 'students' && (isInst || isSec)) return false;
 
       if (!userSearchQuery) return true;
       const q = userSearchQuery.toLowerCase();
@@ -692,11 +700,7 @@ export const SuperAdministrationView: React.FC<SuperAdministrationViewProps> = (
                     </tr>
                   ) : (
                     filteredUsers.map((st, idx) => {
-                      const isSuper = st.email?.toLowerCase() === 'phenolvii@gmail.com';
-                      const isInst =
-                        isSuper ||
-                        (st as any).role === 'instructor' ||
-                        (typeof window !== 'undefined' && localStorage.getItem(`phenol_user_role_${st.email?.toLowerCase()}`) === 'instructor');
+                      const { isSuper, isSec, isInst } = classifyAccountRole(st.email, (st as any).role);
 
                       const cleanPhone = (st.phone || '').replace(/[^0-9]/g, '');
 
@@ -728,6 +732,11 @@ export const SuperAdministrationView: React.FC<SuperAdministrationViewProps> = (
                               <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-burgundy-50 text-burgundy-800 border border-burgundy-200 text-[10px] font-bold font-formula">
                                 <ShieldCheck className="w-3 h-3 text-burgundy-600" />
                                 <span>Instructor</span>
+                              </span>
+                            ) : isSec ? (
+                              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-ochre-100 text-charcoal-900 border border-ochre-300 text-[10px] font-bold font-formula">
+                                <ShieldCheck className="w-3 h-3 text-ochre-600" />
+                                <span>Academy Secretary</span>
                               </span>
                             ) : (
                               <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-ivory-200 text-charcoal-900 border border-hairline text-[10px] font-medium font-formula">
@@ -780,7 +789,7 @@ export const SuperAdministrationView: React.FC<SuperAdministrationViewProps> = (
                             </button>
 
                             {/* Role Switch */}
-                            {!isSuper && onToggleUserRole && (
+                            {!isSuper && !isSec && onToggleUserRole && (
                               <button
                                 type="button"
                                 onClick={() =>

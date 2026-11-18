@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { CHEMISTRY_COURSES, ACADEMIC_TRACKS, normalizeTrackSlug } from '@/data/mock-data';
 import { ChemistryCourse } from '@/types/lms';
-import { getStoredCourses, syncWithServerCourses } from '@/lib/courses-storage';
+import { getStoredCourses, syncWithServerCourses, filterStudentVisibleCourses } from '@/lib/courses-storage';
 import { ArrowRight, BookOpen, Clock, Layers, Sparkles } from 'lucide-react';
 
 interface ProgramsSectionProps {
@@ -69,7 +69,7 @@ export const ProgramsSection: React.FC<ProgramsSectionProps> = ({ onOpenWaitlist
         {/* 4 Academic Programs Cards Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 pt-2">
           {ACADEMIC_TRACKS.map((track) => {
-            const count = coursesList.filter((c) => {
+            const count = filterStudentVisibleCourses(coursesList).filter((c) => {
               const norm = normalizeTrackSlug(c.category);
               return norm === track.id || c.trackSlug === track.id;
             }).length;

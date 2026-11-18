@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { AcademicCategory, ChemistryCourse } from '@/types/lms';
 import { AuthUser } from '@/types/auth';
 import { ACADEMIC_TRACKS } from '@/data/mock-data';
+import { filterStudentVisibleCourses } from '@/lib/courses-storage';
 import { CourseEnrollmentRecord } from '@/lib/data/enrollments';
 import {
   CheckCircle2,
@@ -35,10 +36,14 @@ export function StudentCoursesTab({
   enrollments,
   handleRequestCourse,
 }: StudentCoursesTabProps) {
+  const activeCourseIds = new Set(
+    enrollments.filter((e) => e.status === 'ACTIVE').map((e) => e.course_id)
+  );
+  const visibleCourses = filterStudentVisibleCourses(courses, activeCourseIds);
   const displayedCourses =
     trackFilter === 'all'
-      ? courses
-      : courses.filter((c) => c.category === trackFilter);
+      ? visibleCourses
+      : visibleCourses.filter((c) => c.category === trackFilter);
 
   return (
     <div className="space-y-6">

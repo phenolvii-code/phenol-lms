@@ -17,6 +17,7 @@ import {
   setSettlementStatus,
 } from '@/lib/data/office';
 import { setEnrollmentStatus } from '@/lib/data/enrollments';
+import { syncWithServerCourses } from '@/lib/courses-storage';
 import { PrivateServicesOfficeTab } from '@/components/dashboard/admin/PrivateServicesOfficeTab';
 
 // ==============================================================================
@@ -172,6 +173,7 @@ export const OfficeTab: React.FC<OfficeTabProps> = ({ mode = 'super_admin' }) =>
     try {
       await setCoursePublished(course.id, !course.is_published);
       await loadAll();
+      await syncWithServerCourses();
     } catch (err: any) {
       alert(err.message || 'Error changing publish state');
     } finally {
@@ -184,6 +186,7 @@ export const OfficeTab: React.FC<OfficeTabProps> = ({ mode = 'super_admin' }) =>
     try {
       await setCourseApproval(course.id, status);
       await loadAll();
+      await syncWithServerCourses();
     } catch (err: any) {
       alert(err.message || 'Error updating approval');
     } finally {
