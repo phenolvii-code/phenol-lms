@@ -16,7 +16,8 @@ from (values
   ('lesson_progress'), ('lesson_comments'), ('media_access_log'),
   ('booklets'), ('instructor_profiles'), ('question_bank_items'),
   ('payments'), ('platform_settings'), ('audit_logs'),
-  ('course_price_history'), ('instructor_settlements')
+  ('course_price_history'), ('instructor_settlements'),
+  ('private_services'), ('private_service_slots')
 ) as t(name)
 
 union all
@@ -46,7 +47,14 @@ from (values
   ('set_settlement_status'), ('get_instructor_financial_ledger'),
   ('get_super_admin_financial_overview'),
   ('office_list_payments'), ('office_list_enrollment_queue'),
-  ('founder_list_audit_logs')
+  ('founder_list_audit_logs'),
+  ('can_read_private_service'), ('propose_private_service'),
+  ('update_my_private_service'), ('set_private_service_price'),
+  ('set_private_service_status'), ('create_private_service_slot'),
+  ('close_private_service_slot'), ('office_list_private_services'),
+  ('list_my_private_services'), ('office_list_private_service_slots'),
+  ('trg_private_services_guard'), ('trg_private_service_slots_guard'),
+  ('trg_audit_private_services')
 ) as t(name)
 
 union all
@@ -611,6 +619,61 @@ select 'AUDIT STATE', 'audit_logs rows (informational)',
 
 union all
 
+-- 6f. Migration 028 audit - private services catalog ----------------------------
+--     N1: both catalog tables exist with RLS and ZERO client write policies.
+select 'PRIVATE SERVICE AUDIT', 'catalog tables locked (RLS, no client write policies)',
+       case when (select bool_and(relrowsecurity) from pg_class c
+                  join pg_namespace n on n.oid = c.relnamespace
+                  where n.nspname = 'public'
+                    and c.relname in ('private_services','private_service_slots'))
+             and not exists (select 1 from pg_policies
+                  where schemaname = 'public'
+                    and tablename in ('private_services','private_service_slots')
+                    and cmd in ('INSERT','UPDATE','DELETE','ALL'))
+       then 'OK' else 'LEAK - catalog write policy or RLS disabled' end
+
+union all
+
+--     N2: instructors cannot price or publish (trigger-enforced).
+select 'PRIVATE SERVICE AUDIT', 'price/publish are office-only (trigger)',
+       case when (select prosrc from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+                  where n.nspname = 'public' and p.proname = 'trg_private_services_guard')
+                 ilike '%only the academy office can price a service%'
+             and (select prosrc from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+                  where n.nspname = 'public' and p.proname = 'trg_private_services_guard')
+                 ilike '%only the academy office can publish, activate, or archive a service%'
+       then 'OK' else 'WRONG - re-run migration 028 step 4' end
+
+union all
+
+--     N3: the catalog writes to the audit ledger (022) on every governance change.
+select 'PRIVATE SERVICE AUDIT', 'audit trigger bound to private_services',
+       case when exists (select 1 from pg_trigger t join pg_class c on c.oid = t.tgrelid
+                  join pg_namespace n on n.oid = c.relnamespace
+                  where n.nspname = 'public' and c.relname = 'private_services'
+                    and t.tgname = 'trg_audit_private_services' and not t.tgisinternal)
+       then 'OK' else 'MISSING - re-run migration 028 step 6' end
+
+union all
+
+--     N4: the future internal live server needs no data migration.
+select 'PRIVATE SERVICE AUDIT', 'delivery_mode reserves internal (future live server)',
+       case when exists (select 1 from pg_constraint
+                  where conrelid = 'public.private_services'::regclass
+                    and conname = 'private_services_delivery_check'
+                    and pg_get_constraintdef(oid) ilike '%internal%')
+       then 'OK' else 'MISSING - re-run migration 028 step 1' end
+
+union all
+
+-- 6g. TRUTH check - private services state (informational: 0 until real proposals).
+select 'PRIVATE SERVICE STATE', 'services / active / slots (informational)',
+       (select count(*)::text from public.private_services) || ' services, '
+       || (select count(*)::text from public.private_services where status = 'ACTIVE') || ' active, '
+       || (select count(*)::text from public.private_service_slots) || ' slots'
+
+union all
+
 -- 7. Migration 015 audit: the `booklets` bucket is PRIVATE ----------------------
 select 'STORAGE AUDIT', 'bucket booklets is private (migration 015)',
        case when exists (select 1 from storage.buckets
@@ -621,10 +684,12 @@ union all
 
 -- 8. Schema audit marker (shows the highest migration actually applied) ---------
 select 'AUDIT MARKER', 'schema comment',
-       case when obj_description('public'::regnamespace, 'pg_namespace') like '%027%'
-       then 'OK (through 027)'
+       case when obj_description('public'::regnamespace, 'pg_namespace') like '%028%'
+       then 'OK (through 028)'
+       when obj_description('public'::regnamespace, 'pg_namespace') like '%027%'
+       then 'PARTIAL (027 only - 028 not applied)'
        when obj_description('public'::regnamespace, 'pg_namespace') like '%026%'
-       then 'PARTIAL (026 only - 027 not applied)'
+       then 'PARTIAL (026 only - 027/028 not applied)'
        when obj_description('public'::regnamespace, 'pg_namespace') like '%025%'
        then 'PARTIAL (025 only - 026/027 not applied)'
        when obj_description('public'::regnamespace, 'pg_namespace') like '%024%'

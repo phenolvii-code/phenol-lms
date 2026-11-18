@@ -4,7 +4,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import {
   Search, Plus, Wallet, History, CheckCircle2, XCircle, Clock, Ban,
   RefreshCw, ChevronDown, ChevronRight, ShieldCheck, BookOpen, UserCheck,
-  TrendingUp, Percent, Banknote, Inbox,
+  TrendingUp, Percent, Banknote, Inbox, CalendarClock,
 } from 'lucide-react';
 import {
   OfficeCourseRow, PaymentRow, PriceHistoryRow,
@@ -17,6 +17,7 @@ import {
   setSettlementStatus,
 } from '@/lib/data/office';
 import { setEnrollmentStatus } from '@/lib/data/enrollments';
+import { PrivateServicesOfficeTab } from '@/components/dashboard/admin/PrivateServicesOfficeTab';
 
 // ==============================================================================
 // Academy Office tab (migration 024): centralized pricing + payments desk.
@@ -54,7 +55,7 @@ export const OfficeTab: React.FC<OfficeTabProps> = ({ mode = 'super_admin' }) =>
   const [queue, setQueue] = useState<EnrollmentQueueRow[]>([]);
   const [overview, setOverview] = useState<SuperAdminFinancialOverview | null>(null);
   const [loading, setLoading] = useState(true);
-  const [section, setSection] = useState<'pricing' | 'enrollments' | 'payments' | 'settlements'>('pricing');
+  const [section, setSection] = useState<'pricing' | 'enrollments' | 'payments' | 'settlements' | 'services'>('pricing');
   const [searchQuery, setSearchQuery] = useState('');
   const [queueFilter, setQueueFilter] = useState<'PENDING' | 'ACTIVE' | 'REJECTED' | 'ALL'>('PENDING');
   const [queueBusy, setQueueBusy] = useState<string | null>(null);
@@ -459,6 +460,16 @@ export const OfficeTab: React.FC<OfficeTabProps> = ({ mode = 'super_admin' }) =>
             {(overview?.total_settlements_pending ?? 0) > 0 && (
               <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
             )}
+          </button>
+          <button
+            type="button"
+            onClick={() => setSection('services')}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-colors flex items-center gap-1.5 ${
+              section === 'services' ? 'bg-burgundy-500 text-ivory-100 shadow-sm' : 'bg-ivory-200 text-charcoal-900 border border-hairline'
+            }`}
+          >
+            <CalendarClock className="w-3.5 h-3.5" />
+            <span>Private Services</span>
           </button>
           <button
             type="button"
@@ -1320,6 +1331,8 @@ export const OfficeTab: React.FC<OfficeTabProps> = ({ mode = 'super_admin' }) =>
           </div>
         </div>
       )}
+
+      {section === 'services' && <PrivateServicesOfficeTab />}
     </div>
   );
 };
