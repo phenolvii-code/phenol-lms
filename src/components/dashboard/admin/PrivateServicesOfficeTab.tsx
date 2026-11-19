@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   AlertCircle,
   Archive,
@@ -160,6 +160,34 @@ export const PrivateServicesOfficeTab: React.FC = () => {
   const actionBookingsCount = bookings.filter(
     (b) => b.status === 'REQUESTED' || b.status === 'AWAITING_PAYMENT'
   ).length;
+
+  const paymentsByBooking = useMemo(() => {
+    const map = new Map<string, OfficePrivateServicePaymentRow[]>();
+    for (const p of payments) {
+      const list = map.get(p.booking_id);
+      if (list) list.push(p);
+      else map.set(p.booking_id, [p]);
+    }
+    return map;
+  }, [payments]);
+
+  // Derive live payment state from the ledger so refunded bookings can be
+  // re-paid and re-verified from both Bookings Desk and Payments Desk (031).
+  const getBookingPaymentState = useCallback(
+    (b: OfficePrivateBookingRow) => {
+      const rows = paymentsByBooking.get(b.id) ?? [];
+      const activeVerified = rows.find((p) => p.status === 'VERIFIED') ?? null;
+      const isRefundedUnpaid =
+        b.payment_verified && !activeVerified && rows.some((p) => p.status === 'REFUNDED');
+      const hasActiveVerified = b.payment_verified && !isRefundedUnpaid;
+      return {
+        hasActiveVerified,
+        isRefundedUnpaid,
+        activeReference: activeVerified?.reference || b.payment_reference || null,
+      };
+    },
+    [paymentsByBooking]
+  );
 
   const filteredBookings =
     bookingFilter === 'ALL'
@@ -583,6 +611,7 @@ export const PrivateServicesOfficeTab: React.FC = () => {
               {filteredBookings.map((b) => {
                 const isTerminal =
                   b.status === 'COMPLETED' || b.status === 'CANCELLED' || b.status === 'NO_SHOW';
+                const payState = getBookingPaymentState(b);
                 return (
                   <div
                     key={b.id}
@@ -598,14 +627,18 @@ export const PrivateServicesOfficeTab: React.FC = () => {
                       </span>
                       <span
                         className={`px-2 py-0.5 rounded-full border text-[10px] font-mono font-bold ${
-                          b.payment_verified
+                          payState.hasActiveVerified
                             ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                            : 'bg-amber-50 text-amber-700 border-amber-200'
+                            : payState.isRefundedUnpaid
+                              ? 'bg-red-50 text-red-700 border-red-200'
+                              : 'bg-amber-50 text-amber-700 border-amber-200'
                         }`}
                       >
-                        {b.payment_verified
-                          ? `PAID (${b.payment_reference || 'verified'})`
-                          : 'UNPAID (pay-first gate)'}
+                        {payState.hasActiveVerified
+                          ? `PAID (${payState.activeReference || 'verified'})`
+                          : payState.isRefundedUnpaid
+                            ? 'REFUNDED (re-payment required)'
+                            : 'UNPAID (pay-first gate)'}
                       </span>
                       <span className="px-2 py-0.5 rounded bg-ivory-200 text-charcoal-100 text-[10px] font-mono">
                         {b.booking_mode === 'office_slot' ? 'Office Slot' : 'Student Proposed'}
@@ -666,7 +699,7 @@ export const PrivateServicesOfficeTab: React.FC = () => {
                     {!isTerminal && (
                       <div className="pt-2 border-t border-hairline space-y-2.5">
                         {/* Step 1: Payment Verification (Pay-First Gate) */}
-                        {!b.payment_verified && (
+                        {!payState.hasActiveVerified && (
                           <div className="flex flex-wrap items-center gap-2">
                             {b.status === 'REQUESTED' && (
                               <button
@@ -726,8 +759,8 @@ export const PrivateServicesOfficeTab: React.FC = () => {
                           </div>
                         )}
 
-                        {/* Step 2: Venue & Confirmation (only enabled after payment_verified) */}
-                        {b.payment_verified && (
+                        {/* Step 2: Venue & Confirmation (only enabled after active verified payment) */}
+                        {payState.hasActiveVerified && (
                           <div className="flex flex-wrap items-center gap-2">
                             <input
                               type="text"
@@ -882,21 +915,25 @@ export const PrivateServicesOfficeTab: React.FC = () => {
                 }}
                 className="sm:col-span-2 px-3 py-2 text-xs bg-white border border-hairline rounded-xl focus:outline-none focus:border-burgundy-500"
               >
-                <option value="">Select unpaid booking…</option>
+                <option value="">Select unpaid / refunded booking…</option>
                 {bookings
                   .filter(
                     (b) =>
-                      !b.payment_verified &&
+                      !getBookingPaymentState(b).hasActiveVerified &&
                       b.status !== 'CANCELLED' &&
                       b.status !== 'NO_SHOW' &&
                       b.status !== 'COMPLETED'
                   )
-                  .map((b) => (
-                    <option key={b.id} value={b.id}>
-                      {b.service_title} — {b.student_email} ({b.price_snapshot} {b.currency} •{' '}
-                      {b.status})
-                    </option>
-                  ))}
+                  .map((b) => {
+                    const { isRefundedUnpaid } = getBookingPaymentState(b);
+                    return (
+                      <option key={b.id} value={b.id}>
+                        {b.service_title} — {b.student_email} ({b.price_snapshot} {b.currency} •{' '}
+                        {b.status}
+                        {isRefundedUnpaid ? ' • REFUNDED' : ''})
+                      </option>
+                    );
+                  })}
               </select>
 
               <select
