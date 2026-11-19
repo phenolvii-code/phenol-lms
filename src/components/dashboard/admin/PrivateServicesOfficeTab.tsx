@@ -172,17 +172,30 @@ export const PrivateServicesOfficeTab: React.FC = () => {
   }, [payments]);
 
   // Derive live payment state from the ledger so refunded bookings can be
-  // re-paid and re-verified from both Bookings Desk and Payments Desk (031).
+  // re-paid and re-verified from both Bookings Desk and Payments Desk (031/032).
+  // Priority matches list_my_student_private_bookings(): ACTIVE > IN_REVIEW > REFUNDED > UNPAID.
   const getBookingPaymentState = useCallback(
     (b: OfficePrivateBookingRow) => {
       const rows = paymentsByBooking.get(b.id) ?? [];
       const activeVerified = rows.find((p) => p.status === 'VERIFIED') ?? null;
+      // 032: ACTIVE > IN_REVIEW > REFUNDED > UNPAID (matches list_my_student_private_bookings).
+      const inReview =
+        !activeVerified &&
+        rows.some((p) => p.status === 'UNDER_REVIEW');
+      const hasHeldReview =
+        inReview &&
+        rows.some((p) => p.status === 'UNDER_REVIEW' && Boolean(p.verified_at));
       const isRefundedUnpaid =
-        b.payment_verified && !activeVerified && rows.some((p) => p.status === 'REFUNDED');
-      const hasActiveVerified = b.payment_verified && !isRefundedUnpaid;
+        !activeVerified &&
+        !inReview &&
+        rows.some((p) => p.status === 'REFUNDED');
+      const hasActiveVerified =
+        Boolean(activeVerified) || (b.payment_verified && !inReview && !isRefundedUnpaid);
       return {
         hasActiveVerified,
         isRefundedUnpaid,
+        inReview,
+        hasHeldReview,
         activeReference: activeVerified?.reference || b.payment_reference || null,
       };
     },
@@ -207,6 +220,28 @@ export const PrivateServicesOfficeTab: React.FC = () => {
           status: 'CANCELLED',
           reason: reason.trim(),
           officeNotes: notesDraft[b.id] || undefined,
+        });
+      },
+      load
+    );
+  };
+
+  const handleRefundPayment = (p: OfficePrivateServicePaymentRow) => {
+    const reason = window.prompt(
+      `Reason for refunding ${p.gross_amount} ${p.currency} (${p.student_email}):`
+    );
+    if (reason === null) return;
+    if (reason.trim().length < 3) {
+      setError('A refund requires a written reason (at least 3 characters).');
+      return;
+    }
+    run(
+      `ps-ref-${p.id}`,
+      async () => {
+        await setPrivateServicePaymentStatus({
+          paymentId: p.id,
+          status: 'REFUNDED',
+          note: reason.trim(),
         });
       },
       load
@@ -631,14 +666,20 @@ export const PrivateServicesOfficeTab: React.FC = () => {
                             ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
                             : payState.isRefundedUnpaid
                               ? 'bg-red-50 text-red-700 border-red-200'
-                              : 'bg-amber-50 text-amber-700 border-amber-200'
+                              : payState.inReview
+                                ? 'bg-purple-50 text-purple-700 border-purple-200'
+                                : 'bg-amber-50 text-amber-700 border-amber-200'
                         }`}
                       >
                         {payState.hasActiveVerified
                           ? `PAID (${payState.activeReference || 'verified'})`
                           : payState.isRefundedUnpaid
                             ? 'REFUNDED (re-payment required)'
-                            : 'UNPAID (pay-first gate)'}
+                            : payState.inReview
+                              ? payState.hasHeldReview
+                                ? 'REVIEW (payment held)'
+                                : 'REVIEW (under review)'
+                              : 'UNPAID (pay-first gate)'}
                       </span>
                       <span className="px-2 py-0.5 rounded bg-ivory-200 text-charcoal-100 text-[10px] font-mono">
                         {b.booking_mode === 'office_slot' ? 'Office Slot' : 'Student Proposed'}
@@ -699,7 +740,22 @@ export const PrivateServicesOfficeTab: React.FC = () => {
                     {!isTerminal && (
                       <div className="pt-2 border-t border-hairline space-y-2.5">
                         {/* Step 1: Payment Verification (Pay-First Gate) */}
-                        {!payState.hasActiveVerified && (
+                        {!payState.hasActiveVerified && payState.inReview && (
+                          <p className="text-xs text-purple-800 bg-purple-50 border border-purple-200 rounded-xl px-3 py-2">
+                            {payState.hasHeldReview
+                              ? 'Payment is held under review — resolve (Verify or Refund) in the '
+                              : 'Payment is under review — resolve (Verify, Fail, or Cancel) in the '}
+                            <button
+                              type="button"
+                              onClick={() => setSubView('payments')}
+                              className="font-bold underline hover:text-purple-950"
+                            >
+                              Payments Desk
+                            </button>
+                            .
+                          </p>
+                        )}
+                        {!payState.hasActiveVerified && !payState.inReview && (
                           <div className="flex flex-wrap items-center gap-2">
                             {b.status === 'REQUESTED' && (
                               <button
@@ -917,13 +973,16 @@ export const PrivateServicesOfficeTab: React.FC = () => {
               >
                 <option value="">Select unpaid / refunded booking…</option>
                 {bookings
-                  .filter(
-                    (b) =>
-                      !getBookingPaymentState(b).hasActiveVerified &&
+                  .filter((b) => {
+                    const st = getBookingPaymentState(b);
+                    return (
+                      !st.hasActiveVerified &&
+                      !st.inReview &&
                       b.status !== 'CANCELLED' &&
                       b.status !== 'NO_SHOW' &&
                       b.status !== 'COMPLETED'
-                  )
+                    );
+                  })
                   .map((b) => {
                     const { isRefundedUnpaid } = getBookingPaymentState(b);
                     return (
@@ -1077,161 +1136,173 @@ export const PrivateServicesOfficeTab: React.FC = () => {
             }
             return (
               <div className="space-y-2.5">
-                {visible.map((p) => (
-                  <div
-                    key={p.id}
-                    className="rounded-2xl border border-hairline bg-white p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
-                  >
-                    <div className="space-y-1">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span
-                          className={`px-2 py-0.5 rounded-full border text-[10px] font-mono font-bold ${
-                            p.status === 'VERIFIED'
-                              ? 'bg-emerald-100 text-emerald-800 border-emerald-200'
-                              : p.status === 'PENDING' || p.status === 'UNDER_REVIEW'
-                              ? 'bg-amber-100 text-amber-800 border-amber-200'
-                              : p.status === 'REFUNDED'
-                              ? 'bg-purple-100 text-purple-800 border-purple-200'
-                              : 'bg-ivory-200 text-charcoal-100 border-hairline'
-                          }`}
-                        >
-                          {p.status}
-                        </span>
-                        <span className="font-mono text-xs font-bold text-charcoal-900">
-                          {p.gross_amount} {p.currency}
-                        </span>
-                        <span className="text-[10px] font-mono uppercase text-charcoal-50">
-                          {p.method}
-                          {p.reference ? ` • ref: ${p.reference}` : ''}
-                        </span>
-                        {p.settlement_id && (
-                          <span className="px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200 text-[10px] font-mono">
-                            in settlement
+                {visible.map((p) => {
+                  const isDeadBooking =
+                    p.booking_status === 'CANCELLED' || p.booking_status === 'NO_SHOW';
+                  const isHeldPayment = p.status === 'UNDER_REVIEW' && Boolean(p.verified_at);
+                  return (
+                    <div
+                      key={p.id}
+                      className="rounded-2xl border border-hairline bg-white p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+                    >
+                      <div className="space-y-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span
+                            className={`px-2 py-0.5 rounded-full border text-[10px] font-mono font-bold ${
+                              p.status === 'VERIFIED'
+                                ? 'bg-emerald-100 text-emerald-800 border-emerald-200'
+                                : p.status === 'PENDING' || p.status === 'UNDER_REVIEW'
+                                ? 'bg-amber-100 text-amber-800 border-amber-200'
+                                : p.status === 'REFUNDED'
+                                ? 'bg-purple-100 text-purple-800 border-purple-200'
+                                : 'bg-ivory-200 text-charcoal-100 border-hairline'
+                            }`}
+                          >
+                            {p.status}
                           </span>
+                          <span
+                            className={`px-2 py-0.5 rounded-full border text-[10px] font-mono font-bold ${
+                              isDeadBooking
+                                ? 'bg-red-50 text-red-700 border-red-200'
+                                : 'bg-ivory-200 text-charcoal-100 border-hairline'
+                            }`}
+                          >
+                            booking: {p.booking_status}
+                          </span>
+                          {isHeldPayment && (
+                            <span className="px-2 py-0.5 rounded-full bg-purple-50 text-purple-700 border border-purple-200 text-[10px] font-mono font-bold">
+                              held (verified payment)
+                            </span>
+                          )}
+                          <span className="font-mono text-xs font-bold text-charcoal-900">
+                            {p.gross_amount} {p.currency}
+                          </span>
+                          <span className="text-[10px] font-mono uppercase text-charcoal-50">
+                            {p.method}
+                            {p.reference ? ` • ref: ${p.reference}` : ''}
+                          </span>
+                          {p.settlement_id && (
+                            <span className="px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200 text-[10px] font-mono">
+                              in settlement
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-xs font-bold text-charcoal-900">{p.service_title}</p>
+                        <p className="text-[11px] text-charcoal-100 font-mono">
+                          Student: {p.student_email} • Instructor: {p.instructor_email}
+                        </p>
+                        <p className="text-[11px] text-charcoal-100 font-mono">
+                          Academy ({p.platform_commission_pct}%): {p.platform_amount} {p.currency}{' '}
+                          • Instructor Net: <strong>{p.instructor_amount} {p.currency}</strong>
+                        </p>
+                        {p.note && (
+                          <p className="text-[11px] text-charcoal-100 bg-ivory-100 border border-hairline rounded-lg px-2.5 py-1">
+                            <strong className="text-charcoal-900">Note:</strong> {p.note}
+                          </p>
                         )}
                       </div>
-                      <p className="text-xs font-bold text-charcoal-900">{p.service_title}</p>
-                      <p className="text-[11px] text-charcoal-100 font-mono">
-                        Student: {p.student_email} • Instructor: {p.instructor_email}
-                      </p>
-                      <p className="text-[11px] text-charcoal-100 font-mono">
-                        Academy ({p.platform_commission_pct}%): {p.platform_amount} {p.currency} •
-                        Instructor Net: <strong>{p.instructor_amount} {p.currency}</strong>
-                      </p>
-                    </div>
 
-                    <div className="flex flex-wrap items-center gap-1.5 shrink-0">
-                      {p.status === 'PENDING' && (
-                        <button
-                          type="button"
-                          disabled={busy === `ps-rev-${p.id}`}
-                          onClick={() =>
-                            run(
-                              `ps-rev-${p.id}`,
-                              async () => {
-                                await setPrivateServicePaymentStatus({
-                                  paymentId: p.id,
-                                  status: 'UNDER_REVIEW',
-                                });
-                              },
-                              load
-                            )
-                          }
-                          className="px-2.5 py-1 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-800 border border-blue-200 text-[11px] font-bold"
-                        >
-                          Review
-                        </button>
-                      )}
-                      {(p.status === 'PENDING' || p.status === 'UNDER_REVIEW') && (
-                        <>
+                      <div className="flex flex-wrap items-center gap-1.5 shrink-0">
+                        {p.status === 'PENDING' && (
                           <button
                             type="button"
-                            disabled={busy === `ps-ver-${p.id}`}
+                            disabled={busy === `ps-rev-${p.id}`}
                             onClick={() =>
                               run(
-                                `ps-ver-${p.id}`,
+                                `ps-rev-${p.id}`,
                                 async () => {
                                   await setPrivateServicePaymentStatus({
                                     paymentId: p.id,
-                                    status: 'VERIFIED',
+                                    status: 'UNDER_REVIEW',
                                   });
                                 },
                                 load
                               )
                             }
-                            className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold"
+                            className="px-2.5 py-1 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-800 border border-blue-200 text-[11px] font-bold"
                           >
-                            Verify
+                            Review
                           </button>
+                        )}
+                        {(p.status === 'PENDING' || p.status === 'UNDER_REVIEW') &&
+                          !isDeadBooking && (
+                            <button
+                              type="button"
+                              disabled={busy === `ps-ver-${p.id}`}
+                              onClick={() =>
+                                run(
+                                  `ps-ver-${p.id}`,
+                                  async () => {
+                                    await setPrivateServicePaymentStatus({
+                                      paymentId: p.id,
+                                      status: 'VERIFIED',
+                                    });
+                                  },
+                                  load
+                                )
+                              }
+                              className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold"
+                            >
+                              Verify
+                            </button>
+                          )}
+                        {(p.status === 'PENDING' || p.status === 'UNDER_REVIEW') &&
+                          !isHeldPayment && (
+                            <>
+                              <button
+                                type="button"
+                                disabled={busy === `ps-fail-${p.id}`}
+                                onClick={() =>
+                                  run(
+                                    `ps-fail-${p.id}`,
+                                    async () => {
+                                      await setPrivateServicePaymentStatus({
+                                        paymentId: p.id,
+                                        status: 'FAILED',
+                                      });
+                                    },
+                                    load
+                                  )
+                                }
+                                className="px-2.5 py-1 rounded-lg bg-red-50 hover:bg-red-100 text-red-800 border border-red-200 text-[11px] font-bold"
+                              >
+                                Fail
+                              </button>
+                              <button
+                                type="button"
+                                disabled={busy === `ps-can-${p.id}`}
+                                onClick={() =>
+                                  run(
+                                    `ps-can-${p.id}`,
+                                    async () => {
+                                      await setPrivateServicePaymentStatus({
+                                        paymentId: p.id,
+                                        status: 'CANCELLED',
+                                      });
+                                    },
+                                    load
+                                  )
+                                }
+                                className="px-2.5 py-1 rounded-lg bg-ivory-200 hover:bg-ivory-300 text-charcoal-100 border border-hairline text-[11px] font-bold"
+                              >
+                                Cancel
+                              </button>
+                            </>
+                          )}
+                        {(p.status === 'VERIFIED' || isHeldPayment) && !p.settlement_id && (
                           <button
                             type="button"
-                            disabled={busy === `ps-fail-${p.id}`}
-                            onClick={() =>
-                              run(
-                                `ps-fail-${p.id}`,
-                                async () => {
-                                  await setPrivateServicePaymentStatus({
-                                    paymentId: p.id,
-                                    status: 'FAILED',
-                                  });
-                                },
-                                load
-                              )
-                            }
-                            className="px-2.5 py-1 rounded-lg bg-red-50 hover:bg-red-100 text-red-800 border border-red-200 text-[11px] font-bold"
+                            disabled={busy === `ps-ref-${p.id}`}
+                            onClick={() => handleRefundPayment(p)}
+                            className="px-2.5 py-1 rounded-lg bg-purple-50 hover:bg-purple-100 text-purple-800 border border-purple-200 text-[11px] font-bold"
                           >
-                            Fail
+                            Refund
                           </button>
-                          <button
-                            type="button"
-                            disabled={busy === `ps-can-${p.id}`}
-                            onClick={() =>
-                              run(
-                                `ps-can-${p.id}`,
-                                async () => {
-                                  await setPrivateServicePaymentStatus({
-                                    paymentId: p.id,
-                                    status: 'CANCELLED',
-                                  });
-                                },
-                                load
-                              )
-                            }
-                            className="px-2.5 py-1 rounded-lg bg-ivory-200 hover:bg-ivory-300 text-charcoal-100 border border-hairline text-[11px] font-bold"
-                          >
-                            Cancel
-                          </button>
-                        </>
-                      )}
-                      {p.status === 'VERIFIED' && !p.settlement_id && (
-                        <button
-                          type="button"
-                          disabled={busy === `ps-ref-${p.id}`}
-                          onClick={() => {
-                            const reason = window.prompt(
-                              `Reason for refunding ${p.gross_amount} ${p.currency} (${p.student_email}):`
-                            );
-                            if (!reason || reason.trim().length < 3) return;
-                            run(
-                              `ps-ref-${p.id}`,
-                              async () => {
-                                await setPrivateServicePaymentStatus({
-                                  paymentId: p.id,
-                                  status: 'REFUNDED',
-                                  note: reason.trim(),
-                                });
-                              },
-                              load
-                            );
-                          }}
-                          className="px-2.5 py-1 rounded-lg bg-purple-50 hover:bg-purple-100 text-purple-800 border border-purple-200 text-[11px] font-bold"
-                        >
-                          Refund
-                        </button>
-                      )}
+                        )}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             );
           })()}

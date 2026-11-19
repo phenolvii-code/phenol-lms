@@ -418,12 +418,22 @@ export const StudentPrivateServicesTab: React.FC = () => {
                     </span>
                     <span
                       className={`px-2 py-0.5 rounded-full border text-[10px] font-mono ${
-                        b.payment_verified
+                        b.payment_state === 'ACTIVE'
                           ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                          : b.payment_state === 'REFUNDED'
+                          ? 'bg-red-50 text-red-700 border-red-200'
+                          : b.payment_state === 'IN_REVIEW'
+                          ? 'bg-purple-50 text-purple-700 border-purple-200'
                           : 'bg-amber-50 text-amber-700 border-amber-200'
                       }`}
                     >
-                      {b.payment_verified ? 'Payment Verified' : 'Awaiting Payment Verification'}
+                      {b.payment_state === 'ACTIVE'
+                        ? 'Payment Verified'
+                        : b.payment_state === 'REFUNDED'
+                        ? 'Refunded'
+                        : b.payment_state === 'IN_REVIEW'
+                        ? 'Payment under review'
+                        : 'Awaiting Payment Verification'}
                     </span>
                     <span className="font-mono text-xs font-bold text-burgundy-900">
                       {b.price_snapshot} {b.currency}

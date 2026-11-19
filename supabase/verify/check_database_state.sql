@@ -850,6 +850,28 @@ select 'PRIVATE PAYMENT AUDIT', 'review hardening applied (031: exact shares, re
 
 union all
 
+--     N7: 032 review state (cancel holds the money; held-payment exit blocks; student derived payment_state priority).
+select 'PRIVATE PAYMENT AUDIT', 'review state applied (032: cancel demotes VERIFIED -> UNDER_REVIEW, held FAILED/CANCELLED blocked, ACTIVE > IN_REVIEW > REFUNDED)',
+       case when (select strpos(prosrc, 'booking cancelled - payment held for a refund decision') from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+                  where n.nspname = 'public' and p.proname = 'office_set_private_booking_status') > 0
+             and (select strpos(prosrc, 'cannot change the status of a payment linked to a settlement') from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+                  where n.nspname = 'public' and p.proname = 'trg_private_service_payments_guard') > 0
+             and (select strpos(prosrc, 'a held payment that was already verified cannot move to % - refund it with a written reason instead') from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+                  where n.nspname = 'public' and p.proname = 'trg_private_service_payments_guard') > 0
+             and (select strpos(prosrc, 'cannot mark a held verified payment as % - refund it with a written reason instead') from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+                  where n.nspname = 'public' and p.proname = 'set_private_service_payment_status') > 0
+             and (select strpos(prosrc, 'a refund requires a written reason (note)') from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+                  where n.nspname = 'public' and p.proname = 'set_private_service_payment_status') > 0
+             and exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+                         where n.nspname = 'public' and p.proname = 'list_my_student_private_bookings'
+                           and pg_get_function_result(p.oid) ilike '%payment_state%'
+                           and strpos(p.prosrc, '''VERIFIED''') > 0
+                           and strpos(p.prosrc, '''UNDER_REVIEW''') > strpos(p.prosrc, '''VERIFIED''')
+                           and strpos(p.prosrc, '''REFUNDED''') > strpos(p.prosrc, '''UNDER_REVIEW'''))
+        then 'OK' else 'MISSING - re-run migration 032' end
+
+union all
+
 -- 6k. TRUTH check - private service payments state (informational: 0 until real payments).
 select 'PRIVATE PAYMENT STATE', 'payments / verified / settled (informational)',
        (select count(*)::text from public.private_service_payments) || ' payments, '
@@ -868,8 +890,10 @@ union all
 
 -- 8. Schema audit marker (shows the highest migration actually applied) ---------
 select 'AUDIT MARKER', 'schema comment',
-       case when obj_description('public'::regnamespace, 'pg_namespace') like '%031%'
-       then 'OK (through 031)'
+       case when obj_description('public'::regnamespace, 'pg_namespace') like '%032%'
+       then 'OK (through 032)'
+       when obj_description('public'::regnamespace, 'pg_namespace') like '%031%'
+       then 'PARTIAL (031 only - 032 not applied)'
        when obj_description('public'::regnamespace, 'pg_namespace') like '%030%'
        then 'PARTIAL (030 only - 031 not applied)'
        when obj_description('public'::regnamespace, 'pg_namespace') like '%029%'

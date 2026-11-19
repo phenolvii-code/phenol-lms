@@ -18,6 +18,8 @@ export type PrivateBookingStatus =
   | 'CANCELLED'
   | 'NO_SHOW';
 export type PrivateBookingMode = 'office_slot' | 'student_proposed';
+// Migration 032: derived from the payment ledger by the student bookings RPC.
+export type PrivateBookingPaymentState = 'ACTIVE' | 'REFUNDED' | 'IN_REVIEW' | 'UNPAID';
 
 export interface OfficePrivateServiceRow {
   id: string;
@@ -223,6 +225,7 @@ export interface StudentPrivateBookingRow {
   status: PrivateBookingStatus;
   requested_at: string;
   confirmed_at: string | null;
+  payment_state: PrivateBookingPaymentState;
 }
 
 export interface InstructorPrivateBookingRow {
