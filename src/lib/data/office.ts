@@ -240,6 +240,22 @@ export interface InstructorPaymentLedgerItem {
   created_at: string;
 }
 
+export interface InstructorPrivateServicePaymentLedgerItem {
+  id: string;
+  booking_id: string;
+  service_title: string | null;
+  method: string;
+  gross_amount: number;
+  currency: string;
+  status: string;
+  platform_commission_pct: number | null;
+  platform_amount: number | null;
+  processing_fee: number;
+  instructor_amount: number | null;
+  verified_at: string | null;
+  created_at: string;
+}
+
 export interface InstructorFinancialLedger {
   instructor_email: string;
   currency: string;
@@ -255,6 +271,7 @@ export interface InstructorFinancialLedger {
   pending_settlements_total: number;
   unsettled_balance: number;
   payments: InstructorPaymentLedgerItem[];
+  private_service_payments?: InstructorPrivateServicePaymentLedgerItem[];
   settlements: InstructorSettlementRow[];
 }
 

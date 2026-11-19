@@ -424,3 +424,95 @@ export async function officeSetPrivateBookingStatus(input: {
   });
   if (error) throw error;
 }
+
+// ==============================================================================
+// Migration 030 - Private Service Payments Ledger & Settlement Integration
+// ==============================================================================
+
+export type PrivateServicePaymentStatus =
+  | 'PENDING'
+  | 'UNDER_REVIEW'
+  | 'VERIFIED'
+  | 'FAILED'
+  | 'REFUNDED'
+  | 'CANCELLED';
+
+export type PrivateServicePaymentMethod =
+  | 'kashier'
+  | 'cash'
+  | 'instapay'
+  | 'vodafone_cash'
+  | 'other';
+
+export interface OfficePrivateServicePaymentRow {
+  id: string;
+  booking_id: string;
+  service_id: string;
+  service_title: string;
+  booking_status: string;
+  student_email: string;
+  instructor_email: string;
+  method: PrivateServicePaymentMethod;
+  gross_amount: number;
+  currency: string;
+  status: PrivateServicePaymentStatus;
+  reference: string | null;
+  price_snapshot: number;
+  platform_commission_pct: number;
+  platform_amount: number;
+  processing_fee: number;
+  instructor_amount: number;
+  settlement_id: string | null;
+  verified_by_email: string | null;
+  verified_at: string | null;
+  note: string | null;
+  created_at: string;
+}
+
+export async function listOfficePrivateServicePayments(
+  status?: PrivateServicePaymentStatus | ''
+): Promise<OfficePrivateServicePaymentRow[]> {
+  const { data, error } = await supabase.rpc('office_list_private_service_payments', {
+    p_status: status || null,
+  });
+  if (error) {
+    console.error('Error loading office private service payments:', error.message);
+    return [];
+  }
+  return (data as OfficePrivateServicePaymentRow[]) || [];
+}
+
+export async function recordPrivateServicePayment(input: {
+  bookingId: string;
+  method: PrivateServicePaymentMethod;
+  grossAmount: number;
+  reference?: string | null;
+  processingFee?: number;
+  verifyNow?: boolean;
+  note?: string | null;
+}): Promise<string> {
+  const { data, error } = await supabase.rpc('record_private_service_payment', {
+    p_booking_id: input.bookingId,
+    p_method: input.method,
+    p_gross_amount: input.grossAmount,
+    p_reference: input.reference ?? null,
+    p_processing_fee: input.processingFee ?? 0,
+    p_verify_now: input.verifyNow ?? false,
+    p_note: input.note ?? null,
+  });
+  if (error) throw error;
+  return data as string;
+}
+
+export async function setPrivateServicePaymentStatus(input: {
+  paymentId: string;
+  status: PrivateServicePaymentStatus;
+  note?: string | null;
+}): Promise<void> {
+  const { error } = await supabase.rpc('set_private_service_payment_status', {
+    p_payment_id: input.paymentId,
+    p_new_status: input.status,
+    p_note: input.note ?? null,
+  });
+  if (error) throw error;
+}

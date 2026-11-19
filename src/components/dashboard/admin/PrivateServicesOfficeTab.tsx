@@ -18,18 +18,24 @@ import {
 } from 'lucide-react';
 import {
   OfficePrivateBookingRow,
+  OfficePrivateServicePaymentRow,
   OfficePrivateServiceRow,
   PrivateBookingStatus,
+  PrivateServicePaymentMethod,
+  PrivateServicePaymentStatus,
   PrivateServiceSlotRow,
   closePrivateServiceSlot,
   createPrivateServiceSlot,
   listOfficePrivateServiceBookings,
+  listOfficePrivateServicePayments,
   listOfficePrivateServiceSlots,
   listOfficePrivateServices,
   officeConfirmPrivateServiceBooking,
   officeMarkPrivateBookingAwaitingPayment,
   officeSetPrivateBookingStatus,
   officeVerifyPrivateBookingPayment,
+  recordPrivateServicePayment,
+  setPrivateServicePaymentStatus,
   setPrivateServicePrice,
   setPrivateServiceStatus,
 } from '@/lib/data/privateServices';
@@ -66,11 +72,22 @@ function bookingStatusChip(status: PrivateBookingStatus): string {
 }
 
 export const PrivateServicesOfficeTab: React.FC = () => {
-  const [subView, setSubView] = useState<'catalog' | 'bookings'>('catalog');
+  const [subView, setSubView] = useState<'catalog' | 'bookings' | 'payments'>('catalog');
 
   const [services, setServices] = useState<OfficePrivateServiceRow[]>([]);
   const [bookings, setBookings] = useState<OfficePrivateBookingRow[]>([]);
+  const [payments, setPayments] = useState<OfficePrivateServicePaymentRow[]>([]);
   const [bookingFilter, setBookingFilter] = useState<PrivateBookingStatus | 'ALL'>('ALL');
+  const [paymentFilter, setPaymentFilter] = useState<PrivateServicePaymentStatus | 'ALL'>('ALL');
+
+  // 030 Record Private Service Payment form state
+  const [payBookingId, setPayBookingId] = useState('');
+  const [payMethod, setPayMethod] = useState<PrivateServicePaymentMethod>('instapay');
+  const [payAmount, setPayAmount] = useState('');
+  const [payRef, setPayRef] = useState('');
+  const [payFee, setPayFee] = useState('0');
+  const [payVerifyNow, setPayVerifyNow] = useState(true);
+  const [payNote, setPayNote] = useState('');
 
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
@@ -91,12 +108,14 @@ export const PrivateServicesOfficeTab: React.FC = () => {
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
-    const [svcRows, bkgRows] = await Promise.all([
+    const [svcRows, bkgRows, payRows] = await Promise.all([
       listOfficePrivateServices(),
       listOfficePrivateServiceBookings(),
+      listOfficePrivateServicePayments(),
     ]);
     setServices(svcRows);
     setBookings(bkgRows);
+    setPayments(payRows);
     setLoading(false);
   }, []);
 
@@ -205,6 +224,18 @@ export const PrivateServicesOfficeTab: React.FC = () => {
                 {actionBookingsCount}
               </span>
             )}
+          </button>
+          <button
+            type="button"
+            onClick={() => setSubView('payments')}
+            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-colors border ${
+              subView === 'payments'
+                ? 'bg-emerald-700 text-white border-emerald-700'
+                : 'bg-white text-charcoal-900 border-hairline hover:bg-ivory-200'
+            }`}
+          >
+            <Wallet className="w-3.5 h-3.5" />
+            <span>Payments Desk ({payments.length})</span>
           </button>
           <button
             type="button"
@@ -504,7 +535,7 @@ export const PrivateServicesOfficeTab: React.FC = () => {
             </div>
           )}
         </>
-      ) : (
+      ) : subView === 'bookings' ? (
         /* ============================ BOOKINGS DESK (029) ============================ */
         <div className="space-y-4">
           <div className="flex flex-wrap items-center gap-1.5">
@@ -830,6 +861,343 @@ export const PrivateServicesOfficeTab: React.FC = () => {
               })}
             </div>
           )}
+        </div>
+      ) : (
+        /* ============================ PAYMENTS DESK (030) ============================ */
+        <div className="space-y-5">
+          {/* Record Payment Form */}
+          <div className="rounded-2xl border border-hairline bg-white p-4 sm:p-5 space-y-3">
+            <div className="flex items-center gap-2 text-[10px] font-mono font-bold text-charcoal-100 uppercase tracking-wider">
+              <Wallet className="w-3.5 h-3.5 text-burgundy-500" />
+              <span>Record 1:1 Private Service Payment</span>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+              <select
+                value={payBookingId}
+                onChange={(e) => {
+                  const id = e.target.value;
+                  setPayBookingId(id);
+                  const found = bookings.find((b) => b.id === id);
+                  if (found) setPayAmount(String(found.price_snapshot));
+                }}
+                className="sm:col-span-2 px-3 py-2 text-xs bg-white border border-hairline rounded-xl focus:outline-none focus:border-burgundy-500"
+              >
+                <option value="">Select unpaid booking…</option>
+                {bookings
+                  .filter(
+                    (b) =>
+                      !b.payment_verified &&
+                      b.status !== 'CANCELLED' &&
+                      b.status !== 'NO_SHOW' &&
+                      b.status !== 'COMPLETED'
+                  )
+                  .map((b) => (
+                    <option key={b.id} value={b.id}>
+                      {b.service_title} — {b.student_email} ({b.price_snapshot} {b.currency} •{' '}
+                      {b.status})
+                    </option>
+                  ))}
+              </select>
+
+              <select
+                value={payMethod}
+                onChange={(e) => setPayMethod(e.target.value as PrivateServicePaymentMethod)}
+                className="px-3 py-2 text-xs bg-white border border-hairline rounded-xl focus:outline-none focus:border-burgundy-500"
+              >
+                <option value="instapay">InstaPay</option>
+                <option value="vodafone_cash">Vodafone Cash</option>
+                <option value="cash">Cash</option>
+                <option value="kashier">Kashier</option>
+                <option value="other">Other</option>
+              </select>
+
+              <input
+                type="number"
+                min="1"
+                step="0.01"
+                placeholder="Gross amount (EGP)"
+                value={payAmount}
+                onChange={(e) => setPayAmount(e.target.value)}
+                className="px-3 py-2 text-xs bg-white border border-hairline rounded-xl focus:outline-none focus:border-burgundy-500"
+              />
+              <input
+                type="text"
+                placeholder="Receipt / transfer reference"
+                value={payRef}
+                onChange={(e) => setPayRef(e.target.value)}
+                className="px-3 py-2 text-xs bg-white border border-hairline rounded-xl focus:outline-none focus:border-burgundy-500"
+              />
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                placeholder="Processing fee (default 0)"
+                value={payFee}
+                onChange={(e) => setPayFee(e.target.value)}
+                className="px-3 py-2 text-xs bg-white border border-hairline rounded-xl focus:outline-none focus:border-burgundy-500"
+              />
+              <input
+                type="text"
+                placeholder="Note (optional)"
+                value={payNote}
+                onChange={(e) => setPayNote(e.target.value)}
+                className="sm:col-span-2 px-3 py-2 text-xs bg-white border border-hairline rounded-xl focus:outline-none focus:border-burgundy-500"
+              />
+              <label className="flex items-center gap-2 px-3 py-2 rounded-xl bg-ivory-100 border border-hairline text-xs font-semibold text-charcoal-900 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={payVerifyNow}
+                  onChange={(e) => setPayVerifyNow(e.target.checked)}
+                />
+                <span>Verify immediately (unlocks booking)</span>
+              </label>
+            </div>
+
+            <div className="flex items-center justify-end">
+              <button
+                type="button"
+                disabled={busy === 'record-ps-pay' || !payBookingId || !payAmount}
+                onClick={() =>
+                  run(
+                    'record-ps-pay',
+                    async () => {
+                      const gross = Number(payAmount);
+                      const fee = Number(payFee || '0');
+                      if (!Number.isFinite(gross) || gross <= 0) {
+                        throw new Error('Enter a valid gross amount > 0.');
+                      }
+                      await recordPrivateServicePayment({
+                        bookingId: payBookingId,
+                        method: payMethod,
+                        grossAmount: gross,
+                        reference: payRef.trim() || null,
+                        processingFee: Number.isFinite(fee) && fee >= 0 ? fee : 0,
+                        verifyNow: payVerifyNow,
+                        note: payNote.trim() || null,
+                      });
+                      setPayBookingId('');
+                      setPayAmount('');
+                      setPayRef('');
+                      setPayFee('0');
+                      setPayNote('');
+                    },
+                    load
+                  )
+                }
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-burgundy-500 hover:bg-burgundy-900 text-ivory-100 text-xs font-bold transition-colors disabled:opacity-40"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>Record Payment</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Filter Pills */}
+          <div className="flex flex-wrap items-center gap-1.5">
+            {(
+              ['ALL', 'PENDING', 'UNDER_REVIEW', 'VERIFIED', 'REFUNDED', 'FAILED', 'CANCELLED'] as const
+            ).map((st) => (
+              <button
+                key={st}
+                type="button"
+                onClick={() => setPaymentFilter(st)}
+                className={`px-2.5 py-1 rounded-lg text-[11px] font-mono font-bold border transition-colors ${
+                  paymentFilter === st
+                    ? 'bg-charcoal-900 text-ivory-100 border-charcoal-900'
+                    : 'bg-white text-charcoal-100 border-hairline hover:text-charcoal-900'
+                }`}
+              >
+                {st}
+              </button>
+            ))}
+          </div>
+
+          {/* Payments Table */}
+          {(() => {
+            const visible =
+              paymentFilter === 'ALL'
+                ? payments
+                : payments.filter((p) => p.status === paymentFilter);
+            if (loading) {
+              return (
+                <div className="py-12 text-center text-xs text-charcoal-100">
+                  Loading private service payments…
+                </div>
+              );
+            }
+            if (visible.length === 0) {
+              return (
+                <div className="py-14 rounded-2xl border border-hairline bg-white text-center space-y-1">
+                  <p className="text-sm font-bold text-charcoal-900">
+                    No private service payments recorded yet.
+                  </p>
+                  <p className="text-[11px] text-charcoal-100">
+                    Verified payments automatically unlock booking confirmation and flow into
+                    instructor settlements.
+                  </p>
+                </div>
+              );
+            }
+            return (
+              <div className="space-y-2.5">
+                {visible.map((p) => (
+                  <div
+                    key={p.id}
+                    className="rounded-2xl border border-hairline bg-white p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+                  >
+                    <div className="space-y-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span
+                          className={`px-2 py-0.5 rounded-full border text-[10px] font-mono font-bold ${
+                            p.status === 'VERIFIED'
+                              ? 'bg-emerald-100 text-emerald-800 border-emerald-200'
+                              : p.status === 'PENDING' || p.status === 'UNDER_REVIEW'
+                              ? 'bg-amber-100 text-amber-800 border-amber-200'
+                              : p.status === 'REFUNDED'
+                              ? 'bg-purple-100 text-purple-800 border-purple-200'
+                              : 'bg-ivory-200 text-charcoal-100 border-hairline'
+                          }`}
+                        >
+                          {p.status}
+                        </span>
+                        <span className="font-mono text-xs font-bold text-charcoal-900">
+                          {p.gross_amount} {p.currency}
+                        </span>
+                        <span className="text-[10px] font-mono uppercase text-charcoal-50">
+                          {p.method}
+                          {p.reference ? ` • ref: ${p.reference}` : ''}
+                        </span>
+                        {p.settlement_id && (
+                          <span className="px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200 text-[10px] font-mono">
+                            in settlement
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs font-bold text-charcoal-900">{p.service_title}</p>
+                      <p className="text-[11px] text-charcoal-100 font-mono">
+                        Student: {p.student_email} • Instructor: {p.instructor_email}
+                      </p>
+                      <p className="text-[11px] text-charcoal-100 font-mono">
+                        Academy ({p.platform_commission_pct}%): {p.platform_amount} {p.currency} •
+                        Instructor Net: <strong>{p.instructor_amount} {p.currency}</strong>
+                      </p>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-1.5 shrink-0">
+                      {p.status === 'PENDING' && (
+                        <button
+                          type="button"
+                          disabled={busy === `ps-rev-${p.id}`}
+                          onClick={() =>
+                            run(
+                              `ps-rev-${p.id}`,
+                              async () => {
+                                await setPrivateServicePaymentStatus({
+                                  paymentId: p.id,
+                                  status: 'UNDER_REVIEW',
+                                });
+                              },
+                              load
+                            )
+                          }
+                          className="px-2.5 py-1 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-800 border border-blue-200 text-[11px] font-bold"
+                        >
+                          Review
+                        </button>
+                      )}
+                      {(p.status === 'PENDING' || p.status === 'UNDER_REVIEW') && (
+                        <>
+                          <button
+                            type="button"
+                            disabled={busy === `ps-ver-${p.id}`}
+                            onClick={() =>
+                              run(
+                                `ps-ver-${p.id}`,
+                                async () => {
+                                  await setPrivateServicePaymentStatus({
+                                    paymentId: p.id,
+                                    status: 'VERIFIED',
+                                  });
+                                },
+                                load
+                              )
+                            }
+                            className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold"
+                          >
+                            Verify
+                          </button>
+                          <button
+                            type="button"
+                            disabled={busy === `ps-fail-${p.id}`}
+                            onClick={() =>
+                              run(
+                                `ps-fail-${p.id}`,
+                                async () => {
+                                  await setPrivateServicePaymentStatus({
+                                    paymentId: p.id,
+                                    status: 'FAILED',
+                                  });
+                                },
+                                load
+                              )
+                            }
+                            className="px-2.5 py-1 rounded-lg bg-red-50 hover:bg-red-100 text-red-800 border border-red-200 text-[11px] font-bold"
+                          >
+                            Fail
+                          </button>
+                          <button
+                            type="button"
+                            disabled={busy === `ps-can-${p.id}`}
+                            onClick={() =>
+                              run(
+                                `ps-can-${p.id}`,
+                                async () => {
+                                  await setPrivateServicePaymentStatus({
+                                    paymentId: p.id,
+                                    status: 'CANCELLED',
+                                  });
+                                },
+                                load
+                              )
+                            }
+                            className="px-2.5 py-1 rounded-lg bg-ivory-200 hover:bg-ivory-300 text-charcoal-100 border border-hairline text-[11px] font-bold"
+                          >
+                            Cancel
+                          </button>
+                        </>
+                      )}
+                      {p.status === 'VERIFIED' && !p.settlement_id && (
+                        <button
+                          type="button"
+                          disabled={busy === `ps-ref-${p.id}`}
+                          onClick={() => {
+                            const reason = window.prompt(
+                              `Reason for refunding ${p.gross_amount} ${p.currency} (${p.student_email}):`
+                            );
+                            if (!reason || reason.trim().length < 3) return;
+                            run(
+                              `ps-ref-${p.id}`,
+                              async () => {
+                                await setPrivateServicePaymentStatus({
+                                  paymentId: p.id,
+                                  status: 'REFUNDED',
+                                  note: reason.trim(),
+                                });
+                              },
+                              load
+                            );
+                          }}
+                          className="px-2.5 py-1 rounded-lg bg-purple-50 hover:bg-purple-100 text-purple-800 border border-purple-200 text-[11px] font-bold"
+                        >
+                          Refund
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            );
+          })()}
         </div>
       )}
     </div>

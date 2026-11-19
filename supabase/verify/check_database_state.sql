@@ -18,7 +18,7 @@ from (values
   ('payments'), ('platform_settings'), ('audit_logs'),
   ('course_price_history'), ('instructor_settlements'),
   ('private_services'), ('private_service_slots'),
-  ('private_service_bookings')
+  ('private_service_bookings'), ('private_service_payments')
 ) as t(name)
 
 union all
@@ -62,7 +62,10 @@ from (values
   ('list_my_student_private_bookings'), ('list_instructor_private_bookings'),
   ('office_list_private_service_bookings'), ('office_mark_private_booking_awaiting_payment'),
   ('office_verify_private_booking_payment'), ('office_confirm_private_service_booking'),
-  ('office_set_private_booking_status')
+  ('office_set_private_booking_status'),
+  ('trg_private_service_payments_guard'), ('trg_audit_private_service_payments'),
+  ('record_private_service_payment'), ('set_private_service_payment_status'),
+  ('office_list_private_service_payments')
 ) as t(name)
 
 union all
@@ -104,7 +107,8 @@ from (values
   ('student_notifications', 'notifications admin manage'),
   ('instructor_reviews', 'reviews read involved'),
   ('instructor_reviews', 'reviews insert enrolled'),
-  ('private_service_bookings', 'private service bookings read')
+  ('private_service_bookings', 'private service bookings read'),
+  ('private_service_payments', 'private service payments read')
 ) as t(tablename_ref, policyname_ref)
 
 union all
@@ -770,6 +774,76 @@ select 'PRIVATE BOOKING STATE', 'bookings / awaiting payment / confirmed (inform
 
 union all
 
+-- 6j. Migration 030 audit - private service payments & settlement integration ---
+--     N1: private_service_payments locked (RLS enabled, zero client write policies).
+select 'PRIVATE PAYMENT AUDIT', 'payments ledger locked (RLS, no client write policies)',
+       case when exists (select 1 from pg_class c join pg_namespace n on n.oid = c.relnamespace
+                  where n.nspname = 'public' and c.relname = 'private_service_payments' and c.relrowsecurity)
+             and not exists (select 1 from pg_policies
+                  where schemaname = 'public' and tablename = 'private_service_payments'
+                    and cmd in ('INSERT','UPDATE','DELETE','ALL'))
+       then 'OK' else 'LEAK - private_service_payments write policy or RLS disabled' end
+
+union all
+
+--     N2: duplicate-ref + single-verified-per-booking unique indexes exist.
+select 'PRIVATE PAYMENT AUDIT', 'duplicate-ref + single-verified-per-booking indexes exist (030)',
+       case when (select count(*) from pg_indexes
+                  where schemaname = 'public' and tablename = 'private_service_payments'
+                    and indexname in ('uq_private_service_payments_ref','uq_private_service_payments_verified_booking')) = 2
+       then 'OK' else 'MISSING - re-run migration 030 step 1' end
+
+union all
+
+--     N3: guard + audit/booking-sync triggers bound.
+select 'PRIVATE PAYMENT AUDIT', 'guard + audit/sync triggers bound to private_service_payments',
+       case when (select count(*) from pg_trigger t join pg_class c on c.oid = t.tgrelid
+                  join pg_namespace n on n.oid = c.relnamespace
+                  where n.nspname = 'public' and c.relname = 'private_service_payments'
+                    and t.tgname in ('trg_private_service_payments_guard','trg_audit_private_service_payments')
+                    and not t.tgisinternal) = 2
+       then 'OK' else 'MISSING - re-run migration 030 steps 3/4' end
+
+union all
+
+--     N4: office private-payment RPCs exist, definer, office-gated.
+select 'PRIVATE PAYMENT AUDIT', 'office private-payment RPCs gated to secretary/super_admin (030)',
+       case when (select count(*) from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+                  where n.nspname = 'public'
+                    and p.proname in (
+                      'record_private_service_payment',
+                      'set_private_service_payment_status',
+                      'office_list_private_service_payments'
+                    )
+                    and p.prosecdef
+                    and p.prosrc ilike '%is_secretary()%'
+                    and p.prosrc ilike '%is_super_admin()%') = 3
+       then 'OK' else 'MISSING - re-run migration 030 step 5' end
+
+union all
+
+--     N5: settlements & financial ledgers integrate private_service_payments.
+select 'PRIVATE PAYMENT AUDIT', 'settlements + ledgers integrate private_service_payments (030)',
+       case when (select prosrc from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+                  where n.nspname = 'public' and p.proname = 'create_instructor_settlement') ilike '%private_service_payments%'
+             and (select prosrc from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+                  where n.nspname = 'public' and p.proname = 'set_settlement_status') ilike '%private_service_payments%'
+             and (select prosrc from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+                  where n.nspname = 'public' and p.proname = 'get_instructor_financial_ledger') ilike '%private_service_payments%'
+             and (select prosrc from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+                  where n.nspname = 'public' and p.proname = 'get_super_admin_financial_overview') ilike '%private_service_payments%'
+       then 'OK' else 'MISSING - re-run migration 030 steps 6/7' end
+
+union all
+
+-- 6k. TRUTH check - private service payments state (informational: 0 until real payments).
+select 'PRIVATE PAYMENT STATE', 'payments / verified / settled (informational)',
+       (select count(*)::text from public.private_service_payments) || ' payments, '
+       || (select count(*)::text from public.private_service_payments where status = 'VERIFIED') || ' verified, '
+       || (select count(*)::text from public.private_service_payments where status = 'VERIFIED' and settlement_id is not null) || ' settled'
+
+union all
+
 -- 7. Migration 015 audit: the `booklets` bucket is PRIVATE ----------------------
 select 'STORAGE AUDIT', 'bucket booklets is private (migration 015)',
        case when exists (select 1 from storage.buckets
@@ -780,8 +854,10 @@ union all
 
 -- 8. Schema audit marker (shows the highest migration actually applied) ---------
 select 'AUDIT MARKER', 'schema comment',
-       case when obj_description('public'::regnamespace, 'pg_namespace') like '%029%'
-       then 'OK (through 029)'
+       case when obj_description('public'::regnamespace, 'pg_namespace') like '%030%'
+       then 'OK (through 030)'
+       when obj_description('public'::regnamespace, 'pg_namespace') like '%029%'
+       then 'PARTIAL (029 only - 030 not applied)'
        when obj_description('public'::regnamespace, 'pg_namespace') like '%028%'
        then 'PARTIAL (028 only - 029 not applied)'
        when obj_description('public'::regnamespace, 'pg_namespace') like '%027%'

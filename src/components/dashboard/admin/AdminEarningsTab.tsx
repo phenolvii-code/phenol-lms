@@ -195,6 +195,70 @@ export const AdminEarningsTab: React.FC = () => {
         )}
       </div>
 
+      {/* 1:1 Private Service Payments (030 - PII-free) */}
+      <div className="p-5 rounded-2xl bg-ivory-100 border border-hairline space-y-3">
+        <div className="flex items-center gap-2">
+          <Wallet className="w-4 h-4 text-burgundy-500" />
+          <h3 className="text-sm font-bold text-charcoal-900 font-display">
+            1:1 Private Service Payments (Read-Only Snapshot)
+          </h3>
+        </div>
+        {!ledger || (ledger.private_service_payments?.length ?? 0) === 0 ? (
+          <p className="text-xs text-charcoal-100 italic py-6 text-center">
+            No payment transactions recorded for your 1:1 private services yet.
+          </p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="border-b border-hairline text-[10px] font-mono text-charcoal-100 uppercase">
+                  <th className="py-2.5 px-3">Date</th>
+                  <th className="py-2.5 px-3">Service</th>
+                  <th className="py-2.5 px-3">Method</th>
+                  <th className="py-2.5 px-3">Gross</th>
+                  <th className="py-2.5 px-3">Academy Share</th>
+                  <th className="py-2.5 px-3">Your Net</th>
+                  <th className="py-2.5 px-3">Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-hairline text-xs">
+                {(ledger.private_service_payments || []).map((p) => (
+                  <tr key={p.id} className="hover:bg-ivory-200/40 transition-colors">
+                    <td className="py-2.5 px-3 font-mono text-[11px] text-charcoal-100">
+                      {(p.verified_at || p.created_at).slice(0, 10)}
+                    </td>
+                    <td className="py-2.5 px-3 font-semibold text-charcoal-900">
+                      {p.service_title || '1:1 Session'}
+                    </td>
+                    <td className="py-2.5 px-3 font-mono uppercase text-[11px]">{p.method}</td>
+                    <td className="py-2.5 px-3 font-mono">{fmtEGP(p.gross_amount, p.currency)}</td>
+                    <td className="py-2.5 px-3 font-mono text-burgundy-500">
+                      {fmtEGP(p.platform_amount, p.currency)}
+                    </td>
+                    <td className="py-2.5 px-3 font-mono font-bold text-emerald-700">
+                      {fmtEGP(p.instructor_amount, p.currency)}
+                    </td>
+                    <td className="py-2.5 px-3">
+                      <span
+                        className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-bold border ${
+                          p.status === 'VERIFIED'
+                            ? 'bg-emerald-100 text-emerald-800 border-emerald-200'
+                            : p.status === 'PENDING' || p.status === 'UNDER_REVIEW'
+                            ? 'bg-amber-100 text-amber-800 border-amber-200'
+                            : 'bg-ivory-300 text-charcoal-100 border-hairline'
+                        }`}
+                      >
+                        {p.status}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
       {/* Settlements History */}
       <div className="p-5 rounded-2xl bg-ivory-100 border border-hairline space-y-3">
         <div className="flex items-center gap-2">
