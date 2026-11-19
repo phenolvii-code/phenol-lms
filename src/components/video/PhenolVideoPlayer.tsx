@@ -76,6 +76,38 @@ export const PhenolVideoPlayer: React.FC<PhenolVideoPlayerProps> = ({
   const [controlsVisible, setControlsVisible] = useState(true);
   const [isScrubbing, setIsScrubbing] = useState(false);
   const isScrubbingRef = useRef(false);
+  const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const clearHideTimer = useCallback(() => {
+    if (hideTimerRef.current) {
+      clearTimeout(hideTimerRef.current);
+      hideTimerRef.current = null;
+    }
+  }, []);
+
+  const scheduleHideControls = useCallback(() => {
+    clearHideTimer();
+    if (isPlaying && !isScrubbingRef.current && !showSpeedMenu) {
+      hideTimerRef.current = setTimeout(() => {
+        setControlsVisible(false);
+      }, 2500);
+    }
+  }, [clearHideTimer, isPlaying, showSpeedMenu]);
+
+  const revealControls = useCallback(() => {
+    setControlsVisible(true);
+    scheduleHideControls();
+  }, [scheduleHideControls]);
+
+  useEffect(() => {
+    if (isPlaying && !isScrubbing && !showSpeedMenu) {
+      scheduleHideControls();
+    } else {
+      clearHideTimer();
+      setControlsVisible(true);
+    }
+    return clearHideTimer;
+  }, [isPlaying, isScrubbing, showSpeedMenu, scheduleHideControls, clearHideTimer]);
 
   // Hover preview state on timeline
   const [hoverPosition, setHoverPosition] = useState<number | null>(null);
@@ -427,14 +459,20 @@ export const PhenolVideoPlayer: React.FC<PhenolVideoPlayerProps> = ({
   };
 
   const progressPercentage = totalDuration > 0 ? (currentTime / totalDuration) * 100 : 0;
-  const maskedPhone = studentPhone ? studentPhone.replace(/\D/g, '').slice(-4) : '';
 
   return (
     <div
       ref={containerRef}
       onContextMenu={(e) => e.preventDefault()}
-      onMouseEnter={() => setControlsVisible(true)}
-      onMouseLeave={() => isPlaying && !isScrubbing && setControlsVisible(false)}
+      onMouseEnter={revealControls}
+      onMouseMove={revealControls}
+      onTouchStart={revealControls}
+      onMouseLeave={() => {
+        clearHideTimer();
+        if (isPlaying && !isScrubbing && !showSpeedMenu) {
+          setControlsVisible(false);
+        }
+      }}
       className="relative aspect-video w-full rounded-lg bg-charcoal-950 overflow-hidden border border-hairline shadow-editorial select-none group font-sans"
     >
       {/* 1. Video Render Engine */}
@@ -444,24 +482,18 @@ export const PhenolVideoPlayer: React.FC<PhenolVideoPlayerProps> = ({
             ref={iframeRef}
             src={parsed.embedUrl}
             title={title}
-            className={`w-full h-full pointer-events-auto transform scale-[1.04] origin-center ${
-              isTampered ? 'opacity-0 pointer-events-none' : 'opacity-100'
+            className={`w-full h-full pointer-events-none transform scale-[1.04] origin-center ${
+              isTampered ? 'opacity-0' : 'opacity-100'
             }`}
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
             allowFullScreen
           />
 
-          {/* Top Pointer Shield (Disables click on YouTube Share & Channel logo button) */}
+          {/* Full-frame transparent interaction shield: blocks YouTube external links/logos, toggles play on click, and tracks mouse activity for auto-hiding controls */}
           <div
             onClick={togglePlay}
-            className="absolute top-0 left-0 right-0 h-16 bg-transparent z-10 cursor-pointer"
+            className="absolute inset-0 bg-transparent z-10 cursor-pointer"
             title="Lecture Protected Stream"
-          />
-
-          {/* Bottom Right Pointer Shield (Covers YouTube logo to prevent external navigation) */}
-          <div
-            onClick={togglePlay}
-            className="absolute bottom-0 right-0 w-32 h-14 bg-transparent z-10 cursor-pointer"
           />
         </div>
       ) : parsed.type === 'direct' ? (
@@ -491,47 +523,20 @@ export const PhenolVideoPlayer: React.FC<PhenolVideoPlayerProps> = ({
         </div>
       )}
 
-      {/* 2. FORENSIC TAMPER-GUARDED WATERMARK */}
+      {/* 2. FORENSIC TAMPER-GUARDED WATERMARK (Student Code Only, No Background Box) */}
       <div
         ref={watermarkRef}
         id="phenol-forensic-tag"
         style={{
           ...watermarkPos,
-          opacity: 0.52,
+          opacity: 0.42,
           transition: 'all 2.2s cubic-bezier(0.4, 0, 0.2, 1)',
-          textShadow: '0 1px 3px rgba(0,0,0,0.95), 0 0 10px rgba(0,0,0,0.85)',
+          textShadow: '0 1px 2px rgba(0,0,0,0.75)',
           letterSpacing: '0.08em',
         }}
-        className="absolute pointer-events-none z-20 flex flex-col items-start gap-0.5 text-ivory-100 select-none px-3 py-1 rounded bg-black/25 backdrop-blur-[1px] border border-white/10"
+        className="absolute pointer-events-none z-20 text-[11px] font-mono font-semibold text-white/90 select-none"
       >
-        <div className="flex items-center gap-2 text-[11px] font-mono font-bold tracking-wider">
-          <span className="text-burgundy-300 font-sans font-semibold text-[12px]">
-            {studentName || 'Enrolled Scholar'}
-          </span>
-          <span className="opacity-75">•</span>
-          <span className="text-white font-mono">{studentCode}</span>
-        </div>
-        <div className="flex items-center gap-2 text-[9px] font-mono text-ivory-300 opacity-90">
-          <span>SECURE ACADEMIC STREAM</span>
-          {maskedPhone && (
-            <>
-              <span>•</span>
-              <span>TEL: ...{maskedPhone}</span>
-            </>
-          )}
-          <span>• DR. OMAR MAGDI</span>
-        </div>
-      </div>
-
-      {/* Secondary micro forensic token in corner */}
-      <div
-        style={{
-          opacity: 0.35,
-          textShadow: '0 1px 2px rgba(0,0,0,0.9)',
-        }}
-        className="absolute top-3 left-4 pointer-events-none z-20 text-[10px] font-mono tracking-wider text-ivory-300 select-none"
-      >
-        PHENOL FORENSIC WATERMARK // {studentCode.replace(/[^a-zA-Z0-9]/g, '')}
+        {studentCode}
       </div>
 
       {/* 3. Security Warning Overlay (when tampered) */}
@@ -570,23 +575,23 @@ export const PhenolVideoPlayer: React.FC<PhenolVideoPlayerProps> = ({
         </div>
       )}
 
-      {/* 5. CUSTOM ACADEMIC CONTROL BAR */}
+      {/* 5. COMPACT AUTO-HIDING ACADEMIC CONTROL BAR */}
       <div
         className={`absolute bottom-0 inset-x-0 z-30 transition-all duration-300 ${
-          controlsVisible || !isPlaying || isScrubbing
+          controlsVisible || !isPlaying || isScrubbing || showSpeedMenu
             ? 'opacity-100 translate-y-0'
-            : 'opacity-0 translate-y-3 pointer-events-none'
+            : 'opacity-0 translate-y-2 pointer-events-none'
         }`}
       >
-        <div className="relative backdrop-blur-xl bg-[#0f1012]/85 border-t border-hairline/25 shadow-editorial px-3 sm:px-5 pt-3 pb-3 text-ivory-100">
+        <div className="relative bg-gradient-to-t from-black/85 via-black/55 to-transparent px-2.5 sm:px-3.5 pt-2 pb-1.5 text-ivory-100">
           {/* Timeline Scrubber */}
-          <div className="relative mb-3 pt-1 group/timeline">
+          <div className="relative mb-1 group/timeline">
             {hoverPosition !== null && hoverTime !== null && (
               <div
                 style={{ left: `${Math.min(Math.max(hoverPosition, 4), 96)}%` }}
-                className="absolute bottom-6 transform -translate-x-1/2 pointer-events-none z-40 flex flex-col items-center animate-fade-in"
+                className="absolute bottom-5 transform -translate-x-1/2 pointer-events-none z-40 flex flex-col items-center animate-fade-in"
               >
-                <div className="bg-charcoal-950/95 text-ivory-100 border border-hairline text-[11px] font-mono px-2 py-0.5 rounded shadow-lg whitespace-nowrap">
+                <div className="bg-charcoal-950/95 text-ivory-100 border border-hairline text-[10px] font-mono px-1.5 py-0.5 rounded shadow-lg whitespace-nowrap">
                   <span>{formatTime(hoverTime)}</span>
                   {hoverChapter && (
                     <span className="text-burgundy-300 font-sans ml-1.5 font-medium max-w-[160px] truncate inline-block align-bottom">
@@ -603,9 +608,9 @@ export const PhenolVideoPlayer: React.FC<PhenolVideoPlayerProps> = ({
               onMouseDown={handleTimelineMouseDown}
               onMouseMove={handleTimelineMouseMove}
               onMouseLeave={handleTimelineMouseLeave}
-              className="relative w-full h-3 flex items-center cursor-pointer select-none"
+              className="relative w-full h-2.5 flex items-center cursor-pointer select-none"
             >
-              <div className="w-full h-1.5 group-hover/timeline:h-2 bg-ivory-100/20 group-hover/timeline:bg-ivory-100/25 rounded-full overflow-hidden transition-all duration-150">
+              <div className="w-full h-1 group-hover/timeline:h-1.5 bg-ivory-100/25 rounded-full overflow-hidden transition-all duration-150">
                 <div
                   style={{ width: `${progressPercentage}%` }}
                   className="h-full bg-gradient-to-r from-burgundy-600 via-burgundy-500 to-rose-500 rounded-full"
@@ -620,7 +625,7 @@ export const PhenolVideoPlayer: React.FC<PhenolVideoPlayerProps> = ({
                   <div
                     key={idx}
                     style={{ left: `${notchPos}%` }}
-                    className="absolute top-1/2 transform -translate-y-1/2 -translate-x-1/2 w-1 h-2.5 bg-ivory-100/50 rounded-full pointer-events-none group-hover/timeline:h-3 transition-all"
+                    className="absolute top-1/2 transform -translate-y-1/2 -translate-x-1/2 w-0.5 h-2 bg-ivory-100/50 rounded-full pointer-events-none group-hover/timeline:h-2.5 transition-all"
                     title={ts.title}
                   />
                 );
@@ -628,62 +633,62 @@ export const PhenolVideoPlayer: React.FC<PhenolVideoPlayerProps> = ({
 
               <div
                 style={{ left: `${progressPercentage}%` }}
-                className="absolute top-1/2 transform -translate-y-1/2 -translate-x-1/2 w-3.5 h-3.5 bg-ivory-100 rounded-full border-2 border-burgundy-500 shadow-md scale-0 group-hover/timeline:scale-100 transition-transform duration-150 pointer-events-none"
+                className="absolute top-1/2 transform -translate-y-1/2 -translate-x-1/2 w-2.5 h-2.5 bg-ivory-100 rounded-full border-2 border-burgundy-500 shadow-md scale-0 group-hover/timeline:scale-100 transition-transform duration-150 pointer-events-none"
               />
             </div>
           </div>
 
           {/* Action Row */}
-          <div className="flex items-center justify-between gap-3 text-ivory-100">
-            <div className="flex items-center gap-2.5 sm:gap-3">
+          <div className="flex items-center justify-between gap-2 text-ivory-100">
+            <div className="flex items-center gap-1.5 sm:gap-2">
               <button
                 onClick={togglePlay}
-                className="p-1.5 rounded hover:bg-ivory-100/10 active:scale-95 transition-all text-ivory-100"
+                className="p-1 rounded hover:bg-ivory-100/15 active:scale-95 transition-all text-ivory-100"
                 title={isPlaying ? 'Pause (Space)' : 'Play (Space)'}
               >
-                {isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5 ml-0.5" />}
+                {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4 ml-0.5" />}
               </button>
 
               <button
                 onClick={() => skipTime(-10)}
-                className="p-1.5 rounded hover:bg-ivory-100/10 active:scale-95 transition-all text-ivory-200 hover:text-ivory-100"
+                className="p-1 rounded hover:bg-ivory-100/15 active:scale-95 transition-all text-ivory-200 hover:text-ivory-100"
                 title="Rewind 10 seconds (←)"
               >
-                <RotateCcw className="w-4 h-4" />
+                <RotateCcw className="w-3.5 h-3.5" />
               </button>
 
               <button
                 onClick={() => skipTime(10)}
-                className="p-1.5 rounded hover:bg-ivory-100/10 active:scale-95 transition-all text-ivory-200 hover:text-ivory-100"
+                className="p-1 rounded hover:bg-ivory-100/15 active:scale-95 transition-all text-ivory-200 hover:text-ivory-100"
                 title="Forward 10 seconds (→)"
               >
-                <RotateCw className="w-4 h-4" />
+                <RotateCw className="w-3.5 h-3.5" />
               </button>
 
-              <div className="flex items-center gap-1 font-mono text-xs text-ivory-200 ml-1">
+              <div className="flex items-center gap-1 font-mono text-[11px] text-ivory-200 ml-0.5">
                 <span className="font-semibold text-ivory-100">{formatTime(currentTime)}</span>
                 <span className="text-ivory-400">/</span>
                 <span>{formatTime(totalDuration)}</span>
               </div>
             </div>
 
-            <div className="flex items-center gap-2.5 sm:gap-3">
+            <div className="flex items-center gap-1.5 sm:gap-2">
               <div className="relative">
                 <button
                   onClick={() => setShowSpeedMenu(!showSpeedMenu)}
-                  className="px-2.5 py-1 rounded bg-ivory-100/10 hover:bg-ivory-100/20 text-xs font-mono font-semibold transition-colors flex items-center gap-1 text-ivory-100"
+                  className="px-2 py-0.5 rounded bg-ivory-100/15 hover:bg-ivory-100/25 text-[11px] font-mono font-semibold transition-colors flex items-center gap-1 text-ivory-100"
                   title="Playback Speed"
                 >
                   <span>{playbackSpeed}x</span>
                 </button>
 
                 {showSpeedMenu && (
-                  <div className="absolute bottom-full right-0 mb-2 bg-charcoal-900 border border-hairline rounded shadow-editorial py-1 text-xs font-mono z-40 w-24">
+                  <div className="absolute bottom-full right-0 mb-1.5 bg-charcoal-900 border border-hairline rounded shadow-editorial py-1 text-[11px] font-mono z-40 w-20">
                     {[0.75, 1, 1.25, 1.5, 1.75, 2].map((speed) => (
                       <button
                         key={speed}
                         onClick={() => changeSpeed(speed)}
-                        className={`w-full text-left px-3 py-1.5 hover:bg-burgundy-500 hover:text-ivory-100 transition-colors flex items-center justify-between ${
+                        className={`w-full text-left px-2.5 py-1 hover:bg-burgundy-500 hover:text-ivory-100 transition-colors flex items-center justify-between ${
                           playbackSpeed === speed ? 'text-burgundy-400 font-bold' : 'text-ivory-200'
                         }`}
                       >
@@ -698,26 +703,26 @@ export const PhenolVideoPlayer: React.FC<PhenolVideoPlayerProps> = ({
               <div className="flex items-center group/volume relative">
                 <button
                   onClick={toggleMute}
-                  className="p-1.5 rounded hover:bg-ivory-100/10 transition-colors text-ivory-200 hover:text-ivory-100"
+                  className="p-1 rounded hover:bg-ivory-100/15 transition-colors text-ivory-200 hover:text-ivory-100"
                   title={isMuted ? 'Unmute (M)' : 'Mute (M)'}
                 >
                   {isMuted || volume === 0 ? (
-                    <VolumeX className="w-4 h-4 text-rose-400" />
+                    <VolumeX className="w-3.5 h-3.5 text-rose-400" />
                   ) : volume < 50 ? (
-                    <Volume1 className="w-4 h-4" />
+                    <Volume1 className="w-3.5 h-3.5" />
                   ) : (
-                    <Volume2 className="w-4 h-4" />
+                    <Volume2 className="w-3.5 h-3.5" />
                   )}
                 </button>
 
-                <div className="w-0 overflow-hidden group-hover/volume:w-16 transition-all duration-200 flex items-center ml-1">
+                <div className="w-0 overflow-hidden group-hover/volume:w-14 transition-all duration-200 flex items-center ml-1">
                   <input
                     type="range"
                     min="0"
                     max="100"
                     value={isMuted ? 0 : volume}
                     onChange={(e) => handleVolumeChange(parseInt(e.target.value, 10))}
-                    className="w-14 h-1 bg-ivory-100/20 accent-burgundy-500 rounded cursor-pointer"
+                    className="w-12 h-1 bg-ivory-100/20 accent-burgundy-500 rounded cursor-pointer"
                     title={`Volume: ${isMuted ? 0 : volume}%`}
                   />
                 </div>
@@ -725,10 +730,10 @@ export const PhenolVideoPlayer: React.FC<PhenolVideoPlayerProps> = ({
 
               <button
                 onClick={toggleFullscreen}
-                className="p-1.5 rounded hover:bg-ivory-100/10 transition-colors text-ivory-200 hover:text-ivory-100"
+                className="p-1 rounded hover:bg-ivory-100/15 transition-colors text-ivory-200 hover:text-ivory-100"
                 title={isFullscreen ? 'Exit Fullscreen (F)' : 'Fullscreen (F)'}
               >
-                {isFullscreen ? <Minimize className="w-4 h-4" /> : <Maximize className="w-4 h-4" />}
+                {isFullscreen ? <Minimize className="w-3.5 h-3.5" /> : <Maximize className="w-3.5 h-3.5" />}
               </button>
             </div>
           </div>
