@@ -467,16 +467,21 @@ export const StudentPrivateServicesTab: React.FC = () => {
                       Room: {b.internal_room_ref}
                     </span>
                   )}
-                  {(b.status === 'REQUESTED' || b.status === 'AWAITING_PAYMENT') && (
-                    <button
-                      type="button"
-                      disabled={busy}
-                      onClick={() => handleCancelBooking(b)}
-                      className="px-3 py-1.5 rounded-xl border border-hairline bg-white hover:bg-red-50 text-charcoal-100 hover:text-red-700 text-xs font-bold transition-colors disabled:opacity-50"
-                    >
-                      Cancel Request
-                    </button>
-                  )}
+                  {(b.status === 'REQUESTED' || b.status === 'AWAITING_PAYMENT') &&
+                    (b.payment_verified ? (
+                      <span className="text-[11px] text-charcoal-100 font-mono">
+                        Payment verified — contact the academy office to cancel or refund
+                      </span>
+                    ) : (
+                      <button
+                        type="button"
+                        disabled={busy}
+                        onClick={() => handleCancelBooking(b)}
+                        className="px-3 py-1.5 rounded-xl border border-hairline bg-white hover:bg-red-50 text-charcoal-100 hover:text-red-700 text-xs font-bold transition-colors disabled:opacity-50"
+                      >
+                        Cancel Request
+                      </button>
+                    ))}
                 </div>
               </div>
             ))}

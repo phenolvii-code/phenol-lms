@@ -836,6 +836,20 @@ select 'PRIVATE PAYMENT AUDIT', 'settlements + ledgers integrate private_service
 
 union all
 
+--     N6: 031 review hardening (exact money math, refund reason, dead-booking guard).
+select 'PRIVATE PAYMENT AUDIT', 'review hardening applied (031: exact shares, refund reason, dead-booking guard, paid self-cancel block)',
+       case when (select strpos(prosrc, 'instructor share went negative') from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+                  where n.nspname = 'public' and p.proname = 'record_private_service_payment') > 0
+             and (select strpos(prosrc, 'a refund requires a written reason (note)') from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+                  where n.nspname = 'public' and p.proname = 'set_private_service_payment_status') > 0
+             and (select strpos(prosrc, 'cancelled or no-show booking') from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+                  where n.nspname = 'public' and p.proname = 'trg_private_service_payments_guard') > 0
+             and (select strpos(prosrc, 'already verified - contact the academy office') from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+                  where n.nspname = 'public' and p.proname = 'cancel_my_private_service_booking') > 0
+        then 'OK' else 'MISSING - re-run migration 031' end
+
+union all
+
 -- 6k. TRUTH check - private service payments state (informational: 0 until real payments).
 select 'PRIVATE PAYMENT STATE', 'payments / verified / settled (informational)',
        (select count(*)::text from public.private_service_payments) || ' payments, '
@@ -854,8 +868,10 @@ union all
 
 -- 8. Schema audit marker (shows the highest migration actually applied) ---------
 select 'AUDIT MARKER', 'schema comment',
-       case when obj_description('public'::regnamespace, 'pg_namespace') like '%030%'
-       then 'OK (through 030)'
+       case when obj_description('public'::regnamespace, 'pg_namespace') like '%031%'
+       then 'OK (through 031)'
+       when obj_description('public'::regnamespace, 'pg_namespace') like '%030%'
+       then 'PARTIAL (030 only - 031 not applied)'
        when obj_description('public'::regnamespace, 'pg_namespace') like '%029%'
        then 'PARTIAL (029 only - 030 not applied)'
        when obj_description('public'::regnamespace, 'pg_namespace') like '%028%'
