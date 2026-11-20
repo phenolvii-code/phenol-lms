@@ -73,6 +73,7 @@ import { AdminSubmissionsTab } from '@/components/dashboard/admin/AdminSubmissio
 import { AdminRosterTab } from '@/components/dashboard/admin/AdminRosterTab';
 import { AdminQuizzesTab } from '@/components/dashboard/admin/AdminQuizzesTab';
 import { AdminEarningsTab } from '@/components/dashboard/admin/AdminEarningsTab';
+import { InstructorAnalyticsTab } from '@/components/dashboard/admin/InstructorAnalyticsTab';
 import { MyPrivateServicesTab } from '@/components/dashboard/admin/MyPrivateServicesTab';
 import { SuperAdministrationView } from '@/components/dashboard/admin/SuperAdministrationView';
 
@@ -81,6 +82,7 @@ import { StudentCoursesTab } from '@/components/dashboard/student/StudentCourses
 import { StudentTasksTab } from '@/components/dashboard/student/StudentTasksTab';
 import { StudentQuizzesTab } from '@/components/dashboard/student/StudentQuizzesTab';
 import { StudentPrivateServicesTab } from '@/components/dashboard/student/StudentPrivateServicesTab';
+import { StudentProgressTab } from '@/components/dashboard/student/StudentProgressTab';
 
 // Subcomponents: Modals
 import { InstructorProfileModal } from '@/components/dashboard/modals/InstructorProfileModal';
@@ -103,11 +105,11 @@ export default function DashboardPage() {
   const [adminViewMode, setAdminViewMode] = useState<'ADMIN' | 'STUDENT_PREVIEW'>('ADMIN');
 
   // Instructor Admin Tabs
-  const [adminTab, setAdminTab] = useState<'curriculum' | 'waitlist' | 'submissions' | 'roster' | 'quizzes' | 'earnings' | 'services'>('curriculum');
+  const [adminTab, setAdminTab] = useState<'curriculum' | 'waitlist' | 'submissions' | 'roster' | 'quizzes' | 'earnings' | 'services' | 'analytics'>('curriculum');
   const [isSuperAdminCockpitOpen, setIsSuperAdminCockpitOpen] = useState(false);
 
   // Student Tabs
-  const [studentTab, setStudentTab] = useState<'courses' | 'tasks' | 'booklets' | 'quizzes' | 'services'>('courses');
+  const [studentTab, setStudentTab] = useState<'courses' | 'progress' | 'tasks' | 'booklets' | 'quizzes' | 'services'>('courses');
 
   // Filter Track for Curriculum and Waitlist
   const [trackFilter, setTrackFilter] = useState<AcademicCategory | 'all'>('all');
@@ -1541,6 +1543,17 @@ export default function DashboardPage() {
                 >
                   <span>Private Services</span>
                 </button>
+
+                <button
+                  onClick={() => setAdminTab('analytics')}
+                  className={`pb-3 border-b-2 transition-colors flex items-center gap-2 whitespace-nowrap ${
+                    adminTab === 'analytics'
+                      ? 'border-burgundy-500 text-burgundy-500'
+                      : 'border-transparent text-charcoal-100 hover:text-charcoal-900'
+                  }`}
+                >
+                  <span>Analytics</span>
+                </button>
               </nav>
 
               {/* Action Buttons based on active tab */}
@@ -1658,6 +1671,9 @@ export default function DashboardPage() {
             {adminTab === 'services' && (
               <MyPrivateServicesTab />
             )}
+
+            {/* TAB 8: COURSE ANALYTICS (read-only, 033) */}
+            {adminTab === 'analytics' && <InstructorAnalyticsTab />}
           </div>
           )
         ) : (
@@ -1700,6 +1716,17 @@ export default function DashboardPage() {
                 }`}
               >
                 Programs & Courses ({studentVisibleCourses.length})
+              </button>
+
+              <button
+                onClick={() => setStudentTab('progress')}
+                className={`pb-3 border-b-2 transition-colors whitespace-nowrap ${
+                  studentTab === 'progress'
+                    ? 'border-burgundy-500 text-burgundy-500'
+                    : 'border-transparent text-charcoal-100 hover:text-charcoal-900'
+                }`}
+              >
+                My Progress
               </button>
 
               <button
@@ -1763,6 +1790,9 @@ export default function DashboardPage() {
                 handleRequestCourse={handleRequestCourse}
               />
             )}
+
+            {/* STUDENT TAB 1b: MY PROGRESS (read-only, 033) */}
+            {studentTab === 'progress' && <StudentProgressTab />}
 
             {/* STUDENT TAB 2: TASKS */}
             {studentTab === 'tasks' && (

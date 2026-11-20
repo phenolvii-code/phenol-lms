@@ -39,9 +39,11 @@ import {
   XCircle,
   Wallet,
   ScrollText,
+  TrendingUp,
 } from 'lucide-react';
 import { OfficeTab } from '@/components/dashboard/admin/OfficeTab';
 import { AuditLogTab } from '@/components/dashboard/admin/AuditLogTab';
+import { PlatformOverviewTab } from '@/components/dashboard/admin/PlatformOverviewTab';
 
 /** Classifies an account row into UI governance role flags without letting stale localStorage override secretary/founder roles. */
 function classifyAccountRole(email?: string, role?: string) {
@@ -104,7 +106,7 @@ export const SuperAdministrationView: React.FC<SuperAdministrationViewProps> = (
   onOpenCreateCourse,
   onSetUserRole,
 }) => {
-  const [activeTab, setActiveTab] = useState<'accounts' | 'approvals' | 'office' | 'tracks' | 'instructors' | 'applications' | 'audit'>('accounts');
+  const [activeTab, setActiveTab] = useState<'accounts' | 'approvals' | 'office' | 'tracks' | 'instructors' | 'applications' | 'audit' | 'overview'>('accounts');
   const [officeRoleEmail, setOfficeRoleEmail] = useState('');
   const [userSearchQuery, setUserSearchQuery] = useState('');
   const [userFilter, setUserFilter] = useState<'all' | 'instructors' | 'students'>('all');
@@ -555,6 +557,23 @@ export const SuperAdministrationView: React.FC<SuperAdministrationViewProps> = (
         >
           <ScrollText className="w-4 h-4" />
           <span>Audit Log</span>
+        </button>
+
+        {/* Tab 7: Platform Overview (migration 033, read-only counters) */}
+        <button
+          onClick={() => {
+            setActiveTab('overview');
+            setSelectedTrackId(null);
+            setSelectedInstructorId(null);
+          }}
+          className={`pb-3.5 border-b-2 transition-all flex items-center gap-2 whitespace-nowrap ${
+            activeTab === 'overview'
+              ? 'border-burgundy-500 text-burgundy-500 font-bold'
+              : 'border-transparent text-charcoal-100 hover:text-charcoal-900'
+          }`}
+        >
+          <TrendingUp className="w-4 h-4" />
+          <span>Platform Overview</span>
         </button>
       </div>
 
@@ -1488,6 +1507,9 @@ export const SuperAdministrationView: React.FC<SuperAdministrationViewProps> = (
 
       {/* TAB 6: AUDIT LOG (migration 027 - founder-only, read-only) */}
       {activeTab === 'audit' && <AuditLogTab />}
+
+      {/* TAB 7: PLATFORM OVERVIEW (read-only counters, migration 033) */}
+      {activeTab === 'overview' && <PlatformOverviewTab />}
 
       {/* Password Reset Modal */}
       {resetPasswordStudent && (

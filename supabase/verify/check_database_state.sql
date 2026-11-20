@@ -65,7 +65,9 @@ from (values
   ('office_set_private_booking_status'),
   ('trg_private_service_payments_guard'), ('trg_audit_private_service_payments'),
   ('record_private_service_payment'), ('set_private_service_payment_status'),
-  ('office_list_private_service_payments')
+  ('office_list_private_service_payments'),
+  ('list_my_courses_analytics'), ('list_course_students_analytics'),
+  ('list_my_course_progress'), ('get_platform_overview')
 ) as t(name)
 
 union all
@@ -872,6 +874,38 @@ select 'PRIVATE PAYMENT AUDIT', 'review state applied (032: cancel demotes VERIF
 
 union all
 
+--     N8: 033 read-only analytics layer (gated RPCs, no writes, NULL when no data).
+select 'ANALYTICS AUDIT', 'read layer applied (033: 4 gated RPCs, zero writes, averages NULL without data)',
+       case when (select count(*)
+                    from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+                   where n.nspname = 'public'
+                     and p.proname in ('list_my_courses_analytics', 'list_course_students_analytics',
+                                       'list_my_course_progress', 'get_platform_overview')
+                     and p.prosecdef
+                     and p.prosrc not ilike '%insert into%'
+                     and p.prosrc not ilike '%update %'
+                     and p.prosrc not ilike '%delete from%') = 4
+             and (select strpos(prosrc, 'owns_course') from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+                   where n.nspname = 'public' and p.proname = 'list_course_students_analytics') > 0
+             and (select strpos(prosrc, 'is_super_admin()') from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+                   where n.nspname = 'public' and p.proname = 'get_platform_overview') > 0
+             and (select strpos(prosrc, 'is_instructor()') from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+                   where n.nspname = 'public' and p.proname = 'list_my_courses_analytics') > 0
+             and not has_function_privilege('anon', 'public.get_platform_overview()', 'EXECUTE')
+             and not has_function_privilege('anon', 'public.list_course_students_analytics(text)', 'EXECUTE')
+        then 'OK' else 'MISSING - re-run migration 033' end
+
+union all
+
+-- 6l. TRUTH check - analytics source rows (informational: real counts only).
+select 'ANALYTICS STATE', 'enrollments / completions / quiz attempts / submissions (informational)',
+       (select count(*)::text from public.course_enrollments) || ' enrollments, '
+       || (select count(*)::text from public.lesson_progress) || ' lesson completions, '
+       || (select count(*)::text from public.quiz_submissions) || ' quiz attempts, '
+       || (select count(*)::text from public.student_submissions) || ' submissions'
+
+union all
+
 -- 6k. TRUTH check - private service payments state (informational: 0 until real payments).
 select 'PRIVATE PAYMENT STATE', 'payments / verified / settled (informational)',
        (select count(*)::text from public.private_service_payments) || ' payments, '
@@ -890,8 +924,10 @@ union all
 
 -- 8. Schema audit marker (shows the highest migration actually applied) ---------
 select 'AUDIT MARKER', 'schema comment',
-       case when obj_description('public'::regnamespace, 'pg_namespace') like '%032%'
-       then 'OK (through 032)'
+       case when obj_description('public'::regnamespace, 'pg_namespace') like '%033%'
+       then 'OK (through 033)'
+       when obj_description('public'::regnamespace, 'pg_namespace') like '%032%'
+       then 'PARTIAL (032 only - 033 not applied)'
        when obj_description('public'::regnamespace, 'pg_namespace') like '%031%'
        then 'PARTIAL (031 only - 032 not applied)'
        when obj_description('public'::regnamespace, 'pg_namespace') like '%030%'
