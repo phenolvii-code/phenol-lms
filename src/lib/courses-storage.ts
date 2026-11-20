@@ -50,6 +50,20 @@ export const filterStudentVisibleCourses = (
   activeCourseIds?: Set<string>
 ): ChemistryCourse[] => courses.filter((c) => isCourseVisibleToStudent(c, activeCourseIds));
 
+export const formatCoursePrice = (
+  course: Pick<ChemistryCourse, 'price' | 'currency' | 'subscriptionMonths'>,
+  includePeriod = false
+): string | null => {
+  if (course.price === null || course.price === undefined) return null;
+  const currency = course.currency || 'EGP';
+  const base =
+    course.price === 0
+      ? 'Free'
+      : `${Number(course.price).toLocaleString('en-EG', { maximumFractionDigits: 2 })} ${currency}`;
+  if (!includePeriod || course.price === 0 || !course.subscriptionMonths) return base;
+  return `${base} / ${course.subscriptionMonths} mo`;
+};
+
 export const getDeletedCourseIds = (): string[] => {
   return [];
 };
@@ -311,6 +325,9 @@ export const syncWithServerCourses = async (): Promise<ChemistryCourse[]> => {
           instructorAvatar: sc.instructor_avatar || meta?.instructorAvatar || undefined,
           approvalStatus: sc.approval_status || meta?.approvalStatus || 'APPROVED',
           isPublished: sc.is_published !== false,
+          price: sc.price !== null && sc.price !== undefined ? Number(sc.price) : null,
+          currency: sc.currency || 'EGP',
+          subscriptionMonths: sc.subscription_months ?? 12,
           submittedAt: meta?.submittedAt || undefined,
           lessons: lessonsList,
         };

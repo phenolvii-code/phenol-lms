@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { AcademicCategory, ChemistryCourse } from '@/types/lms';
 import { AuthUser } from '@/types/auth';
 import { ACADEMIC_TRACKS } from '@/data/mock-data';
-import { filterStudentVisibleCourses } from '@/lib/courses-storage';
+import { filterStudentVisibleCourses, formatCoursePrice } from '@/lib/courses-storage';
 import { CourseEnrollmentRecord } from '@/lib/data/enrollments';
 import {
   CheckCircle2,
@@ -133,9 +133,16 @@ export function StudentCoursesTab({
               </div>
 
               <div className="pt-4 border-t border-hairline flex items-center justify-between gap-2">
-                <span className="font-formula text-xs text-charcoal-50">
-                  {course.lessons.length} Modules • {course.totalHours}
-                </span>
+                <div className="flex flex-col">
+                  <span className="font-formula text-xs text-charcoal-50">
+                    {course.lessons.length} Modules • {course.totalHours}
+                  </span>
+                  {formatCoursePrice(course, true) && (
+                    <span className="font-mono text-sm font-bold text-burgundy-900 mt-0.5">
+                      {formatCoursePrice(course, true)}
+                    </span>
+                  )}
+                </div>
 
                 {status === 'ACTIVE' ? (
                   <Link

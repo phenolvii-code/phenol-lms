@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { CHEMISTRY_COURSES } from '@/data/mock-data';
-import { getStoredCourses, syncWithServerCourses } from '@/lib/courses-storage';
+import { getStoredCourses, syncWithServerCourses, formatCoursePrice } from '@/lib/courses-storage';
 import { requestEnrollment, listMyEnrollments } from '@/lib/data/enrollments';
 import { useCurrentUser } from '@/lib/auth/useCurrentUser';
 import { ChemistryCourse, ChemistryQuiz } from '@/types/lms';
@@ -329,6 +329,14 @@ export default function CourseDetailsPage() {
               </span>
               <span>Program: <strong className="text-charcoal-900 font-sans">{course.categoryName}</strong></span>
               <span>Duration: <strong className="text-charcoal-900 font-sans">{course.totalHours}</strong></span>
+              {formatCoursePrice(course, true) && (
+                <span>
+                  Tuition:{' '}
+                  <strong className="text-burgundy-900 font-mono">
+                    {formatCoursePrice(course, true)}
+                  </strong>
+                </span>
+              )}
             </div>
 
             {enrollmentStatus === 'ACTIVE' ? (

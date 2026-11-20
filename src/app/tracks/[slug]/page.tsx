@@ -7,7 +7,7 @@ import { useCurrentUser } from '@/lib/auth/useCurrentUser';
 import { Navbar } from '@/components/layout/Navbar';
 import { PhenolLogo } from '@/components/brand/PhenolLogo';
 import { ACADEMIC_TRACKS, normalizeTrackSlug, INSTRUCTOR } from '@/data/mock-data';
-import { getStoredCourses, syncWithServerCourses, filterStudentVisibleCourses } from '@/lib/courses-storage';
+import { getStoredCourses, syncWithServerCourses, filterStudentVisibleCourses, formatCoursePrice } from '@/lib/courses-storage';
 import { ChemistryCourse } from '@/types/lms';
 import {
   Sparkles,
@@ -186,6 +186,11 @@ export default function TrackPage() {
                         </span>
                         <span className="font-mono text-charcoal-50">{lessonsCount} Lectures</span>
                       </div>
+                      {formatCoursePrice(course, true) && (
+                        <div className="font-mono text-sm font-bold text-burgundy-900">
+                          {formatCoursePrice(course, true)}
+                        </div>
+                      )}
                     </div>
 
                     {/* Action Link: Explore Course */}
