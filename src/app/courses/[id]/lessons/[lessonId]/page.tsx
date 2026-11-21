@@ -479,7 +479,7 @@ export default function LessonExperiencePage() {
             {/* Lecture Heading */}
             <div className="space-y-1">
               <div className="flex items-center gap-2">
-                <span className="font-formula text-xs font-bold text-burgundy-500 bg-burgundy-50 px-2 py-0.5 rounded border border-burgundy-200">
+                <span className="font-formula text-xs font-bold text-burgundy-600 tracking-wide">
                   {course.code} • Lecture 0{lessonIndex + 1}
                 </span>
                 <span className="text-xs text-charcoal-50 font-sans">
@@ -583,7 +583,7 @@ export default function LessonExperiencePage() {
 
                     <div className="p-5 bg-ivory-100 border border-hairline rounded-xl space-y-2.5 shadow-quiet font-sans">
                       <div className="flex items-center gap-2">
-                        <span className="font-formula text-[10px] text-burgundy-500 font-bold uppercase tracking-widest px-2 py-0.5 rounded bg-ivory-200 border border-hairline flex items-center gap-1">
+                        <span className="font-formula text-[10px] text-burgundy-600 font-bold uppercase tracking-widest flex items-center gap-1">
                           <Sparkles className="w-3 h-3 text-ochre" />
                           <span>ANALYTICAL DIRECTIVE</span>
                         </span>
@@ -615,7 +615,7 @@ export default function LessonExperiencePage() {
                           className="w-full p-3.5 bg-ivory-50 hover:bg-ivory-200 transition-colors flex items-center justify-between text-left group"
                         >
                           <div className="flex items-center gap-3">
-                            <span className="font-mono text-xs font-bold text-burgundy-500 bg-burgundy-50 group-hover:bg-burgundy-100 px-2 py-0.5 rounded border border-burgundy-200">
+                            <span className="font-mono text-xs font-bold text-burgundy-600 group-hover:text-burgundy-900">
                               {ts.timeLabel}
                             </span>
                             <span className="text-xs font-medium text-charcoal-900 group-hover:text-burgundy-700 font-sans">

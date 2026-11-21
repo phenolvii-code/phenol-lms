@@ -1352,7 +1352,7 @@ export default function DashboardPage() {
                     <h2 className="text-lg sm:text-xl font-bold text-charcoal-900 font-display">
                       {currentUser.name || 'Dr. Omar Magdi'}
                     </h2>
-                    <span className="font-formula text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-burgundy-50 text-burgundy-800 border border-burgundy-200">
+                    <span className="font-formula text-[10px] font-bold uppercase tracking-wider text-burgundy-700">
                       Instructor Cockpit
                     </span>
                   </div>

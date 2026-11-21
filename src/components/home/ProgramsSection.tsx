@@ -80,7 +80,7 @@ export const ProgramsSection: React.FC<ProgramsSectionProps> = ({ onOpenWaitlist
               >
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-formula font-bold uppercase tracking-wider text-charcoal-900 bg-ivory-200 px-2 py-0.5 rounded border border-hairline">
+                    <span className="text-[11px] font-formula font-bold uppercase tracking-widest text-burgundy-700">
                       {track.romanNumeral}
                     </span>
                     <span className="text-xs font-mono font-bold text-charcoal-50">

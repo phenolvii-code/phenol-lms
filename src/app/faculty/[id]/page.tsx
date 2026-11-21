@@ -353,7 +353,7 @@ export default function InstructorProfilePage() {
                   <h1 className="text-2xl sm:text-3xl font-extrabold text-charcoal-900 font-display tracking-tight">
                     {instructor.name}
                   </h1>
-                  <span className="font-formula text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded bg-burgundy-50 text-burgundy-900 border border-burgundy-200">
+                  <span className="font-formula text-[10px] font-bold uppercase tracking-wider text-burgundy-700">
                     {isFounder ? 'Founder & Academic Chair' : 'Faculty Fellow'}
                   </span>
                 </div>
@@ -399,7 +399,7 @@ export default function InstructorProfilePage() {
                   <span className="text-[11px] font-formula text-charcoal-50 uppercase tracking-wider">
                     Disciplinary Scope:
                   </span>
-                  <span className="text-[11px] font-sans px-2.5 py-0.5 rounded bg-ivory-200 text-charcoal-900 border border-hairline font-medium">
+                  <span className="text-xs font-sans text-charcoal-900 font-semibold">
                     {instructor.specialization}
                   </span>
                 </div>
@@ -484,7 +484,7 @@ export default function InstructorProfilePage() {
                     <div className="space-y-3">
                       {/* Top Bar: Code + Enrollment Badge */}
                       <div className="flex items-center justify-between gap-2">
-                        <span className="font-formula text-xs font-bold px-2 py-0.5 rounded bg-ivory-200 border border-hairline text-burgundy-900">
+                        <span className="font-formula text-xs font-bold text-burgundy-700 tracking-wide">
                           {course.code}
                         </span>
 

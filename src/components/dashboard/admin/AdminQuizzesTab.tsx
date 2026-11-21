@@ -125,7 +125,7 @@ export function AdminQuizzesTab({ courses }: AdminQuizzesTabProps) {
             >
               <div className="space-y-2">
                 <div className="flex items-center justify-between gap-2">
-                  <span className="font-formula text-[10px] text-burgundy-600 font-bold bg-burgundy-50 px-2 py-0.5 rounded border border-burgundy-200">
+                  <span className="font-formula text-[10px] text-burgundy-600 font-bold uppercase tracking-wider">
                     EVALUATION
                   </span>
                   <span className="inline-flex items-center gap-1 text-xs font-mono text-charcoal-50">

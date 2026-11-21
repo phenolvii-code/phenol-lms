@@ -160,7 +160,7 @@ export default function QuizExamRoomPage() {
             </Link>
             <div>
               <div className="flex items-center gap-2">
-                <span className="font-formula text-[10px] text-burgundy-600 font-bold bg-burgundy-50 px-2 py-0.5 rounded border border-burgundy-200">
+                <span className="font-formula text-[10px] text-burgundy-600 font-bold uppercase tracking-wider">
                   {quiz.badge || 'TIMED EVALUATION'}
                 </span>
                 <span className="text-xs text-charcoal-50 font-mono hidden sm:inline">
@@ -223,7 +223,7 @@ export default function QuizExamRoomPage() {
                 <div className="flex items-center justify-between text-xs text-charcoal-50 font-mono">
                   <span>Question {currentQuestionIndex + 1}</span>
                   {currentQuestion.molecularSnippet && (
-                    <span className="font-mono text-xs text-burgundy-700 bg-burgundy-50 border border-burgundy-200 px-2.5 py-0.5 rounded">
+                    <span className="font-mono text-xs font-semibold text-burgundy-700">
                       {currentQuestion.molecularSnippet}
                     </span>
                   )}

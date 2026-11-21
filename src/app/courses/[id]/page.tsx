@@ -269,7 +269,7 @@ export default function CourseDetailsPage() {
         <div className="border border-hairline rounded bg-ivory-100 p-6 sm:p-10 space-y-6 shadow-quiet">
           <div className="flex items-center justify-between border-b border-hairline pb-4">
             <div className="flex items-center gap-3">
-              <span className="font-formula text-xs font-bold text-burgundy-500 bg-burgundy-50 px-2.5 py-1 rounded border border-burgundy-200">
+              <span className="font-formula text-xs font-bold text-burgundy-600 tracking-wide">
                 {course.code}
               </span>
               <span className="text-xs sm:text-sm text-charcoal-100 font-sans font-medium">
@@ -278,7 +278,7 @@ export default function CourseDetailsPage() {
             </div>
 
             {course.molecularFormula && (
-              <span className="font-formula text-xs sm:text-sm text-charcoal-900 font-semibold bg-ivory-300 px-3 py-1 rounded border border-hairline">
+              <span className="font-formula text-xs sm:text-sm text-charcoal-100 font-semibold">
                 {course.molecularFormula}
               </span>
             )}
@@ -562,7 +562,7 @@ export default function CourseDetailsPage() {
                 >
                   <div className="space-y-2">
                     <div className="flex items-center justify-between gap-2">
-                      <span className="font-formula text-[10px] text-burgundy-600 font-bold bg-burgundy-50 px-2 py-0.5 rounded border border-burgundy-200">
+                      <span className="font-formula text-[10px] text-burgundy-600 font-bold uppercase tracking-wider">
                         {q.badge || 'TIMED EVALUATION'}
                       </span>
                       <span className="inline-flex items-center gap-1 text-xs font-mono text-charcoal-50">

@@ -256,7 +256,7 @@ export function AdminRosterTab({
                         >
                           {/* Academic Code */}
                           <td className="py-3.5 px-4 whitespace-nowrap">
-                            <span className="font-mono text-[11px] font-bold text-burgundy-900 bg-burgundy-50 px-2 py-0.5 rounded border border-burgundy-200">
+                            <span className="font-mono text-[11px] font-bold text-burgundy-800">
                               {st.code}
                             </span>
                           </td>
@@ -293,7 +293,7 @@ export function AdminRosterTab({
 
                           {/* Track */}
                           <td className="py-3.5 px-4 whitespace-nowrap">
-                            <span className="font-formula font-semibold text-charcoal-900 bg-ivory-200 px-2 py-0.5 rounded border border-hairline text-[11px]">
+                            <span className="font-formula font-semibold text-charcoal-900 text-[11px]">
                               {st.track}
                             </span>
                           </td>

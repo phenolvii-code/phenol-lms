@@ -125,7 +125,7 @@ export const CourseStudentsModal: React.FC<CourseStudentsModalProps> = ({
         <div className="p-6 pb-4 border-b border-hairline bg-ivory-200 flex items-center justify-between shrink-0">
           <div>
             <div className="flex items-center gap-2 mb-1">
-              <span className="font-formula text-xs font-bold text-burgundy-900 bg-burgundy-50 px-2.5 py-0.5 rounded border border-burgundy-200">
+              <span className="font-formula text-xs font-bold text-burgundy-800 tracking-wide">
                 {course.code}
               </span>
               <span className="text-xs text-charcoal-50 font-sans">
@@ -252,7 +252,7 @@ export const CourseStudentsModal: React.FC<CourseStudentsModalProps> = ({
                           <h4 className="text-xs sm:text-sm font-bold text-charcoal-900">
                             {enr.student_name}
                           </h4>
-                          <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-burgundy-50 text-burgundy-900 border border-burgundy-200">
+                          <span className="text-[10px] font-mono font-semibold text-burgundy-700">
                             {enr.student_code || 'PH-SCHOLAR'}
                           </span>
                         </div>

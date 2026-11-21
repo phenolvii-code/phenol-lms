@@ -138,11 +138,11 @@ export default function FacultyPage() {
                           {displayName}
                         </Link>
                         {isFounder ? (
-                          <span className="font-formula text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded bg-ivory-200 border border-hairline text-burgundy-900">
+                          <span className="font-formula text-[10px] uppercase font-bold tracking-wider text-burgundy-700">
                             Founder & Chair
                           </span>
                         ) : (
-                          <span className="font-formula text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded bg-ivory-200 border border-hairline text-ochre-700">
+                          <span className="font-formula text-[10px] uppercase font-bold tracking-wider text-ochre-700">
                             Faculty Fellow
                           </span>
                         )}

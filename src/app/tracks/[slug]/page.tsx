@@ -150,7 +150,7 @@ export default function TrackPage() {
                     <div className="space-y-4">
                       {/* Code & Level */}
                       <div className="flex items-center justify-between gap-2">
-                        <span className="font-formula text-xs font-bold px-2 py-0.5 rounded bg-ivory-200 border border-hairline text-burgundy-900">
+                        <span className="font-formula text-xs font-bold text-burgundy-700 tracking-wide">
                           {course.code}
                         </span>
                         <span className="text-[11px] font-mono text-charcoal-50">

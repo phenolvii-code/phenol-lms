@@ -129,10 +129,10 @@ export function AdminCurriculumTab({
               <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 border-b border-hairline pb-4">
                 <div className="space-y-2">
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="font-formula text-xs font-bold text-burgundy-500 bg-burgundy-50 px-2.5 py-0.5 rounded border border-burgundy-200">
+                    <span className="font-formula text-xs font-bold text-burgundy-700 tracking-wide">
                       {course.code}
                     </span>
-                    <span className="text-xs font-semibold text-charcoal-900 bg-ivory-300 px-2 py-0.5 rounded border border-hairline">
+                    <span className="text-xs font-semibold text-charcoal-100">
                       {course.categoryName}
                     </span>
                     {course.approvalStatus === 'PENDING' ? (
@@ -152,7 +152,7 @@ export function AdminCurriculumTab({
                       {course.level}
                     </span>
                     {course.molecularFormula && (
-                      <span className="font-formula text-xs text-charcoal-100 bg-ivory-200 px-2 py-0.5 rounded">
+                      <span className="font-formula text-xs text-charcoal-100">
                         {course.molecularFormula}
                       </span>
                     )}
@@ -269,7 +269,7 @@ export function AdminCurriculumTab({
                                 {lesson.title}
                               </span>
                               {lesson.keyFormulas && lesson.keyFormulas.length > 0 && (
-                                <span className="font-formula text-[10px] text-burgundy-500 bg-burgundy-50 px-1.5 py-0.2 rounded border border-burgundy-200">
+                                <span className="font-formula text-[11px] text-burgundy-600 font-semibold">
                                   {lesson.keyFormulas[0]}
                                 </span>
                               )}

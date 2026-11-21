@@ -102,7 +102,7 @@ export function StudentCoursesTab({
             >
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="font-formula text-xs font-bold text-charcoal-900 bg-ivory-200 px-2 py-0.5 rounded border border-hairline">
+                  <span className="font-formula text-xs font-bold text-burgundy-700 tracking-wide">
                     {course.code}
                   </span>
                   {status === 'ACTIVE' ? (

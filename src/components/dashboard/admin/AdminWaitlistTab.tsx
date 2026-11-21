@@ -129,7 +129,7 @@ export function AdminWaitlistTab({
                         {app.academicTrack}
                       </td>
                       <td className="py-3.5 px-4 whitespace-nowrap">
-                        <span className="font-formula font-semibold text-burgundy-500 bg-burgundy-50 px-2 py-0.5 rounded border border-burgundy-200 text-[11px]">
+                        <span className="font-formula font-semibold text-burgundy-700 text-[11px]">
                           {app.targetCourse.split(' - ')[0]}
                         </span>
                       </td>
