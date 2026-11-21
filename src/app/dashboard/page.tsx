@@ -64,6 +64,7 @@ import {
   Settings,
   ExternalLink,
   Edit3,
+  PenTool,
 } from 'lucide-react';
 
 // Subcomponents: Admin Tabs
@@ -1374,6 +1375,14 @@ export default function DashboardPage() {
                   <Settings className="w-3.5 h-3.5 text-charcoal-100" />
                   <span>Edit Profile</span>
                 </button>
+
+                <Link
+                  href="/whiteboard"
+                  className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-ivory-200 hover:bg-ivory-300 border border-hairline text-charcoal-900 font-sans text-xs font-semibold transition-all shadow-quiet"
+                >
+                  <PenTool className="w-3.5 h-3.5 text-burgundy-500" />
+                  <span>Whiteboard</span>
+                </Link>
 
                 {/* Super Administration Button - Dr. Omar Magdi ONLY */}
                 {isSuperAdminUser && (
