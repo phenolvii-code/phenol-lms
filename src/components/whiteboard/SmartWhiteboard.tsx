@@ -5,13 +5,15 @@ import Link from 'next/link';
 import {
   ArrowLeft,
   ArrowRight,
+  Check,
   Circle,
   Copy,
   Download,
   Eraser,
-  Grid,
+  FileUp,
   Hand,
   Highlighter,
+  Loader2,
   Maximize2,
   Minimize2,
   Minus,
@@ -27,6 +29,7 @@ import {
   Triangle,
   Type,
   Undo2,
+  X,
   ZoomIn,
   ZoomOut,
 } from 'lucide-react';
@@ -92,7 +95,17 @@ interface TextItem {
   bold?: boolean;
 }
 
-type BoardItem = StrokeItem | ShapeItem | TextItem;
+interface ImageItem {
+  id: string;
+  kind: 'image';
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  src: string;
+}
+
+type BoardItem = StrokeItem | ShapeItem | TextItem | ImageItem;
 
 interface BoardPage {
   id: string;
@@ -144,17 +157,35 @@ const QUICK_SYMBOLS = [
 
 const uid = () => `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
 
+const ARABIC_RE = /[\u0600-\u06FF]/;
+let sharedMeasureCtx: CanvasRenderingContext2D | null = null;
+
 function measureTextLines(text: string, fontSize: number, bold?: boolean): { w: number; h: number } {
   const lines = (text || ' ').split('\n');
-  const maxLen = Math.max(...lines.map((l) => l.length), 1);
-  const charW = fontSize * (bold ? 0.62 : 0.58);
+  if (typeof document !== 'undefined' && !sharedMeasureCtx) {
+    sharedMeasureCtx = document.createElement('canvas').getContext('2d');
+  }
+  let maxW = 24;
+  if (sharedMeasureCtx) {
+    sharedMeasureCtx.font = `${bold ? '700' : '500'} ${fontSize}px system-ui, -apple-system, "Segoe UI", sans-serif`;
+    for (const line of lines) {
+      const m = sharedMeasureCtx.measureText(line || ' ');
+      if (m.width > maxW) maxW = m.width;
+    }
+  } else {
+    const maxLen = Math.max(...lines.map((l) => l.length), 1);
+    maxW = maxLen * fontSize * (bold ? 0.62 : 0.58);
+  }
   return {
-    w: Math.max(24, maxLen * charW + 10),
+    w: Math.max(28, maxW + 12),
     h: Math.max(fontSize * 1.4, lines.length * fontSize * 1.35 + 6),
   };
 }
 
 function getItemBBox(item: BoardItem): BBox {
+  if (item.kind === 'image') {
+    return { x: item.x, y: item.y, w: item.w, h: item.h };
+  }
   if (item.kind === 'stroke') {
     let minX = Infinity;
     let minY = Infinity;
@@ -235,8 +266,32 @@ function translateItem(item: BoardItem, dx: number, dy: number): BoardItem {
   return { ...item, x: item.x + dx, y: item.y + dy };
 }
 
-function drawItemOnCtx(ctx: CanvasRenderingContext2D, item: BoardItem) {
+function drawItemOnCtx(
+  ctx: CanvasRenderingContext2D,
+  item: BoardItem,
+  imageCache?: Map<string, HTMLImageElement>,
+  onImageLoaded?: () => void
+) {
   ctx.save();
+  if (item.kind === 'image') {
+    if (imageCache) {
+      let img = imageCache.get(item.src);
+      if (!img) {
+        img = new Image();
+        img.onload = () => onImageLoaded?.();
+        img.src = item.src;
+        imageCache.set(item.src, img);
+      }
+      if (img.complete && img.naturalWidth > 0) {
+        ctx.drawImage(img, item.x, item.y, item.w, item.h);
+      } else {
+        ctx.fillStyle = 'rgba(124,29,52,0.06)';
+        ctx.fillRect(item.x, item.y, item.w, item.h);
+      }
+    }
+    ctx.restore();
+    return;
+  }
   if (item.kind === 'stroke') {
     ctx.strokeStyle = item.color;
     ctx.fillStyle = item.color;
@@ -319,9 +374,21 @@ function drawItemOnCtx(ctx: CanvasRenderingContext2D, item: BoardItem) {
   ctx.font = `${item.bold ? '700' : '500'} ${item.fontSize}px system-ui, -apple-system, "Segoe UI", sans-serif`;
   ctx.textBaseline = 'top';
   const lines = (item.text || '').split('\n');
-  lines.forEach((line, idx) => {
-    ctx.fillText(line, item.x, item.y + idx * item.fontSize * 1.35);
-  });
+  const isRtl = ARABIC_RE.test(item.text || '');
+  if (isRtl) {
+    const { w } = measureTextLines(item.text, item.fontSize, item.bold);
+    ctx.direction = 'rtl';
+    ctx.textAlign = 'right';
+    lines.forEach((line, idx) => {
+      ctx.fillText(line, item.x + w - 6, item.y + idx * item.fontSize * 1.35);
+    });
+  } else {
+    ctx.direction = 'ltr';
+    ctx.textAlign = 'left';
+    lines.forEach((line, idx) => {
+      ctx.fillText(line, item.x, item.y + idx * item.fontSize * 1.35);
+    });
+  }
   ctx.restore();
 }
 
@@ -332,6 +399,9 @@ export const SmartWhiteboard: React.FC<SmartWhiteboardProps> = ({
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const textAreaRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const imageCacheRef = useRef<Map<string, HTMLImageElement>>(new Map());
 
   // Pages state
   const [pages, setPages] = useState<BoardPage[]>([{ id: 'page-1', title: 'Page 1', items: [] }]);
@@ -368,6 +438,8 @@ export const SmartWhiteboard: React.FC<SmartWhiteboardProps> = ({
   const [showShapesMenu, setShowShapesMenu] = useState(false);
   const [showSymbolsMenu, setShowSymbolsMenu] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [importingLabel, setImportingLabel] = useState<string | null>(null);
+  const [importNotice, setImportNotice] = useState<string | null>(null);
 
   // Selection & inline text editing
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -386,10 +458,25 @@ export const SmartWhiteboard: React.FC<SmartWhiteboardProps> = ({
     | { type: 'draw' }
     | { type: 'pan'; startScreen: Point; startPan: Point }
     | { type: 'move'; startWorld: Point; lastWorld: Point; snapshot: BoardItem[] }
+    | { type: 'resize'; id: string; startWorld: Point; origW: number; origH: number; snapshot: BoardItem[] }
     | { type: 'marquee'; startWorld: Point }
     | { type: 'erase' }
   >(null);
   const spaceHeldRef = useRef(false);
+
+  // Ensure inline textarea reliably receives focus on open
+  useEffect(() => {
+    if (!editingText) return;
+    const raf = requestAnimationFrame(() => {
+      const el = textAreaRef.current;
+      if (el) {
+        el.focus();
+        const len = el.value.length;
+        el.setSelectionRange(len, len);
+      }
+    });
+    return () => cancelAnimationFrame(raf);
+  }, [editingText?.x, editingText?.y, editingText?.id]);
 
   // Hydrate saved state from localStorage once
   useEffect(() => {
@@ -675,12 +762,12 @@ export const SmartWhiteboard: React.FC<SmartWhiteboardProps> = ({
     // Committed items
     for (const item of items) {
       if (editingText?.id === item.id) continue;
-      drawItemOnCtx(ctx, item);
+      drawItemOnCtx(ctx, item, imageCacheRef.current, () => renderCanvas());
     }
 
     // Active draft item
     if (draftItemRef.current) {
-      drawItemOnCtx(ctx, draftItemRef.current);
+      drawItemOnCtx(ctx, draftItemRef.current, imageCacheRef.current);
     }
 
     // Selection bounding boxes
@@ -772,7 +859,9 @@ export const SmartWhiteboard: React.FC<SmartWhiteboardProps> = ({
       } else {
         setActiveItems((prev) =>
           prev.map((it) =>
-            it.id === editingText.id && it.kind === 'text' ? { ...it, text: trimmed } : it
+            it.id === editingText.id && it.kind === 'text'
+              ? { ...it, text: trimmed, color: penColor, fontSize, bold: textBold }
+              : it
           )
         );
       }
@@ -800,19 +889,16 @@ export const SmartWhiteboard: React.FC<SmartWhiteboardProps> = ({
     setShowSymbolsMenu(false);
     setShowStampEditor(false);
 
+    const worldPt = screenToWorld(e.clientX, e.clientY);
+
     if (editingText) {
       commitEditingText();
-      return;
+      if (tool !== 'text') return;
     }
-
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    canvas.setPointerCapture(e.pointerId);
-
-    const worldPt = screenToWorld(e.clientX, e.clientY);
 
     // Middle mouse or Space+Drag or Pan tool
     if (e.button === 1 || spaceHeldRef.current || tool === 'pan') {
+      canvasRef.current?.setPointerCapture(e.pointerId);
       dragModeRef.current = {
         type: 'pan',
         startScreen: { x: e.clientX, y: e.clientY },
@@ -826,6 +912,10 @@ export const SmartWhiteboard: React.FC<SmartWhiteboardProps> = ({
       return;
     }
 
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    canvas.setPointerCapture(e.pointerId);
+
     if (tool === 'eraser') {
       dragModeRef.current = { type: 'erase' };
       const hit = [...items].reverse().find((it) => hitTestItem(it, worldPt, 12 / zoom));
@@ -836,6 +926,27 @@ export const SmartWhiteboard: React.FC<SmartWhiteboardProps> = ({
     }
 
     if (tool === 'select') {
+      // Check bottom-right resize handle on a single selected image
+      if (selectedIds.length === 1) {
+        const selImg = items.find(
+          (it): it is ImageItem => it.id === selectedIds[0] && it.kind === 'image'
+        );
+        if (selImg) {
+          const handlePt = { x: selImg.x + selImg.w, y: selImg.y + selImg.h };
+          if (Math.hypot(worldPt.x - handlePt.x, worldPt.y - handlePt.y) <= 14 / zoom) {
+            dragModeRef.current = {
+              type: 'resize',
+              id: selImg.id,
+              startWorld: worldPt,
+              origW: selImg.w,
+              origH: selImg.h,
+              snapshot: items,
+            };
+            return;
+          }
+        }
+      }
+
       const hit = [...items].reverse().find((it) => hitTestItem(it, worldPt, 10 / zoom));
       if (hit) {
         if (e.shiftKey) {
@@ -930,6 +1041,26 @@ export const SmartWhiteboard: React.FC<SmartWhiteboardProps> = ({
       return;
     }
 
+    if (mode.type === 'resize') {
+      const dx = worldPt.x - mode.startWorld.x;
+      const ratio = mode.origH / Math.max(1, mode.origW);
+      const nextW = Math.max(60, mode.origW + dx);
+      const nextH = Math.max(40, Math.round(nextW * ratio));
+      setPages((ps) =>
+        ps.map((p) =>
+          p.id === activePage.id
+            ? {
+                ...p,
+                items: p.items.map((it) =>
+                  it.id === mode.id && it.kind === 'image' ? { ...it, w: nextW, h: nextH } : it
+                ),
+              }
+            : p
+        )
+      );
+      return;
+    }
+
     if (mode.type === 'marquee') {
       const x = Math.min(mode.startWorld.x, worldPt.x);
       const y = Math.min(mode.startWorld.y, worldPt.y);
@@ -968,6 +1099,9 @@ export const SmartWhiteboard: React.FC<SmartWhiteboardProps> = ({
         setUndoStack((u) => [...u.slice(-39), mode.snapshot]);
         setRedoStack([]);
       }
+    } else if (mode?.type === 'resize') {
+      setUndoStack((u) => [...u.slice(-39), mode.snapshot]);
+      setRedoStack([]);
     } else if (mode?.type === 'marquee') {
       setMarquee(null);
     } else if (mode?.type === 'draw' && draftItemRef.current) {
@@ -990,6 +1124,9 @@ export const SmartWhiteboard: React.FC<SmartWhiteboardProps> = ({
       .reverse()
       .find((it): it is TextItem => it.kind === 'text' && hitTestItem(it, worldPt, 8 / zoom));
     if (hit) {
+      setPenColor(hit.color);
+      setFontSize(hit.fontSize);
+      setTextBold(Boolean(hit.bold));
       setEditingText({ id: hit.id, x: hit.x, y: hit.y, value: hit.text });
     }
   };
@@ -1033,6 +1170,220 @@ export const SmartWhiteboard: React.FC<SmartWhiteboardProps> = ({
     setSelectedIds([item.id]);
     setTool('select');
     setShowSymbolsMenu(false);
+  };
+
+  const getViewportOrigin = useCallback(() => {
+    const rect = canvasRef.current?.getBoundingClientRect();
+    const vx = rect ? (rect.width * 0.15 - pan.x) / zoom : 80;
+    const vy = rect ? (rect.height * 0.14 - pan.y) / zoom : 80;
+    return { vx, vy, viewW: rect ? rect.width / zoom : 900 };
+  }, [pan, zoom]);
+
+  const insertImageDataUrl = useCallback(
+    (src: string, offsetX = 0, offsetY = 0): Promise<{ w: number; h: number }> =>
+      new Promise((resolve) => {
+        const img = new Image();
+        img.onload = () => {
+          const maxW = 680;
+          const scale = img.naturalWidth > maxW ? maxW / img.naturalWidth : 1;
+          const w = Math.max(80, Math.round(img.naturalWidth * scale));
+          const h = Math.max(60, Math.round(img.naturalHeight * scale));
+          const { vx, vy } = getViewportOrigin();
+          const newItem: ImageItem = {
+            id: uid(),
+            kind: 'image',
+            x: vx + offsetX,
+            y: vy + offsetY,
+            w,
+            h,
+            src,
+          };
+          imageCacheRef.current.set(src, img);
+          setActiveItems((prev) => [...prev, newItem]);
+          setSelectedIds([newItem.id]);
+          setTool('select');
+          resolve({ w, h });
+        };
+        img.onerror = () => resolve({ w: 0, h: 0 });
+        img.src = src;
+      }),
+    [getViewportOrigin, setActiveItems]
+  );
+
+  // Clipboard image paste (Ctrl+V)
+  useEffect(() => {
+    const onPaste = (e: ClipboardEvent) => {
+      if (editingText) return;
+      const itemsList = e.clipboardData?.items;
+      if (!itemsList) return;
+      for (const ci of Array.from(itemsList)) {
+        if (ci.type.startsWith('image/')) {
+          const file = ci.getAsFile();
+          if (!file) continue;
+          const reader = new FileReader();
+          reader.onload = () => {
+            if (typeof reader.result === 'string') {
+              insertImageDataUrl(reader.result);
+            }
+          };
+          reader.readAsDataURL(file);
+          e.preventDefault();
+          break;
+        }
+      }
+    };
+    window.addEventListener('paste', onPaste);
+    return () => window.removeEventListener('paste', onPaste);
+  }, [editingText, insertImageDataUrl]);
+
+  const handleFileImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    setImportNotice(null);
+
+    const nameLower = file.name.toLowerCase();
+
+    if (file.type.startsWith('image/') || /\.(png|jpe?g|webp|gif|svg)$/i.test(nameLower)) {
+      const reader = new FileReader();
+      reader.onload = () => {
+        if (typeof reader.result === 'string') {
+          insertImageDataUrl(reader.result);
+        }
+      };
+      reader.readAsDataURL(file);
+      return;
+    }
+
+    if (nameLower.endsWith('.pdf') || file.type === 'application/pdf') {
+      try {
+        setImportingLabel('Loading PDF...');
+        const pdfjsLib = await import('pdfjs-dist/legacy/build/pdf.mjs');
+        pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs';
+        const buf = await file.arrayBuffer();
+        const doc = await pdfjsLib.getDocument({ data: buf }).promise;
+        const maxPages = Math.min(doc.numPages, 25);
+        const { vx, vy } = getViewportOrigin();
+        const newImages: ImageItem[] = [];
+        let cursorY = vy;
+
+        for (let pageNum = 1; pageNum <= maxPages; pageNum++) {
+          setImportingLabel(`Importing PDF page ${pageNum}/${maxPages}...`);
+          const page = await doc.getPage(pageNum);
+          const vp = page.getViewport({ scale: 1.5 });
+          const off = document.createElement('canvas');
+          off.width = Math.floor(vp.width);
+          off.height = Math.floor(vp.height);
+          const ctx = off.getContext('2d');
+          if (!ctx) continue;
+          await page.render({ canvasContext: ctx, viewport: vp, canvas: off }).promise;
+          const dataUrl = off.toDataURL('image/png');
+          const targetW = Math.min(720, Math.round(vp.width / 1.5));
+          const targetH = Math.round((vp.height / vp.width) * targetW);
+          newImages.push({
+            id: uid(),
+            kind: 'image',
+            x: vx,
+            y: cursorY,
+            w: targetW,
+            h: targetH,
+            src: dataUrl,
+          });
+          cursorY += targetH + 28;
+        }
+
+        if (newImages.length > 0) {
+          setActiveItems((prev) => [...prev, ...newImages]);
+          setSelectedIds([newImages[0].id]);
+          setTool('select');
+          if (doc.numPages > maxPages) {
+            setImportNotice(`Imported first ${maxPages} of ${doc.numPages} PDF pages.`);
+          }
+        }
+      } catch (err) {
+        setImportNotice(
+          `Could not import PDF: ${err instanceof Error ? err.message : 'unknown error'}`
+        );
+      } finally {
+        setImportingLabel(null);
+      }
+      return;
+    }
+
+    if (nameLower.endsWith('.pptx')) {
+      try {
+        setImportingLabel('Reading PowerPoint (.pptx)...');
+        const JSZip = (await import('jszip')).default;
+        const zip = await JSZip.loadAsync(await file.arrayBuffer());
+        const slideFiles = Object.keys(zip.files)
+          .filter((k) => /^ppt\/slides\/slide\d+\.xml$/i.test(k))
+          .sort((a, b) => {
+            const na = Number(a.match(/slide(\d+)\.xml/i)?.[1] || 0);
+            const nb = Number(b.match(/slide(\d+)\.xml/i)?.[1] || 0);
+            return na - nb;
+          });
+
+        const { vx, vy } = getViewportOrigin();
+        const added: BoardItem[] = [];
+        let cursorY = vy;
+        const parser = new DOMParser();
+
+        for (let idx = 0; idx < Math.min(slideFiles.length, 30); idx++) {
+          const xmlText = await zip.files[slideFiles[idx]].async('string');
+          const xml = parser.parseFromString(xmlText, 'application/xml');
+          const paragraphs = Array.from(xml.getElementsByTagName('a:p'));
+          const lines: string[] = [];
+          for (const p of paragraphs) {
+            const runs = Array.from(p.getElementsByTagName('a:t')).map((t) => t.textContent || '');
+            const joined = runs.join('').trim();
+            if (joined) lines.push(joined);
+          }
+          if (lines.length > 0) {
+            const textStr = `Slide ${idx + 1}\n${lines.join('\n')}`;
+            added.push({
+              id: uid(),
+              kind: 'text',
+              x: vx,
+              y: cursorY,
+              text: textStr,
+              color: penColor,
+              fontSize: 18,
+              bold: false,
+            });
+            cursorY += Math.max(90, (lines.length + 1) * 26) + 28;
+          }
+        }
+
+        // Also extract embedded media images from ppt/media/
+        const mediaFiles = Object.keys(zip.files).filter((k) =>
+          /^ppt\/media\/.+\.(png|jpe?g|webp|gif)$/i.test(k)
+        );
+        for (const mf of mediaFiles.slice(0, 12)) {
+          const ext = mf.split('.').pop()?.toLowerCase() || 'png';
+          const mime = ext === 'jpg' || ext === 'jpeg' ? 'image/jpeg' : `image/${ext}`;
+          const b64 = await zip.files[mf].async('base64');
+          const dataUrl = `data:${mime};base64,${b64}`;
+          const { h } = await insertImageDataUrl(dataUrl, 0, cursorY - vy);
+          cursorY += h + 24;
+        }
+
+        if (added.length > 0) {
+          setActiveItems((prev) => [...prev, ...added]);
+        }
+        setImportNotice(
+          'PowerPoint text & images imported. Tip: for exact slide formatting, Save As PDF in PowerPoint and insert the PDF.'
+        );
+      } catch (err) {
+        setImportNotice(
+          `Could not read .pptx: ${err instanceof Error ? err.message : 'unknown error'}`
+        );
+      } finally {
+        setImportingLabel(null);
+      }
+      return;
+    }
+
+    setImportNotice('Unsupported file type. Please choose an Image, PDF, or .pptx file.');
   };
 
   const handleThemeSwitch = (nextTheme: BoardTheme) => {
@@ -1349,6 +1700,31 @@ export const SmartWhiteboard: React.FC<SmartWhiteboardProps> = ({
               </div>
             )}
           </div>
+
+          <div className="h-5 w-px bg-hairline mx-0.5" />
+
+          {/* Insert Image / PDF / PowerPoint */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*,.pdf,.pptx"
+            onChange={handleFileImport}
+            className="hidden"
+          />
+          <button
+            type="button"
+            disabled={Boolean(importingLabel)}
+            onClick={() => fileInputRef.current?.click()}
+            title="Insert Image, PDF, or PowerPoint (.pptx)"
+            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold text-charcoal-900 hover:bg-ivory-200 disabled:opacity-50 transition-colors"
+          >
+            {importingLabel ? (
+              <Loader2 className="w-4 h-4 animate-spin text-burgundy-500" />
+            ) : (
+              <FileUp className="w-4 h-4 text-burgundy-600" />
+            )}
+            <span className="hidden md:inline">Insert</span>
+          </button>
         </div>
 
         {/* Right: Color Palette, Width/Font, Stamp, Export */}
@@ -1362,6 +1738,7 @@ export const SmartWhiteboard: React.FC<SmartWhiteboardProps> = ({
                   key={c.hex}
                   type="button"
                   title={c.name}
+                  onMouseDown={(e) => e.preventDefault()}
                   onClick={() =>
                     tool === 'highlighter' ? setHighlighterColor(c.hex) : setPenColor(c.hex)
                   }
@@ -1381,6 +1758,7 @@ export const SmartWhiteboard: React.FC<SmartWhiteboardProps> = ({
                 <button
                   key={sz}
                   type="button"
+                  onMouseDown={(e) => e.preventDefault()}
                   onClick={() => setFontSize(sz)}
                   className={`px-1.5 py-0.5 rounded font-bold ${
                     fontSize === sz ? 'bg-burgundy-500 text-white' : 'text-charcoal-900 hover:bg-ivory-200'
@@ -1391,6 +1769,7 @@ export const SmartWhiteboard: React.FC<SmartWhiteboardProps> = ({
               ))}
               <button
                 type="button"
+                onMouseDown={(e) => e.preventDefault()}
                 onClick={() => setTextBold((b) => !b)}
                 className={`px-1.5 py-0.5 rounded font-bold ${
                   textBold ? 'bg-charcoal-900 text-white' : 'text-charcoal-900 hover:bg-ivory-200'
@@ -1691,32 +2070,82 @@ export const SmartWhiteboard: React.FC<SmartWhiteboardProps> = ({
 
         {/* Inline Text Input Overlay */}
         {editingText && (
-          <textarea
-            autoFocus
-            dir="auto"
-            rows={2}
-            value={editingText.value}
-            onChange={(e) => setEditingText((t) => (t ? { ...t, value: e.target.value } : null))}
-            onBlur={commitEditingText}
-            onKeyDown={(e) => {
-              if (e.key === 'Escape') {
-                setEditingText(null);
-              } else if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
-                e.preventDefault();
-                commitEditingText();
-              }
-            }}
+          <div
             style={{
-              left: editingText.x * zoom + pan.x,
-              top: editingText.y * zoom + pan.y,
-              fontSize: fontSize * zoom,
-              color: penColor,
-              fontWeight: textBold ? 700 : 500,
-              minWidth: 160,
+              left: Math.max(8, editingText.x * zoom + pan.x),
+              top: Math.max(8, editingText.y * zoom + pan.y),
             }}
-            placeholder="Type here… (Ctrl+Enter)"
-            className="absolute z-40 bg-transparent border border-dashed border-burgundy-500 rounded px-1.5 py-0.5 focus:outline-none resize leading-snug"
-          />
+            className="absolute z-40 flex flex-col gap-1.5"
+          >
+            <textarea
+              ref={textAreaRef}
+              autoFocus
+              dir="auto"
+              rows={2}
+              value={editingText.value}
+              onChange={(e) => setEditingText((t) => (t ? { ...t, value: e.target.value } : null))}
+              onKeyDown={(e) => {
+                if (e.key === 'Escape') {
+                  setEditingText(null);
+                } else if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                  e.preventDefault();
+                  commitEditingText();
+                }
+              }}
+              style={{
+                fontSize: fontSize * zoom,
+                color: penColor,
+                fontWeight: textBold ? 700 : 500,
+                minWidth: 220,
+              }}
+              placeholder="اكتب هنا أو بالإنجليزية…"
+              className={`border-2 border-burgundy-500 rounded-xl px-2.5 py-1.5 focus:outline-none resize leading-snug shadow-editorial ${
+                theme === 'dark' ? 'bg-[#1f242c]/95' : 'bg-white/95'
+              }`}
+            />
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={commitEditingText}
+                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-burgundy-500 hover:bg-burgundy-700 text-white text-[11px] font-bold shadow-sm"
+              >
+                <Check className="w-3 h-3" />
+                <span>Done</span>
+              </button>
+              <button
+                type="button"
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => setEditingText(null)}
+                className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-white border border-hairline text-charcoal-100 hover:text-charcoal-900 text-[11px] font-bold shadow-sm"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Import progress / notice */}
+        {(importingLabel || importNotice) && (
+          <div className="absolute bottom-4 left-4 z-30 flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white border border-hairline shadow-editorial text-xs font-semibold text-charcoal-900 max-w-md">
+            {importingLabel ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin text-burgundy-500 shrink-0" />
+                <span>{importingLabel}</span>
+              </>
+            ) : (
+              <>
+                <span className="leading-snug">{importNotice}</span>
+                <button
+                  type="button"
+                  onClick={() => setImportNotice(null)}
+                  className="p-0.5 text-charcoal-50 hover:text-charcoal-900"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </>
+            )}
+          </div>
         )}
 
         {/* Bottom-Right Zoom Controls */}
